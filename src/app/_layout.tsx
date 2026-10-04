@@ -1,18 +1,29 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { useEffect } from 'react';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { supabase } from '../supabase';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+export default function RootLayout() {
+  const router = useRouter();
+  const segments = useSegments();
 
-SplashScreen.preventAutoHideAsync();
+  useEffect(() => {
+    // Слушаем изменения состояния авторизации в Supabase
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      const inHome = segments[0] === 'home';
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
-  );
+      if (session && !inHome) {
+        // Если пользователь авторизован, отправляем на /home
+        router.replace('/home');
+      } else if (!session && inHome) {
+        // Если сессии нет, отправляем на экран входа /
+        router.replace('/');
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [segments]);
+
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
