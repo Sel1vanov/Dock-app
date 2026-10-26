@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Dock",
+    "slug": "dock",
+    "version": "0.6.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ru.dock.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Камера нужна для фотофиксации груза и съёмки документов",
+        "NSPhotoLibraryUsageDescription": "Доступ к галерее нужен для загрузки фото груза и документов"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0A1630",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "ru.dock.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Камера нужна для фотофиксации груза и съёмки документов",
+          "photosPermission": "Доступ к галерее нужен для загрузки фото груза и документов"
+        }
+      ],
+      "expo-font"
+    ],
+    "scheme": "dock"
+  }
+}
