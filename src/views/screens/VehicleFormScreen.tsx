@@ -1,7 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { CARGO_TYPES, VEHICLE_TYPES } from '../../models/catalog';
+import { VEHICLE_TYPES } from '../../models/catalog';
 import { useVehicleFormViewModel } from '../../viewmodels/ProfileViewModels';
+import { useCargoTypes } from '../../viewmodels/useCargoTypes';
 import {
   Banner,
   Button,
@@ -19,6 +20,7 @@ import { colors, font, spacing } from '../theme';
 export function VehicleFormScreen({ vehicleId }: { vehicleId?: string }) {
   const vm = useVehicleFormViewModel(vehicleId);
   const { values, errors } = vm;
+  const cargoTypes = useCargoTypes();
 
   if (vm.isLoading) return <LoadingView />;
   if (vm.loadError) return <EmptyState icon="alert-circle" title="ТС недоступно" text={vm.loadError} />;
@@ -51,7 +53,7 @@ export function VehicleFormScreen({ vehicleId }: { vehicleId?: string }) {
 
       <SectionTitle title="Какие грузы возите" />
       <View style={styles.chips}>
-        {CARGO_TYPES.map((t) => (
+        {cargoTypes.map((t) => (
           <Chip
             key={t.value}
             icon={t.icon}

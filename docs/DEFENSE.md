@@ -1,0 +1,86 @@
+# Шпаргалка для защиты: кейсы 1–6
+
+Перед показом: `docker compose up -d` (или Supabase в `server/.env`) → в `server/`: `npm run db:migrate`,
+`npm run db:seed -- --fresh`, `npm run dev` → в корне: `npm run web` (или `npm start` + Expo Go).
+Пароль демо-пользователей — `Dock12345`.
+
+---
+
+## Кейс 1. Финальный интерфейс
+
+| Требование | Где и как показать |
+|---|---|
+| Экраны | Вход/регистрация, «Мои заявки», «Создать», карточка заявки, рейс, «Поиск грузов», «Мои рейсы», профиль, ТС, верификация, модерация (`src/app`, `src/views/screens`) |
+| Список, просмотр, создание, изменение, удаление | `client@dock.ru`: «Создать» → заявка в списке → открыть → «Изменить» → «Удалить». ТС: профиль водителя → «Добавить» / нажать на ТС (изменить) / корзина |
+| Серверный поиск, фильтр, сортировка | «Мои заявки»: строка поиска, чипы типов груза, «Сначала новые / Дороже…», «Активные / Архив». Всё уходит параметрами `q`, `cargoType`, `sort`, `status` в `GET /orders` |
+| ⭐ Загрузка частями | списки грузятся по 10 записей, следующие — при прокрутке (`limit`/`offset`, `usePagedQuery` в `src/viewmodels/useAsync.ts`, `PagedList` в `src/views/components/lists.tsx`); внизу «Показаны все: N» |
+| Проверка полей до запроса | пустая форма входа или заявки → ошибки под полями без запроса (zod, `src/models/schemas.ts`) |
+| Загрузка / успех / ошибка сервера | индикаторы загрузки; зелёные уведомления «Заявка опубликована», «Изменения сохранены»; ошибки сервера — баннер или диалог (неверный пароль, «Нет соединения с сервером» при выключенном API) |
+| Реальное API | все действия идут в Dock API (`src/repositories`), видно в журнале сервера |
+| Выход | Профиль → «Выйти»: токен удаляется, открывается экран входа |
+| Единый стиль, логичная навигация | общие токены `src/views/theme.ts` и компоненты `ui.tsx`; вкладки по ролям; нет пустых кнопок |
+
+## Кейс 2. API
+
+| Требование | Где |
+|---|---|
+| Версионирование | `/api/v1/…` (`server/src/routers/index.ts`) |
+| Отдельные схемы для создания/изменения/ответа | `server/src/schemas`: `OrderCreateRequest` / `OrderUpdateRequest` / `OrderDetailsResponse` и т. д. |
+| Типы, обязательные поля, допустимые значения | zod-схемы + `.strict()`; в Swagger попробовать `POST /orders` с `"price": "дорого"` → 422 с ошибками по полям |
+| Коды 200, 201, 204, 401, 403, 404, 409, 422 | таблица в [API.md](API.md); все покрыты тестами |
+| Ошибки без внутренних исключений | `core/errorHandler.ts`; тест «ответы об ошибках не раскрывают внутренние детали» |
+| Swagger | <http://localhost:8000/docs> |
+
+## Кейс 3. PostgreSQL
+
+| Требование | Где |
+|---|---|
+| ≥ 7 таблиц, 2+ связи 1:N, N:M через промежуточную | 9 таблиц; N:M `vehicles ↔ cargo_types` через `vehicle_cargo_types` — [DATABASE.md](DATABASE.md) |
+| PK, типы, NOT NULL, UNIQUE, CHECK, FK | таблица ограничений в DATABASE.md, код — `server/src/database/migrations` |
+| Обоснование CASCADE / RESTRICT / SET NULL | раздел «Правила удаления» в DATABASE.md |
+| Нормализация | раздел «Нормализация» |
+| Индексы под запросы | раздел «Индексы» (каждый с запросом, который он ускоряет) |
+| Начальные данные | `npm run db:seed` |
+| Начальная + последующая миграция | `Migration…_initial_schema`, `Migration…_verification_and_search` (изменение с переносом данных) |
+| Развёртывание пустой БД только миграциями | `npm run db:migrate` на пустой базе; тест `01-database.test.ts` |
+| Ограничения на уровне БД | показать: `update orders set price = -1 …` → ошибка CHECK |
+
+## Кейс 4. ORM
+
+Подробно — [ORM.md](ORM.md). Что сказать на защите:
+
+- **Модели** — `@Entity`, `@Property`, `@PrimaryKey` (аналог `DeclarativeBase`, `Mapped`, `mapped_column`).
+- **Связи** — `@ManyToOne` с `deleteRule` (FOREIGN KEY), `@OneToMany` / `@ManyToMany` (relationship).
+- **Session** — `EntityManager`, своя на каждый запрос (`dependencies.ts`), чтение через `em.find` / QueryBuilder.
+- **flush** отправляет накопленные изменения в одной транзакции; **commit** фиксирует, **rollback** отменяет всё.
+  Многошаговая операция «выбрать исполнителя» — `BidService.accept`: `begin → SELECT … FOR UPDATE → UPDATE → commit`,
+  при ошибке `rollback` (тест имитирует сбой и проверяет, что БД не изменилась).
+- **selectinload / joinedload** — `strategy: 'select-in'` для коллекций и `'joined'` для связей «к одному»;
+  N+1 нет — тест считает SQL-запросы (список — 4, карточка — 9 при любом числе записей).
+- ⭐ Условия, сортировка, LIMIT/OFFSET — `OrderRepository`; ⭐ без SQL-конкатенации — параметры + экранирование LIKE.
+- Модели ORM отдельно от схем API (`models/` и `schemas/`).
+- Показать SQL: `DB_DEBUG=true` в `server/.env` → в консоли сервера видны запросы с `join` и `in (…)`.
+
+## Кейс 5. Архитектура
+
+| Требование | Где |
+|---|---|
+| routers, services, repositories, models, schemas, database | `server/src/*` — [ARCHITECTURE.md](ARCHITECTURE.md) |
+| Router — HTTP, Service — правила, Repository — данные | ни одного обращения к БД в `routers/` |
+| Session через зависимости | `server/src/dependencies.ts` (`getSession`, `services`, `authenticate`, `requireRole`) |
+| Конфигурация из переменных окружения | `server/src/core/config.ts`, `server/.env.example` |
+| Обработка исключений и журналирование | `core/errorHandler.ts`, журнал pino в консоли сервера |
+| ≥ 5 тестов API: создание, получение, изменение, удаление, ошибка | `server/tests/03-orders-crud.test.ts` (+ ещё 29 тестов) — `npm run test:server` |
+| Сохранение в PostgreSQL и доступность после повторного запроса | там же: строка читается прямым SQL, затем повторным `GET` |
+| README: БД, миграции, сервер, клиент | [README.md](../README.md) |
+
+## Кейс 6. Безопасность
+
+Подробно — [SECURITY.md](SECURITY.md). Показать в Swagger:
+
+1. `POST /auth/register` с `passwordConfirm`, не совпадающим с паролем → 422; повтор email → 409.
+2. `GET /users/me` без «Authorize» → 401; с токеном → 200, в ответе нет пароля и хеша.
+3. Под `stroytech@dock.ru` открыть заявку `client@dock.ru` → 403.
+4. `GET /admin/users` под водителем → 403.
+5. В БД: `select password_hash from users limit 1` → `$2b$12$…` (bcrypt).
+6. В приложении: «Выйти» → токен удалён; истёкший токен → экран входа с сообщением.

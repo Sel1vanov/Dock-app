@@ -1,7 +1,7 @@
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { CARGO_TYPES } from '../../models/catalog';
 import { useOrderFormViewModel } from '../../viewmodels/OrderViewModels';
+import { useCargoTypes } from '../../viewmodels/useCargoTypes';
 import { DimensionTiles, GradientHeader } from '../components/order';
 import {
   Banner,
@@ -23,6 +23,7 @@ import { colors, font, radius, spacing } from '../theme';
 export function OrderFormScreen({ orderId }: { orderId?: string }) {
   const vm = useOrderFormViewModel(orderId);
   const { values, errors } = vm;
+  const cargoTypes = useCargoTypes();
 
   if (vm.isLoading) return <LoadingView />;
   if (vm.loadError) return <EmptyState icon="alert-circle" title="Заявка недоступна" text={vm.loadError} />;
@@ -36,7 +37,7 @@ export function OrderFormScreen({ orderId }: { orderId?: string }) {
       <ScreenScroll>
         <SectionTitle title="Тип груза" />
         <View style={styles.types}>
-          {CARGO_TYPES.map((t) => {
+          {cargoTypes.map((t) => {
             const selected = values.type === t.value;
             return (
               <Pressable

@@ -14,8 +14,9 @@ import {
   View,
 } from 'react-native';
 
-import { CARGO_TYPES, ORDER_SORT_OPTIONS } from '../../models/catalog';
+import { ORDER_SORT_OPTIONS } from '../../models/catalog';
 import type { CargoType, OrderSort } from '../../models/dto';
+import { useCargoTypes } from '../../viewmodels/useCargoTypes';
 import { colors, font, radius, spacing } from '../theme';
 import { Chip, Icon } from './ui';
 
@@ -69,6 +70,7 @@ export function OrderFilterBar({
   onSort: (v: OrderSort) => void;
 }) {
   const [sortOpen, setSortOpen] = useState(false);
+  const cargoTypes = useCargoTypes();
   const current = ORDER_SORT_OPTIONS.find((o) => o.value === sort) ?? ORDER_SORT_OPTIONS[0];
   return (
     <>
@@ -83,7 +85,7 @@ export function OrderFilterBar({
           <Chip icon={current.icon} label={current.label} onPress={() => setSortOpen(true)} />
           <View style={s.divider} />
           <Chip label="Все грузы" selected={cargoType === null} onPress={() => onCargoType(null)} />
-          {CARGO_TYPES.map((t) => (
+          {cargoTypes.map((t) => (
             <Chip
               key={t.value}
               icon={t.icon}

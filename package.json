@@ -35,7 +35,9 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "format": "prettier --write src server/src server/tests"
+    "format": "prettier --write src server/src server/tests",
+    "server": "npm --prefix server run dev",
+    "test:server": "npm --prefix server test"
   },
   "private": true
 }
