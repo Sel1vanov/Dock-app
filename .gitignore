@@ -42,3 +42,6 @@ yarn-error.*
 
 # Supabase keys
 .env
+
+# server: загруженные файлы
+server/storage/

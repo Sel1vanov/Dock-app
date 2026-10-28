@@ -1,0 +1,35 @@
+/**
+ * CLI миграций (аналог `alembic upgrade/downgrade/current`):
+ *   npm run db:migrate            — применить все новые миграции
+ *   npm run db:migrate -- down    — откатить последнюю миграцию
+ *   npm run db:migrate -- status  — какие миграции применены, какие ждут
+ */
+import { loadConfig, loadEnvFile } from '../core/config.js';
+import { initOrm } from './orm.js';
+
+loadEnvFile();
+const orm = await initOrm(loadConfig());
+const command = process.argv[2] ?? 'up';
+
+try {
+  if (command === 'up') {
+    const applied = await orm.migrator.up();
+    console.log(applied.length ? `Применены: ${applied.map((m) => m.name).join(', ')}` : 'Новых миграций нет');
+  } else if (command === 'down') {
+    const reverted = await orm.migrator.down();
+    console.log(reverted.length ? `Откачены: ${reverted.map((m) => m.name).join(', ')}` : 'Нечего откатывать');
+  } else if (command === 'status') {
+    const executed = await orm.migrator.getExecuted();
+    const pending = await orm.migrator.getPending();
+    for (const m of executed) console.log(`[применена] ${m.name}`);
+    for (const m of pending) console.log(`[ожидает]   ${m.name}`);
+  } else {
+    console.error(`Неизвестная команда: ${command}. Используйте up | down | status`);
+    process.exitCode = 1;
+  }
+} catch (e) {
+  console.error('Ошибка миграции:', e instanceof Error ? e.message : e);
+  process.exitCode = 1;
+} finally {
+  await orm.close();
+}
