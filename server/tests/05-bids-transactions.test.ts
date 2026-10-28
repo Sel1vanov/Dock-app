@@ -69,8 +69,15 @@ describe('Отклики и выбор исполнителя', () => {
     const strangerAttempt = await api(ctx, 'POST', `/bids/${chosen.id}/accept`, { token: d1.token });
     assert.equal(strangerAttempt.statusCode, 403);
 
+    ctx.queries.length = 0;
     const accepted = await api(ctx, 'POST', `/bids/${chosen.id}/accept`, { token: client.token });
     assert.equal(accepted.statusCode, 200);
+    const sql = ctx.queries.join('\n');
+    assert.match(
+      sql,
+      /\bbegin\b[\s\S]*for update[\s\S]*update "orders"[\s\S]*update "bids"[\s\S]*\bcommit\b/,
+      'одна транзакция с блокировкой строки',
+    );
     assert.equal(accepted.data.driver.phone !== null, true, 'после назначения контакты видны');
 
     const { order: row, bids } = await state(order.id);
@@ -95,6 +102,7 @@ describe('Отклики и выбор исполнителя', () => {
     BidRepository.prototype.rejectPendingExcept = async () => {
       throw new Error('Сбой соединения с БД (имитация)');
     };
+    ctx.queries.length = 0;
     try {
       const res = await api(ctx, 'POST', `/bids/${bid.id}/accept`, { token: client.token });
       assert.equal(res.statusCode, 500);
@@ -107,6 +115,7 @@ describe('Отклики и выбор исполнителя', () => {
       BidRepository.prototype.rejectPendingExcept = original;
     }
 
+    assert.match(ctx.queries.join('\n'), /update "orders"[\s\S]*\brollback\b/, 'изменения отменены командой rollback');
     const { order: row, bids } = await state(order.id);
     assert.deepEqual([row.status, row.driver_id, Number(row.price)], ['Bidding', null, 45000], 'заказ не изменился');
     assert.deepEqual(

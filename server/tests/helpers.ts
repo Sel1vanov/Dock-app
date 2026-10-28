@@ -52,8 +52,10 @@ export async function setupTestApp(): Promise<TestContext> {
   const queries: string[] = [];
   const orm = await initOrm(config, {
     debug: ['query'],
+    colors: false,
     logger: (message) => {
-      if (/^\[query\]/.test(message)) queries.push(message);
+      const plain = message.replace(/\x1b\[[0-9;]*m/g, '');
+      if (plain.includes('[query]')) queries.push(plain);
     },
   });
   await orm.schema.ensureDatabase();

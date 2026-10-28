@@ -36,6 +36,7 @@ describe('Загрузка связей без N+1', () => {
     await addOrders(10);
     const large = await countQueries(list);
     assert.equal((await list()).data.items.length, 12);
+    assert.ok(small > 0, 'SQL-запросы перехватываются');
     assert.equal(small, large, `запросов: ${small} против ${large}`);
     assert.ok(large <= 5, `ожидалось не больше 5 запросов, выполнено ${large}`);
   });
@@ -55,6 +56,7 @@ describe('Загрузка связей без N+1', () => {
     }
     const five = await countQueries(details);
     assert.equal((await details()).data.bids.length, 5);
+    assert.ok(one > 0, 'SQL-запросы перехватываются');
     assert.equal(one, five, `запросов: ${one} против ${five}`);
   });
 });
