@@ -136,16 +136,29 @@ export function Chip({
   icon,
   selected,
   onPress,
+  onDark,
 }: {
   label: string;
   icon?: string;
   selected?: boolean;
   onPress?: () => void;
+  /** Чип на тёмной шапке: выбранный выделяется акцентным цветом. */
+  onDark?: boolean;
 }) {
+  const fg = selected || onDark ? colors.white : colors.navy700;
   return (
-    <Pressable onPress={onPress} style={[styles.chip, selected && styles.chipSelected]}>
-      {icon ? <Icon name={icon} size={16} color={selected ? colors.white : colors.navy700} /> : null}
-      <Text style={[styles.chipText, selected && { color: colors.white }]}>{label}</Text>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: Boolean(selected) }}
+      style={[
+        styles.chip,
+        onDark && styles.chipOnDark,
+        selected && (onDark ? styles.chipSelectedOnDark : styles.chipSelected),
+      ]}
+    >
+      {icon ? <Icon name={icon} size={16} color={fg} /> : null}
+      <Text style={[styles.chipText, { color: fg }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -376,6 +389,8 @@ export const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   chipSelected: { backgroundColor: colors.navy800, borderColor: colors.navy800 },
+  chipOnDark: { backgroundColor: 'rgba(255,255,255,0.10)', borderColor: 'rgba(255,255,255,0.18)' },
+  chipSelectedOnDark: { backgroundColor: colors.accent, borderColor: colors.accent },
   chipText: { ...font.small, fontWeight: '600', color: colors.navy700 },
   segmented: {
     flexDirection: 'row',

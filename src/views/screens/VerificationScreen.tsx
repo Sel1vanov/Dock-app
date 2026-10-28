@@ -12,31 +12,49 @@ export function VerificationScreen() {
   return (
     <ScreenScroll>
       <Banner
-        tone={vm.status === 'pending' ? 'info' : 'warning'}
-        icon={vm.status === 'pending' ? 'clock-outline' : 'shield-alert'}
-        title={vm.status === 'pending' ? 'Документы на проверке' : 'Проверка документов'}
+        tone={
+          vm.status === 'pending'
+            ? 'info'
+            : vm.status === 'rejected'
+              ? 'danger'
+              : vm.status === 'verified'
+                ? 'success'
+                : 'warning'
+        }
+        icon={vm.status === 'pending' ? 'clock-outline' : vm.status === 'verified' ? 'shield-check' : 'shield-alert'}
+        title={
+          vm.status === 'pending'
+            ? 'Документы на проверке'
+            : vm.status === 'rejected'
+              ? 'Документы отклонены — загрузите их заново'
+              : vm.status === 'verified'
+                ? 'Документы подтверждены'
+                : 'Проверка документов'
+        }
         text="Фото документов видит только администратор платформы. После проверки откроется доступ к откликам на заявки."
       />
 
       {vm.docs.map((doc) => (
-        <Card key={doc.key} onPress={vm.uploadingKey ? undefined : () => vm.uploadDoc(doc.key)}>
+        <Card key={doc.key} onPress={vm.uploadingKey || !vm.canEditDocs ? undefined : () => vm.uploadDoc(doc.key)}>
           <View style={styles.row}>
-            <View style={[styles.icon, doc.isUploaded && { backgroundColor: colors.successSoft }]}>
+            <View style={[styles.icon, Boolean(doc.document) && { backgroundColor: colors.successSoft }]}>
               <Icon
-                name={doc.isUploaded ? 'check-circle' : doc.icon}
+                name={Boolean(doc.document) ? 'check-circle' : doc.icon}
                 size={26}
-                color={doc.isUploaded ? colors.success : colors.navy700}
+                color={Boolean(doc.document) ? colors.success : colors.navy700}
               />
             </View>
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={font.h3}>{doc.label}</Text>
-              <Text style={styles.meta}>{doc.isUploaded ? 'Загружено · нажмите, чтобы заменить' : doc.hint}</Text>
+              <Text style={styles.meta}>
+                {doc.document ? (vm.canEditDocs ? 'Загружено · нажмите, чтобы заменить' : 'Загружено') : doc.hint}
+              </Text>
             </View>
             {vm.uploadingKey === doc.key ? (
               <ActivityIndicator color={colors.accent} />
-            ) : (
+            ) : !vm.canEditDocs ? null : (
               <Pressable onPress={() => vm.uploadDoc(doc.key)} style={styles.add}>
-                <Icon name={doc.isUploaded ? 'pencil' : 'camera'} size={20} color={colors.accent} />
+                <Icon name={Boolean(doc.document) ? 'pencil' : 'camera'} size={20} color={colors.accent} />
               </Pressable>
             )}
           </View>
@@ -45,13 +63,15 @@ export function VerificationScreen() {
 
       {vm.error ? <Banner tone="danger" icon="alert-circle" title="Ошибка" text={vm.error} /> : null}
 
-      <Button
-        title={vm.status === 'pending' ? 'Отправить повторно' : 'Отправить на проверку'}
-        icon="shield-check"
-        onPress={vm.submit}
-        disabled={!vm.allUploaded}
-        loading={vm.isSubmitting}
-      />
+      {vm.canEditDocs ? (
+        <Button
+          title="Отправить на проверку"
+          icon="shield-check"
+          onPress={vm.submit}
+          disabled={!vm.allUploaded}
+          loading={vm.isSubmitting}
+        />
+      ) : null}
     </ScreenScroll>
   );
 }

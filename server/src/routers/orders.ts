@@ -56,7 +56,8 @@ export const ordersRouter: FastifyPluginAsyncZod = async (app) => {
         response: { 201: OrderDetailsResponse, ...errorResponses(401, 403, 422) },
       },
     },
-    async (request, reply) => reply.status(201).send(await services(request).orders.create(currentUser(request), request.body)),
+    async (request, reply) =>
+      reply.status(201).send(await services(request).orders.create(currentUser(request), request.body)),
   );
 
   app.get(
@@ -140,7 +141,8 @@ export const ordersRouter: FastifyPluginAsyncZod = async (app) => {
         response: { 200: OrderDetailsResponse, ...errorResponses(401, 403, 404, 409, 422) },
       },
     },
-    async (request) => services(request).tracking.changeStatus(currentUser(request), request.params.id, request.body.status),
+    async (request) =>
+      services(request).tracking.changeStatus(currentUser(request), request.params.id, request.body.status),
   );
 
   app.post(
@@ -156,7 +158,9 @@ export const ordersRouter: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) =>
-      reply.status(201).send(await services(request).tracking.uploadPhoto(currentUser(request), request.params.id, request.body)),
+      reply
+        .status(201)
+        .send(await services(request).tracking.uploadPhoto(currentUser(request), request.params.id, request.body)),
   );
 
   app.post(
@@ -199,6 +203,8 @@ export const ordersRouter: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request, reply) =>
-      reply.status(201).send(await services(request).reviews.create(currentUser(request), request.params.id, request.body)),
+      reply
+        .status(201)
+        .send(await services(request).reviews.create(currentUser(request), request.params.id, request.body)),
   );
 };

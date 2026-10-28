@@ -40,7 +40,10 @@ export const RatingResponse = z
 
 /** Положительное число с ограничением сверху (габариты, масса, цена). */
 export const positive = (max: number, message: string) =>
-  z.number({ error: `${message}: введите число` }).positive(`${message}: должно быть больше нуля`).max(max, `${message}: не больше ${max}`);
+  z
+    .number({ error: `${message}: введите число` })
+    .positive(`${message}: должно быть больше нуля`)
+    .max(max, `${message}: не больше ${max}`);
 
 export const ImageBase64 = z
   .string()

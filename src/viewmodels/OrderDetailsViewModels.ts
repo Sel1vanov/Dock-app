@@ -4,10 +4,14 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 
+import { errorMessage } from '../core/errors';
 import { chooseImageSource, confirmAction, notify, pickImage } from '../core/platform';
+import { showToast } from '../core/toast';
 import {
   canCancel,
   canConfirmDelivery,
+  canDelete,
+  canEdit,
   canPay,
   checkCompatibility,
   driverNextStep,
@@ -28,22 +32,24 @@ const formatPrice = (n: number) => `${n.toLocaleString('ru-RU')} ₽`;
 /** Общая часть: загрузка заказа, роль пользователя в нём и действия, общие для обоих экранов. */
 function useOrderBase(orderId: string) {
   const user = useCurrentUser();
-  const query = useQuery(() => OrderService.getOrderDetails(orderId, user.id), [orderId, user.id]);
+  const query = useQuery(() => OrderService.getOrderDetails(orderId), [orderId, user.id]);
   const order = query.data;
   const isClient = Boolean(order && order.clientId === user.id);
   const isAssignedDriver = Boolean(order && order.driverId === user.id);
 
-  /** Выполнить действие и перечитать заказ. Ошибку показываем диалогом. */
-  const action = useAction(async (fn: () => Promise<unknown>) => {
+  /** Выполнить действие и перечитать заказ. Успех — короткое уведомление, ошибку показываем диалогом. */
+  const action = useAction(async (fn: () => Promise<unknown>, successText?: string) => {
     await fn();
+    if (successText) showToast(successText);
     await query.reload();
   });
+  const { error: actionError, clearError } = action;
   useEffect(() => {
-    if (action.error) {
-      notify('Не получилось', action.error);
-      action.clearError();
+    if (actionError) {
+      notify('Не получилось', actionError);
+      clearError();
     }
-  }, [action.error, action.clearError]);
+  }, [actionError, clearError]);
 
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
@@ -56,12 +62,12 @@ function useOrderBase(orderId: string) {
       notify('Отзыв', checked.errors.rating ?? checked.errors.comment);
       return;
     }
-    void action.run(() => ReviewService.leaveReview(order, user.id, checked.data));
+    void action.run(() => ReviewService.leaveReview(order, user.id, checked.data), 'Спасибо за отзыв!');
   };
 
   const cancelOrder = async (reason: string) => {
     if (!order) return false;
-    return action.run(() => OrderService.cancelOrder(order, reason));
+    return action.run(() => OrderService.cancelOrder(order, reason), 'Заявка отменена');
   };
 
   return {
@@ -92,11 +98,8 @@ export function useOrderDetailsViewModel(orderId: string) {
   const { user, order, isClient, runAction } = base;
   const isDriverRole = user.role === 'Driver';
 
-  const vehiclesQuery = useQuery(isDriverRole ? () => VehicleService.getMyVehicles(user.id) : null, [
-    user.id,
-    isDriverRole,
-  ]);
-  const vehicles = vehiclesQuery.data ?? [];
+  const vehiclesQuery = useQuery(isDriverRole ? () => VehicleService.getMyVehicles() : null, [user.id, isDriverRole]);
+  const vehicles = useMemo(() => vehiclesQuery.data ?? [], [vehiclesQuery.data]);
 
   /** Совместимость груза с ТС водителя (UC-09) — лучшая из машин. */
   const compatibility = useMemo(() => {
@@ -107,9 +110,13 @@ export function useOrderDetailsViewModel(orderId: string) {
 
   const [bidForm, setBidForm] = useState<BidForm>({ price: '', comment: '' });
   const [bidErrors, setBidErrors] = useState<FieldErrors<BidForm>>({});
-  useEffect(() => {
-    if (order) setBidForm({ price: String(order.myBid?.price ?? order.price), comment: '' });
-  }, [order?.id, order?.myBid?.price, order?.price]);
+  // Цена в форме — текущий отклик или цена заказчика; обновляется, когда они меняются на сервере.
+  const bidSource = order ? `${order.id}:${order.myBid?.price ?? order.price}` : null;
+  const [bidFormSource, setBidFormSource] = useState<string | null>(null);
+  if (order && bidSource !== bidFormSource) {
+    setBidFormSource(bidSource);
+    setBidForm({ price: String(order.myBid?.price ?? order.price), comment: '' });
+  }
 
   const setBidField = (key: keyof BidForm, value: string) => {
     setBidForm((f) => ({ ...f, [key]: value }));
@@ -124,16 +131,20 @@ export function useOrderDetailsViewModel(orderId: string) {
       setBidErrors(checked.errors);
       return;
     }
-    const ok = order.myBid
-      ? await runAction(() => BidService.updateBid(order.myBid!.id, checked.data))
-      : await runAction(() => BidService.placeBid(user, vehicles, order, checked.data));
-    if (ok) notify(order.myBid ? 'Отклик обновлён' : 'Отклик отправлен', 'Заказчик увидит ваше предложение');
+    if (order.myBid) {
+      await runAction(() => BidService.updateBid(order.myBid!.id, checked.data), 'Отклик обновлён');
+    } else {
+      await runAction(
+        () => BidService.placeBid(user, vehicles, order, checked.data),
+        'Отклик отправлен — заказчик увидит ваше предложение',
+      );
+    }
   };
 
   const withdrawBid = async () => {
     if (!order?.myBid) return;
     if (await confirmAction('Отозвать отклик?', 'Заказчик больше не увидит ваше предложение', 'Отозвать')) {
-      void runAction(() => BidService.withdrawBid(order.myBid!.id));
+      void runAction(() => BidService.withdrawBid(order.myBid!.id), 'Отклик отозван');
     }
   };
 
@@ -145,17 +156,41 @@ export function useOrderDetailsViewModel(orderId: string) {
       `${bid.driver.fullName} за ${formatPrice(bid.price)}. Остальные отклики будут отклонены.`,
       'Выбрать',
     );
-    if (confirmed) void runAction(() => BidService.acceptBid(bidId));
+    if (confirmed)
+      void runAction(() => BidService.acceptBid(bidId), 'Исполнитель выбран. Оплатите заказ на экране рейса');
   };
 
   const rejectBid = async (bidId: string) => {
     if (await confirmAction('Отклонить отклик?', 'Водитель увидит, что предложение отклонено', 'Отклонить')) {
-      void runAction(() => BidService.rejectBid(bidId));
+      void runAction(() => BidService.rejectBid(bidId), 'Отклик отклонён');
+    }
+  };
+
+  /** Изменение и удаление — только своей заявки, пока на неё нет откликов. */
+  const canEditOrder = Boolean(order && isClient && canEdit(order));
+  const deleteOrder = async () => {
+    if (!order) return;
+    const confirmed = await confirmAction(
+      'Удалить заявку?',
+      'Заявка будет удалена без возможности восстановления',
+      'Удалить',
+    );
+    if (!confirmed) return;
+    try {
+      await OrderService.deleteOrder(order);
+      showToast('Заявка удалена');
+      router.back();
+    } catch (e) {
+      notify('Не получилось', errorMessage(e));
     }
   };
 
   return {
     ...base,
+    canEditOrder,
+    canDeleteOrder: Boolean(order && isClient && canDelete(order)),
+    editOrder: () => router.push(`/order/edit/${orderId}`),
+    deleteOrder,
     isDriverRole,
     vehicles,
     compatibility,
@@ -191,7 +226,7 @@ export function useTrackingViewModel(orderId: string) {
   const advanceStatus = async () => {
     if (!order || nextStep?.kind !== 'status') return;
     if (await confirmAction(nextStep.label, 'Заказчик увидит новый статус рейса', 'Подтвердить')) {
-      void runAction(() => TrackingService.advanceStatus(order));
+      void runAction(() => TrackingService.advanceStatus(order), 'Статус рейса обновлён');
     }
   };
 
@@ -204,7 +239,10 @@ export function useTrackingViewModel(orderId: string) {
     try {
       await runAction(async () => {
         const base64 = await pickImage(source);
-        if (base64) await TrackingService.uploadPhotoReport(order.id, stage, base64);
+        if (base64) {
+          await TrackingService.uploadPhotoReport(order.id, stage, base64);
+          showToast('Фото загружено');
+        }
       });
     } finally {
       setUploadingStage(null);
@@ -218,7 +256,7 @@ export function useTrackingViewModel(orderId: string) {
       `${formatPrice(o.price)} будут заморожены на счёте безопасной сделки и переведены водителю только после приёмки груза.\n\n(Демо-режим: платёжный шлюз подключается на следующем этапе.)`,
       'Оплатить',
     );
-    if (confirmed) void runAction(() => OrderService.payOrder(o));
+    if (confirmed) void runAction(() => OrderService.payOrder(o), 'Оплата заморожена до приёмки груза');
   };
 
   /** UC-18 */
@@ -228,7 +266,8 @@ export function useTrackingViewModel(orderId: string) {
       'Груз получен без повреждений. Средства будут переведены водителю.',
       'Подтвердить',
     );
-    if (confirmed) void runAction(() => OrderService.confirmDelivery(o));
+    if (confirmed)
+      void runAction(() => OrderService.confirmDelivery(o), 'Приёмка подтверждена, средства переведены водителю');
   };
 
   return {

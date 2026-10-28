@@ -1,55 +1,31 @@
-import { toAppError } from '../core/errors';
-import { supabase } from '../core/supabase';
-import type { Tables, TablesInsert } from '../models/database.types';
-import type { OrderListRow } from './OrderRepository';
+import { apiRequest } from '../core/api';
+import type { ApiDriverBid, ApiOrderDetails } from '../models/api';
 
-export type BidRow = Tables<'bids'>;
-
-export type DriverBidRow = BidRow & {
-  order: Omit<OrderListRow, 'bids'> | null;
-};
-
-/** Отклики и торг (таблица public.bids). */
+/** Отклики и торг: /orders/{id}/bids, /bids/… */
 export const BidRepository = {
   /** UC-10 / UC-11: отклик по цене заказчика или со встречной ценой. */
-  async placeBid(bid: TablesInsert<'bids'>): Promise<BidRow> {
-    const { data, error } = await supabase.from('bids').insert(bid).select('*').single();
-    if (error) throw toAppError(error, 'Не удалось отправить отклик');
-    return data;
+  place(orderId: string, price: number, comment: string): Promise<ApiOrderDetails> {
+    return apiRequest('POST', `/orders/${orderId}/bids`, { body: comment ? { price, comment } : { price } });
   },
 
-  async updateBid(bidId: string, offeredPrice: number, comment: string | null): Promise<void> {
-    const { error } = await supabase.from('bids').update({ offered_price: offeredPrice, comment }).eq('id', bidId);
-    if (error) throw toAppError(error, 'Не удалось изменить отклик');
+  update(bidId: string, price: number, comment: string): Promise<ApiOrderDetails> {
+    return apiRequest('PATCH', `/bids/${bidId}`, { body: { price, comment: comment || null } });
   },
 
-  async deleteBid(bidId: string): Promise<void> {
-    const { error } = await supabase.from('bids').delete().eq('id', bidId);
-    if (error) throw toAppError(error, 'Не удалось отозвать отклик');
+  withdraw(bidId: string): Promise<void> {
+    return apiRequest('DELETE', `/bids/${bidId}`);
   },
 
-  /**
-   * UC-06: выбор исполнителя — RPC-функция accept_bid выполняет в одной транзакции
-   * назначение водителя, фиксацию цены и отклонение остальных откликов.
-   */
-  async acceptBid(bidId: string): Promise<void> {
-    const { error } = await supabase.rpc('accept_bid', { p_bid_id: bidId });
-    if (error) throw toAppError(error, 'Не удалось выбрать исполнителя');
+  /** UC-06: выбор исполнителя — на сервере одна транзакция. */
+  accept(bidId: string): Promise<ApiOrderDetails> {
+    return apiRequest('POST', `/bids/${bidId}/accept`);
   },
 
-  async rejectBid(bidId: string): Promise<void> {
-    const { error } = await supabase.from('bids').update({ status: 'Rejected' }).eq('id', bidId);
-    if (error) throw toAppError(error, 'Не удалось отклонить отклик');
+  reject(bidId: string): Promise<ApiOrderDetails> {
+    return apiRequest('POST', `/bids/${bidId}/reject`);
   },
 
-  /** Отклики водителя вместе с заказами — один запрос (связь bids → orders N:1). */
-  async getDriverBids(driverId: string): Promise<DriverBidRow[]> {
-    const { data, error } = await supabase
-      .from('bids')
-      .select('*, order:orders(*, client:users!orders_client_id_fkey(full_name))')
-      .eq('driver_id', driverId)
-      .order('created_at', { ascending: false });
-    if (error) throw toAppError(error, 'Не удалось загрузить отклики');
-    return data as unknown as DriverBidRow[];
+  listMine(): Promise<ApiDriverBid[]> {
+    return apiRequest('GET', '/bids/my');
   },
 };

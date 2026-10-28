@@ -20,4 +20,14 @@ import { Vehicle } from './Vehicle.js';
 import { VehicleCargoType } from './VehicleCargoType.js';
 import { VerificationDocument } from './VerificationDocument.js';
 
-export const entities = [User, CargoType, Vehicle, VehicleCargoType, Order, Bid, OrderPhoto, Review, VerificationDocument];
+export const entities = [
+  User,
+  CargoType,
+  Vehicle,
+  VehicleCargoType,
+  Order,
+  Bid,
+  OrderPhoto,
+  Review,
+  VerificationDocument,
+];

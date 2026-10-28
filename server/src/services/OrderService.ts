@@ -78,7 +78,9 @@ export class OrderService {
     const ids = orders.map((o) => o.id);
     const [counts, myBids] = await Promise.all([
       this.bids.countByOrders(ids),
-      user.role === UserRole.Driver ? this.bids.findByDriverForOrders(user.id, ids) : Promise.resolve(new Map<string, Bid>()),
+      user.role === UserRole.Driver
+        ? this.bids.findByDriverForOrders(user.id, ids)
+        : Promise.resolve(new Map<string, Bid>()),
     ]);
     return orders.map((o) => toOrderListItem(o, { bidsCount: counts.get(o.id) ?? 0, myBid: myBids.get(o.id) ?? null }));
   }

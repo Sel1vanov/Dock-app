@@ -1,7 +1,16 @@
 import { UniqueConstraintViolationException } from '@mikro-orm/core';
 
 import { ConflictError, ForbiddenError, NotFoundError } from '../core/errors.js';
-import { type Bid, BidStatus, type Order, OrderStatus, type User, UserRole, type Vehicle, VerificationStatus } from '../models/index.js';
+import {
+  type Bid,
+  BidStatus,
+  type Order,
+  OrderStatus,
+  type User,
+  UserRole,
+  type Vehicle,
+  VerificationStatus,
+} from '../models/index.js';
 import { BidRepository, OrderRepository, VehicleRepository } from '../repositories/index.js';
 import type { BidCreateInput, BidUpdateInput } from '../schemas/bids.js';
 import type { ServiceContext } from './context.js';

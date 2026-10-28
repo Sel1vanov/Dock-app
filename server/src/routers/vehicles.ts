@@ -29,7 +29,8 @@ export const vehiclesRouter: FastifyPluginAsyncZod = async (app) => {
         response: { 201: VehicleResponse, ...errorResponses(401, 403, 422) },
       },
     },
-    async (request, reply) => reply.status(201).send(await services(request).vehicles.create(currentUser(request), request.body)),
+    async (request, reply) =>
+      reply.status(201).send(await services(request).vehicles.create(currentUser(request), request.body)),
   );
 
   app.get(

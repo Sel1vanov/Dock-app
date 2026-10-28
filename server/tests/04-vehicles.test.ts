@@ -36,7 +36,11 @@ describe('Транспорт водителя', () => {
     const pivot = await ctx.orm.em
       .fork()
       .execute<any[]>('select cargo_type_code from vehicle_cargo_types where vehicle_id = ?', [created.data.id]);
-    assert.deepEqual(pivot.map((r: { cargo_type_code: string }) => r.cargo_type_code), ['Car'], 'промежуточная таблица обновлена');
+    assert.deepEqual(
+      pivot.map((r: { cargo_type_code: string }) => r.cargo_type_code),
+      ['Car'],
+      'промежуточная таблица обновлена',
+    );
 
     const listed = await api(ctx, 'GET', '/vehicles', { token: driver.token });
     assert.equal(listed.data.length, 1);
@@ -53,10 +57,16 @@ describe('Транспорт водителя', () => {
     const vehicle = (await api(ctx, 'POST', '/vehicles', { token: owner.token, body: VEHICLE })).data;
 
     assert.equal((await api(ctx, 'GET', `/vehicles/${vehicle.id}`, { token: other.token })).statusCode, 403);
-    assert.equal((await api(ctx, 'PATCH', `/vehicles/${vehicle.id}`, { token: other.token, body: { model: 'x' } })).statusCode, 403);
+    assert.equal(
+      (await api(ctx, 'PATCH', `/vehicles/${vehicle.id}`, { token: other.token, body: { model: 'x' } })).statusCode,
+      403,
+    );
     assert.equal((await api(ctx, 'DELETE', `/vehicles/${vehicle.id}`, { token: other.token })).statusCode, 403);
     assert.equal((await api(ctx, 'GET', '/vehicles', { token: client.token })).statusCode, 403);
-    const bad = await api(ctx, 'POST', '/vehicles', { token: owner.token, body: { ...VEHICLE, cargoTypeCodes: ['Rocket'] } });
+    const bad = await api(ctx, 'POST', '/vehicles', {
+      token: owner.token,
+      body: { ...VEHICLE, cargoTypeCodes: ['Rocket'] },
+    });
     assert.equal(bad.statusCode, 422);
     const empty = await api(ctx, 'PATCH', `/vehicles/${vehicle.id}`, { token: owner.token, body: {} });
     assert.equal(empty.statusCode, 422);

@@ -66,7 +66,12 @@ export function registerErrorHandler(app: FastifyInstance) {
     if (status === 413) return send(reply, 413, 'PAYLOAD_TOO_LARGE', 'Слишком большой запрос (файл больше 5 МБ)');
     if (status === 429) return send(reply, 429, 'TOO_MANY_REQUESTS', 'Слишком много попыток. Повторите через минуту');
     if (status >= 400 && status < 500) {
-      return send(reply, 400, 'BAD_REQUEST', error.code === 'FST_ERR_CTP_INVALID_JSON_BODY' ? 'Некорректный JSON' : 'Некорректный запрос');
+      return send(
+        reply,
+        400,
+        'BAD_REQUEST',
+        error.code === 'FST_ERR_CTP_INVALID_JSON_BODY' ? 'Некорректный JSON' : 'Некорректный запрос',
+      );
     }
 
     request.log.error({ err: error }, 'unhandled error');

@@ -1,49 +1,32 @@
 import { AppError } from '../core/errors';
-import type { RatingDTO, UserDTO } from '../models/dto';
-import { toRatingDTO, toUserDTO } from '../models/mappers';
-import { ReviewRepository } from '../repositories/ReviewRepository';
-import { StorageRepository } from '../repositories/StorageRepository';
+import type { DocumentDTO, DocumentType, UserDTO } from '../models/dto';
+import { toDocumentDTO, toUserDTO } from '../models/mappers';
 import { UserRepository } from '../repositories/UserRepository';
 
 /** Документы для верификации водителя (UC-01). */
-export const VERIFICATION_DOCS = [
+export const VERIFICATION_DOCS: { key: DocumentType; label: string; hint: string; icon: string }[] = [
   { key: 'passport', label: 'Паспорт', hint: 'Разворот с фото', icon: 'card-account-details' },
   { key: 'license', label: 'Водительское удостоверение', hint: 'Лицевая сторона', icon: 'steering' },
   { key: 'sts', label: 'СТС', hint: 'Свидетельство о регистрации ТС', icon: 'file-document-outline' },
-] as const;
-
-export type VerificationDocKey = (typeof VERIFICATION_DOCS)[number]['key'];
+];
 
 export const ProfileService = {
-  async getRating(userId: string): Promise<RatingDTO | null> {
-    const ratings = await ReviewRepository.getRatings([userId]);
-    return toRatingDTO(userId, ratings);
+  async updateProfile(patch: { fullName: string; phone: string }): Promise<UserDTO> {
+    return toUserDTO(await UserRepository.updateMe(patch));
   },
 
-  /** Какие документы уже загружены: documents/{userId}/{docKey}-{время}.jpg */
-  async getUploadedDocs(userId: string): Promise<VerificationDocKey[]> {
-    const paths = await StorageRepository.listFolder('documents', userId);
-    const keys = new Set<VerificationDocKey>();
-    for (const path of paths) {
-      const name = path.split('/').pop() ?? '';
-      const doc = VERIFICATION_DOCS.find((d) => name.startsWith(`${d.key}-`));
-      if (doc) keys.add(doc.key);
-    }
-    return [...keys];
+  async getDocuments(): Promise<DocumentDTO[]> {
+    return (await UserRepository.listDocuments()).map(toDocumentDTO);
   },
 
-  async uploadDoc(userId: string, key: VerificationDocKey, base64: string): Promise<void> {
-    await StorageRepository.uploadBase64('documents', `${userId}/${key}-${Date.now()}.jpg`, base64, 'image/jpeg');
+  async uploadDoc(key: DocumentType, base64: string): Promise<void> {
+    await UserRepository.uploadDocument(key, base64);
   },
 
-  /** Отправка на проверку: путь к папке с документами — признак статуса «На проверке». */
-  async submitForVerification(userId: string): Promise<UserDTO> {
-    const uploaded = await ProfileService.getUploadedDocs(userId);
+  /** Отправка на проверку: нужны все три документа (сервер проверит то же самое). */
+  async submitForVerification(uploaded: DocumentType[]): Promise<UserDTO> {
     const missing = VERIFICATION_DOCS.filter((d) => !uploaded.includes(d.key));
-    if (missing.length > 0) {
-      throw new AppError(`Загрузите: ${missing.map((d) => d.label).join(', ')}`);
-    }
-    const row = await UserRepository.updateProfile(userId, { verification_doc_url: `documents/${userId}/` });
-    return toUserDTO(row);
+    if (missing.length > 0) throw new AppError(`Загрузите: ${missing.map((d) => d.label).join(', ')}`);
+    return toUserDTO(await UserRepository.submitVerification());
   },
 };

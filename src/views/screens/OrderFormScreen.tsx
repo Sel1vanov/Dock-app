@@ -1,22 +1,38 @@
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CARGO_TYPES } from '../../models/catalog';
-import { useOrderCreateViewModel } from '../../viewmodels/OrderViewModels';
+import { useOrderFormViewModel } from '../../viewmodels/OrderViewModels';
 import { DimensionTiles, GradientHeader } from '../components/order';
-import { Banner, Button, Card, Icon, ScreenScroll, SectionTitle, TextField } from '../components/ui';
+import {
+  Banner,
+  Button,
+  Card,
+  EmptyState,
+  Icon,
+  LoadingView,
+  ScreenScroll,
+  SectionTitle,
+  TextField,
+} from '../components/ui';
 import { colors, font, radius, spacing } from '../theme';
 
-/** OrderCreateScreen (SAD 5.2): UC-03 «Создать заявку», UC-04 «Указать габариты и вес», UC-05 «Маршрут». */
-export function OrderCreateScreen() {
-  const vm = useOrderCreateViewModel();
+/**
+ * OrderCreateScreen (SAD 5.2): UC-03 «Создать заявку», UC-04 «Указать габариты и вес», UC-05 «Маршрут».
+ * С параметром orderId тот же экран изменяет заявку (пока на неё нет откликов).
+ */
+export function OrderFormScreen({ orderId }: { orderId?: string }) {
+  const vm = useOrderFormViewModel(orderId);
   const { values, errors } = vm;
+
+  if (vm.isLoading) return <LoadingView />;
+  if (vm.loadError) return <EmptyState icon="alert-circle" title="Заявка недоступна" text={vm.loadError} />;
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.bg }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <GradientHeader subtitle="Новая заявка" title="Что перевозим?" />
+      {vm.isEdit ? null : <GradientHeader subtitle="Новая заявка" title="Что перевозим?" />}
       <ScreenScroll>
         <SectionTitle title="Тип груза" />
         <View style={styles.types}>
@@ -43,6 +59,7 @@ export function OrderCreateScreen() {
             onChangeText={(t) => vm.setField('description', t)}
             error={errors.description}
             multiline
+            maxLength={500}
           />
         </Card>
 
@@ -122,7 +139,7 @@ export function OrderCreateScreen() {
           <Text style={styles.note}>Выбор точек на карте появится на следующем этапе.</Text>
         </Card>
 
-        <SectionTitle title="Начальная цена" />
+        <SectionTitle title={vm.isEdit ? 'Цена' : 'Начальная цена'} />
         <Card>
           <TextField
             suffix="₽"
@@ -136,9 +153,19 @@ export function OrderCreateScreen() {
         </Card>
 
         {vm.submitError ? (
-          <Banner tone="danger" icon="alert-circle" title="Не удалось опубликовать" text={vm.submitError} />
+          <Banner
+            tone="danger"
+            icon="alert-circle"
+            title={vm.isEdit ? 'Не удалось сохранить' : 'Не удалось опубликовать'}
+            text={vm.submitError}
+          />
         ) : null}
-        <Button title="Опубликовать заявку" icon="check-circle" onPress={vm.submit} loading={vm.isSubmitting} />
+        <Button
+          title={vm.isEdit ? 'Сохранить изменения' : 'Опубликовать заявку'}
+          icon="check-circle"
+          onPress={vm.submit}
+          loading={vm.isSubmitting}
+        />
       </ScreenScroll>
     </KeyboardAvoidingView>
   );

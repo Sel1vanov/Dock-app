@@ -35,7 +35,9 @@ describe('Регистрация и вход', () => {
     assert.ok(!('password' in res.data.user) && !('passwordHash' in res.data.user));
     assert.ok(!res.body.includes('Secret123'));
 
-    const rows = await ctx.orm.em.fork().execute<any[]>('select password_hash from users where email = ?', ['new.user@mail.ru']);
+    const rows = await ctx.orm.em
+      .fork()
+      .execute<any[]>('select password_hash from users where email = ?', ['new.user@mail.ru']);
     assert.match(rows[0].password_hash, /^\$2[aby]\$12\$/, 'bcrypt с cost 12');
   });
 
@@ -56,7 +58,10 @@ describe('Регистрация и вход', () => {
     for (const [body, field] of cases) {
       const res = await api(ctx, 'POST', '/auth/register', { body });
       assert.equal(res.statusCode, 422, `поле ${field}`);
-      assert.ok(res.data.error.details.some((d: { field: string }) => d.field === field), `ошибка для ${field}`);
+      assert.ok(
+        res.data.error.details.some((d: { field: string }) => d.field === field),
+        `ошибка для ${field}`,
+      );
     }
   });
 
@@ -66,8 +71,12 @@ describe('Регистрация и вход', () => {
     const decoded = jwt.decode(ok.data.accessToken) as jwt.JwtPayload;
     assert.equal((decoded.exp ?? 0) - (decoded.iat ?? 0), 3600, 'токен живёт ограниченное время');
 
-    const wrongPassword = await api(ctx, 'POST', '/auth/login', { body: { email: VALID.email, password: 'Wrong1234' } });
-    const unknownEmail = await api(ctx, 'POST', '/auth/login', { body: { email: 'nobody@mail.ru', password: 'Wrong1234' } });
+    const wrongPassword = await api(ctx, 'POST', '/auth/login', {
+      body: { email: VALID.email, password: 'Wrong1234' },
+    });
+    const unknownEmail = await api(ctx, 'POST', '/auth/login', {
+      body: { email: 'nobody@mail.ru', password: 'Wrong1234' },
+    });
     assert.equal(wrongPassword.statusCode, 401);
     assert.equal(unknownEmail.statusCode, 401);
     assert.equal(wrongPassword.data.error.message, unknownEmail.data.error.message);

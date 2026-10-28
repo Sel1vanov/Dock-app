@@ -2,7 +2,12 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 
 import { currentUser, requireRole, services } from '../dependencies.js';
 import { UserRole } from '../models/index.js';
-import { AdminUserDetailsResponse, AdminUserPageResponse, AdminUsersQuery, AdminUserUpdateRequest } from '../schemas/admin.js';
+import {
+  AdminUserDetailsResponse,
+  AdminUserPageResponse,
+  AdminUsersQuery,
+  AdminUserUpdateRequest,
+} from '../schemas/admin.js';
 import { errorResponses, IdParams } from '../schemas/common.js';
 
 /** Модерация (только роль Admin): проверка документов водителей и блокировка. */

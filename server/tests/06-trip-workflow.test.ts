@@ -6,7 +6,15 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 
-import { type TestContext, TINY_JPEG, api, createOrder, createVerifiedDriver, registerUser, setupTestApp } from './helpers.js';
+import {
+  type TestContext,
+  TINY_JPEG,
+  api,
+  createOrder,
+  createVerifiedDriver,
+  registerUser,
+  setupTestApp,
+} from './helpers.js';
 
 let ctx: TestContext;
 before(async () => {
@@ -27,7 +35,8 @@ describe('Исполнение рейса', () => {
     const feed = await api(ctx, 'GET', `/orders/feed?vehicleId=${driver.vehicleId}`, { token: driver.token });
     assert.ok(feed.data.items.some((o: { id: string }) => o.id === order.id));
 
-    const bid = (await api(ctx, 'POST', `/orders/${order.id}/bids`, { token: driver.token, body: { price: 44000 } })).data.myBid;
+    const bid = (await api(ctx, 'POST', `/orders/${order.id}/bids`, { token: driver.token, body: { price: 44000 } }))
+      .data.myBid;
     await api(ctx, 'POST', `/bids/${bid.id}/accept`, { token: client.token });
 
     // До оплаты рейс начать нельзя
@@ -42,10 +51,16 @@ describe('Исполнение рейса', () => {
 
     assert.equal((await status('/status', { status: 'Loading' })).data.status, 'Loading');
     assert.equal((await status('/status', { status: 'InTransit' })).statusCode, 409, 'без фото погрузки — нельзя');
-    assert.equal((await api(ctx, 'POST', `/orders/${order.id}/photos`, {
-      token: outsider.token,
-      body: { stage: 'Loading', imageBase64: TINY_JPEG },
-    })).statusCode, 403, 'фото загружает только назначенный водитель');
+    assert.equal(
+      (
+        await api(ctx, 'POST', `/orders/${order.id}/photos`, {
+          token: outsider.token,
+          body: { stage: 'Loading', imageBase64: TINY_JPEG },
+        })
+      ).statusCode,
+      403,
+      'фото загружает только назначенный водитель',
+    );
 
     res = await status('/photos', { stage: 'Loading', imageBase64: TINY_JPEG });
     assert.equal(res.statusCode, 201);
@@ -53,7 +68,17 @@ describe('Исполнение рейса', () => {
     const photoUrl: string = res.data.photos[0].url;
 
     assert.equal((await status('/photos', { stage: 'Unloading', imageBase64: TINY_JPEG })).statusCode, 409);
-    assert.equal((await status('/photos', { stage: 'Loading', imageBase64: 'bm90IGFuIGltYWdlIGF0IGFsbCwganVzdCBzb21lIHRleHQgdGhhdCBpcyBsb25nIGVub3VnaCB0byBwYXNzIHRoZSBtaW5pbXVtIGxlbmd0aCBjaGVjaw==' })).statusCode, 422, 'не изображение');
+    assert.equal(
+      (
+        await status('/photos', {
+          stage: 'Loading',
+          imageBase64:
+            'bm90IGFuIGltYWdlIGF0IGFsbCwganVzdCBzb21lIHRleHQgdGhhdCBpcyBsb25nIGVub3VnaCB0byBwYXNzIHRoZSBtaW5pbXVtIGxlbmd0aCBjaGVjaw==',
+        })
+      ).statusCode,
+      422,
+      'не изображение',
+    );
 
     assert.equal((await status('/status', { status: 'InTransit' })).data.status, 'InTransit');
     assert.equal((await status('/status', { status: 'Unloading' })).data.status, 'Unloading');
@@ -67,11 +92,26 @@ describe('Исполнение рейса', () => {
 
     // Отзывы обеих сторон, повтор — 409, посторонний — 403
     const review = { rating: 5, comment: 'Отлично' };
-    assert.equal((await api(ctx, 'POST', `/orders/${order.id}/reviews`, { token: client.token, body: review })).statusCode, 201);
-    assert.equal((await api(ctx, 'POST', `/orders/${order.id}/reviews`, { token: driver.token, body: { rating: 4 } })).statusCode, 201);
-    assert.equal((await api(ctx, 'POST', `/orders/${order.id}/reviews`, { token: client.token, body: review })).statusCode, 409);
-    assert.equal((await api(ctx, 'POST', `/orders/${order.id}/reviews`, { token: outsider.token, body: review })).statusCode, 403);
-    assert.equal((await api(ctx, 'POST', `/orders/${order.id}/reviews`, { token: driver.token, body: { rating: 9 } })).statusCode, 422);
+    assert.equal(
+      (await api(ctx, 'POST', `/orders/${order.id}/reviews`, { token: client.token, body: review })).statusCode,
+      201,
+    );
+    assert.equal(
+      (await api(ctx, 'POST', `/orders/${order.id}/reviews`, { token: driver.token, body: { rating: 4 } })).statusCode,
+      201,
+    );
+    assert.equal(
+      (await api(ctx, 'POST', `/orders/${order.id}/reviews`, { token: client.token, body: review })).statusCode,
+      409,
+    );
+    assert.equal(
+      (await api(ctx, 'POST', `/orders/${order.id}/reviews`, { token: outsider.token, body: review })).statusCode,
+      403,
+    );
+    assert.equal(
+      (await api(ctx, 'POST', `/orders/${order.id}/reviews`, { token: driver.token, body: { rating: 9 } })).statusCode,
+      422,
+    );
 
     const profile = await api(ctx, 'GET', '/users/me', { token: driver.token });
     assert.deepEqual(profile.data.rating, { average: 5, count: 1 });
@@ -93,17 +133,27 @@ describe('Исполнение рейса', () => {
     const order = await createOrder(ctx, client.token);
     await api(ctx, 'POST', `/orders/${order.id}/bids`, { token: driver.token, body: { price: 44000 } });
 
-    assert.equal((await api(ctx, 'PATCH', `/orders/${order.id}`, { token: client.token, body: { price: 1000 } })).statusCode, 409);
+    assert.equal(
+      (await api(ctx, 'PATCH', `/orders/${order.id}`, { token: client.token, body: { price: 1000 } })).statusCode,
+      409,
+    );
     assert.equal((await api(ctx, 'DELETE', `/orders/${order.id}`, { token: client.token })).statusCode, 409);
 
-    const cancelled = await api(ctx, 'POST', `/orders/${order.id}/cancel`, { token: client.token, body: { reason: 'Нашли другого' } });
+    const cancelled = await api(ctx, 'POST', `/orders/${order.id}/cancel`, {
+      token: client.token,
+      body: { reason: 'Нашли другого' },
+    });
     assert.equal(cancelled.data.status, 'Cancelled');
     assert.equal(cancelled.data.bids[0].status, 'Rejected');
 
     const paid = await createOrder(ctx, client.token);
-    const bid = (await api(ctx, 'POST', `/orders/${paid.id}/bids`, { token: driver.token, body: { price: 44000 } })).data.myBid;
+    const bid = (await api(ctx, 'POST', `/orders/${paid.id}/bids`, { token: driver.token, body: { price: 44000 } }))
+      .data.myBid;
     await api(ctx, 'POST', `/bids/${bid.id}/accept`, { token: client.token });
     await api(ctx, 'POST', `/orders/${paid.id}/payment`, { token: client.token });
-    assert.equal((await api(ctx, 'POST', `/orders/${paid.id}/cancel`, { token: client.token, body: {} })).statusCode, 409);
+    assert.equal(
+      (await api(ctx, 'POST', `/orders/${paid.id}/cancel`, { token: client.token, body: {} })).statusCode,
+      409,
+    );
   });
 });

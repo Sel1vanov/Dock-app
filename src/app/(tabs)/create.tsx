@@ -1,3 +1,5 @@
-import { OrderCreateScreen } from '../../views/screens/OrderCreateScreen';
+import { OrderFormScreen } from '../../views/screens/OrderFormScreen';
 
-export default OrderCreateScreen;
+export default function CreateOrderRoute() {
+  return <OrderFormScreen />;
+}

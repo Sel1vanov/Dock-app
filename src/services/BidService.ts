@@ -9,7 +9,7 @@ import { BidRepository } from '../repositories/BidRepository';
 export const BidService = {
   /**
    * UC-10 (по цене заказчика) и UC-11 (встречная цена).
-   * Предварительные проверки — для понятных сообщений; окончательно их выполняет БД.
+   * Предварительные проверки — для понятных сообщений без запроса; окончательно их выполняет сервер.
    */
   async placeBid(driver: UserDTO, vehicles: VehicleDTO[], order: OrderDetailsDTO, input: BidInput): Promise<void> {
     if (driver.verification !== 'verified') {
@@ -17,29 +17,27 @@ export const BidService = {
     }
     if (!isOpenForBids(order)) throw new AppError('Заявка уже не принимает отклики');
     if (!vehicles.some((v) => checkCompatibility(v, order.cargo).ok)) {
-      throw new AppError('Ни одно ваше ТС не подходит под габариты и вес груза');
+      throw new AppError('Ни одно ваше ТС не подходит под габариты, массу или тип груза');
     }
-    await BidRepository.placeBid({
-      order_id: order.id,
-      driver_id: driver.id,
-      offered_price: input.price,
-      comment: input.comment || null,
-    });
+    await BidRepository.place(order.id, input.price, input.comment);
   },
 
   async updateBid(bidId: string, input: BidInput): Promise<void> {
-    await BidRepository.updateBid(bidId, input.price, input.comment || null);
+    await BidRepository.update(bidId, input.price, input.comment);
   },
 
-  withdrawBid: BidRepository.deleteBid,
+  withdrawBid: (bidId: string) => BidRepository.withdraw(bidId),
 
   /** UC-06 */
-  acceptBid: BidRepository.acceptBid,
+  acceptBid: async (bidId: string) => {
+    await BidRepository.accept(bidId);
+  },
 
-  rejectBid: BidRepository.rejectBid,
+  rejectBid: async (bidId: string) => {
+    await BidRepository.reject(bidId);
+  },
 
-  async getMyBids(driverId: string): Promise<DriverBidDTO[]> {
-    const rows = await BidRepository.getDriverBids(driverId);
-    return rows.map(toDriverBidDTO).filter((b): b is DriverBidDTO => b !== null);
+  async getMyBids(): Promise<DriverBidDTO[]> {
+    return (await BidRepository.listMine()).map(toDriverBidDTO);
   },
 };

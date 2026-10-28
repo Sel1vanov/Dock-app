@@ -17,7 +17,9 @@ after(() => ctx.close());
 async function state(orderId: string) {
   const em = ctx.orm.em.fork();
   const [order] = await em.execute<any[]>('select status, driver_id, price from orders where id = ?', [orderId]);
-  const bids = await em.execute<any[]>('select driver_id, status from bids where order_id = ? order by created_at', [orderId]);
+  const bids = await em.execute<any[]>('select driver_id, status from bids where order_id = ? order by created_at', [
+    orderId,
+  ]);
   return { order, bids };
 }
 
@@ -32,12 +34,16 @@ describe('Отклики и выбор исполнителя', () => {
 
     const smallTruck = await createVerifiedDriver(ctx, { maxWeightKg: 3000, cargoTypeCodes: ['Car'] });
     assert.equal(
-      (await api(ctx, 'POST', `/orders/${order.id}/bids`, { token: smallTruck.token, body: { price: 40000 } })).statusCode,
+      (await api(ctx, 'POST', `/orders/${order.id}/bids`, { token: smallTruck.token, body: { price: 40000 } }))
+        .statusCode,
       409,
     );
 
     const driver = await createVerifiedDriver(ctx);
-    const first = await api(ctx, 'POST', `/orders/${order.id}/bids`, { token: driver.token, body: { price: 40000, comment: 'Завтра' } });
+    const first = await api(ctx, 'POST', `/orders/${order.id}/bids`, {
+      token: driver.token,
+      body: { price: 40000, comment: 'Завтра' },
+    });
     assert.equal(first.statusCode, 201);
     assert.equal(first.data.status, 'Bidding', 'первый отклик переводит заявку в торг');
     assert.equal(first.data.myBid.price, 40000);
@@ -80,7 +86,8 @@ describe('Отклики и выбор исполнителя', () => {
     const order = await createOrder(ctx, client.token);
     const d1 = await createVerifiedDriver(ctx);
     const d2 = await createVerifiedDriver(ctx);
-    const bid = (await api(ctx, 'POST', `/orders/${order.id}/bids`, { token: d1.token, body: { price: 41000 } })).data.myBid;
+    const bid = (await api(ctx, 'POST', `/orders/${order.id}/bids`, { token: d1.token, body: { price: 41000 } })).data
+      .myBid;
     await api(ctx, 'POST', `/orders/${order.id}/bids`, { token: d2.token, body: { price: 39000 } });
 
     // Имитируем сбой: шаги 1–2 (UPDATE orders, UPDATE bids) уже отправлены в БД, шаг 3 падает.
@@ -91,14 +98,22 @@ describe('Отклики и выбор исполнителя', () => {
     try {
       const res = await api(ctx, 'POST', `/bids/${bid.id}/accept`, { token: client.token });
       assert.equal(res.statusCode, 500);
-      assert.equal(res.data.error.message, 'Внутренняя ошибка сервера. Попробуйте позже', 'текст исключения не раскрывается');
+      assert.equal(
+        res.data.error.message,
+        'Внутренняя ошибка сервера. Попробуйте позже',
+        'текст исключения не раскрывается',
+      );
     } finally {
       BidRepository.prototype.rejectPendingExcept = original;
     }
 
     const { order: row, bids } = await state(order.id);
     assert.deepEqual([row.status, row.driver_id, Number(row.price)], ['Bidding', null, 45000], 'заказ не изменился');
-    assert.deepEqual(bids.map((b: { status: string }) => b.status), ['Pending', 'Pending'], 'отклики не изменились');
+    assert.deepEqual(
+      bids.map((b: { status: string }) => b.status),
+      ['Pending', 'Pending'],
+      'отклики не изменились',
+    );
   });
 
   test('водитель меняет и отзывает свой отклик; заявка без откликов снова «ищет исполнителя»', async () => {
@@ -106,9 +121,13 @@ describe('Отклики и выбор исполнителя', () => {
     const order = await createOrder(ctx, client.token);
     const driver = await createVerifiedDriver(ctx);
     const other = await createVerifiedDriver(ctx);
-    const bid = (await api(ctx, 'POST', `/orders/${order.id}/bids`, { token: driver.token, body: { price: 41000 } })).data.myBid;
+    const bid = (await api(ctx, 'POST', `/orders/${order.id}/bids`, { token: driver.token, body: { price: 41000 } }))
+      .data.myBid;
 
-    assert.equal((await api(ctx, 'PATCH', `/bids/${bid.id}`, { token: other.token, body: { price: 1000 } })).statusCode, 403);
+    assert.equal(
+      (await api(ctx, 'PATCH', `/bids/${bid.id}`, { token: other.token, body: { price: 1000 } })).statusCode,
+      403,
+    );
     const changed = await api(ctx, 'PATCH', `/bids/${bid.id}`, { token: driver.token, body: { price: 43000 } });
     assert.equal(changed.data.myBid.price, 43000);
 

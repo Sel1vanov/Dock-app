@@ -1,27 +1,35 @@
 import type { VehicleDTO } from '../models/dto';
 import { toVehicleDTO, tToKg } from '../models/mappers';
 import type { VehicleInput } from '../models/schemas';
-import { VehicleRepository } from '../repositories/VehicleRepository';
+import { VehicleRepository, type VehiclePayload } from '../repositories/VehicleRepository';
 
-/** Управление транспортом водителя. */
+const toPayload = (input: VehicleInput): VehiclePayload => ({
+  type: input.type,
+  model: input.model || null,
+  maxWeightKg: tToKg(input.weightT),
+  lengthM: input.lengthM,
+  widthM: input.widthM,
+  heightM: input.heightM,
+  cargoTypeCodes: input.cargoTypes,
+});
+
+/** Управление транспортом водителя (CRUD). */
 export const VehicleService = {
-  async getMyVehicles(driverId: string): Promise<VehicleDTO[]> {
-    const rows = await VehicleRepository.getDriverVehicles(driverId);
-    return rows.map(toVehicleDTO);
+  async getMyVehicles(): Promise<VehicleDTO[]> {
+    return (await VehicleRepository.list()).map(toVehicleDTO);
   },
 
-  async addVehicle(driverId: string, input: VehicleInput): Promise<VehicleDTO> {
-    const row = await VehicleRepository.addVehicle({
-      driver_id: driverId,
-      vehicle_type: input.type,
-      model: input.model || null,
-      max_weight: tToKg(input.weightT),
-      length: input.lengthM,
-      width: input.widthM,
-      height: input.heightM,
-    });
-    return toVehicleDTO(row);
+  async getVehicle(id: string): Promise<VehicleDTO> {
+    return toVehicleDTO(await VehicleRepository.get(id));
   },
 
-  removeVehicle: VehicleRepository.deleteVehicle,
+  async addVehicle(input: VehicleInput): Promise<VehicleDTO> {
+    return toVehicleDTO(await VehicleRepository.create(toPayload(input)));
+  },
+
+  async updateVehicle(id: string, input: VehicleInput): Promise<VehicleDTO> {
+    return toVehicleDTO(await VehicleRepository.update(id, toPayload(input)));
+  },
+
+  removeVehicle: (id: string) => VehicleRepository.remove(id),
 };

@@ -116,9 +116,13 @@ export class Migration20261028100000_initial_schema extends Migration {
     // «Мои заявки» заказчика: WHERE client_id = ? ORDER BY created_at DESC
     this.addSql(`create index "idx_orders_client_created" on "orders" ("client_id", "created_at" desc);`);
     // «Мои рейсы» водителя: WHERE driver_id = ? ORDER BY updated_at DESC (заявки без водителя не индексируются)
-    this.addSql(`create index "idx_orders_driver_updated" on "orders" ("driver_id", "updated_at" desc) where driver_id is not null;`);
+    this.addSql(
+      `create index "idx_orders_driver_updated" on "orders" ("driver_id", "updated_at" desc) where driver_id is not null;`,
+    );
     // Лента водителя: только открытые заявки, новые сверху
-    this.addSql(`create index "idx_orders_open_created" on "orders" ("created_at" desc) where status in ('Created', 'Bidding');`);
+    this.addSql(
+      `create index "idx_orders_open_created" on "orders" ("created_at" desc) where status in ('Created', 'Bidding');`,
+    );
 
     // ------------------------------------------------------------------------- bids
     this.addSql(`create table "bids" (

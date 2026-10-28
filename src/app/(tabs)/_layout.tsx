@@ -5,14 +5,19 @@ import { useCurrentUser } from '../../viewmodels/AuthViewModel';
 import { Icon } from '../../views/components/ui';
 import { colors } from '../../views/theme';
 
-const tabIcon =
-  (name: string) =>
-  ({ color, size }: { color: ColorValue; size: number }) => <Icon name={name} color={color} size={size} />;
+function tabIcon(name: string) {
+  function TabIcon({ color, size }: { color: ColorValue; size: number }) {
+    return <Icon name={name} color={color} size={size} />;
+  }
+  return TabIcon;
+}
 
-/** Вкладки зависят от роли: заказчик и водитель видят разные разделы. */
+/** Вкладки зависят от роли: заказчик, водитель и администратор видят разные разделы. */
 export default function TabsLayout() {
   const user = useCurrentUser();
   const isDriver = user.role === 'Driver';
+  const isClient = user.role === 'Client';
+  const isAdmin = user.role === 'Admin';
 
   return (
     <Tabs
@@ -24,13 +29,16 @@ export default function TabsLayout() {
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}
     >
-      <Tabs.Protected guard={!isDriver}>
+      <Tabs.Protected guard={isClient}>
         <Tabs.Screen name="orders" options={{ title: 'Мои заявки', tabBarIcon: tabIcon('clipboard-list') }} />
         <Tabs.Screen name="create" options={{ title: 'Создать', tabBarIcon: tabIcon('plus-circle') }} />
       </Tabs.Protected>
       <Tabs.Protected guard={isDriver}>
         <Tabs.Screen name="feed" options={{ title: 'Поиск грузов', tabBarIcon: tabIcon('magnify') }} />
         <Tabs.Screen name="trips" options={{ title: 'Мои рейсы', tabBarIcon: tabIcon('truck-fast') }} />
+      </Tabs.Protected>
+      <Tabs.Protected guard={isAdmin}>
+        <Tabs.Screen name="moderation" options={{ title: 'Модерация', tabBarIcon: tabIcon('shield-check') }} />
       </Tabs.Protected>
       <Tabs.Screen name="profile" options={{ title: 'Профиль', tabBarIcon: tabIcon('account-circle') }} />
     </Tabs>

@@ -42,7 +42,10 @@ export interface IssuedToken {
   expiresIn: number;
 }
 
-export function createAccessToken(config: Pick<Config, 'JWT_SECRET' | 'JWT_EXPIRES_IN'>, payload: AccessTokenPayload): IssuedToken {
+export function createAccessToken(
+  config: Pick<Config, 'JWT_SECRET' | 'JWT_EXPIRES_IN'>,
+  payload: AccessTokenPayload,
+): IssuedToken {
   const accessToken = jwt.sign({ role: payload.role }, config.JWT_SECRET, {
     algorithm: 'HS256',
     subject: payload.sub,
@@ -81,7 +84,11 @@ function fileSignature(secret: string, key: string, expires: number): string {
 }
 
 /** Временная ссылка на приватный файл (аналог signed URL в S3/Supabase Storage). */
-export function signFileUrl(config: Pick<Config, 'FILE_URL_SECRET' | 'FILE_URL_TTL'>, key: string, now = Date.now()): string {
+export function signFileUrl(
+  config: Pick<Config, 'FILE_URL_SECRET' | 'FILE_URL_TTL'>,
+  key: string,
+  now = Date.now(),
+): string {
   const expires = Math.floor(now / 1000) + config.FILE_URL_TTL;
   const signature = fileSignature(config.FILE_URL_SECRET, key, expires);
   return `/api/v1/files/${key}?expires=${expires}&signature=${signature}`;

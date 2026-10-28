@@ -38,7 +38,12 @@ export function OrderDetailsScreen({ orderId }: { orderId: string }) {
   if (vm.query.isLoading) return <LoadingView />;
   if (!order) {
     return (
-      <EmptyState icon="alert-circle" title="Заказ недоступен" text={vm.query.error ?? 'Возможно, он уже закрыт'} />
+      <EmptyState
+        icon="alert-circle"
+        title="Заказ недоступен"
+        text={vm.query.error ?? 'Возможно, он уже закрыт'}
+        action={<Button title="Повторить" variant="secondary" onPress={vm.query.refresh} />}
+      />
     );
   }
 
@@ -68,6 +73,21 @@ export function OrderDetailsScreen({ orderId }: { orderId: string }) {
           <Text style={styles.meta}>Причина отмены: {order.cancelReason}</Text>
         ) : null}
       </Card>
+
+      {vm.canEditOrder ? (
+        <View style={styles.editRow}>
+          <Button title="Изменить" variant="secondary" icon="pencil" onPress={vm.editOrder} style={{ flex: 1 }} />
+          {vm.canDeleteOrder ? (
+            <Button
+              title="Удалить"
+              variant="danger"
+              icon="trash-can-outline"
+              onPress={vm.deleteOrder}
+              style={{ flex: 1 }}
+            />
+          ) : null}
+        </View>
+      ) : null}
 
       <Card>
         <RouteView origin={order.origin} destination={order.destination} />
@@ -319,6 +339,7 @@ function BidCard({
             {vehicleTypeInfo(vehicle.type).label}
             {vehicle.model ? ` ${vehicle.model}` : ''} · до {formatNumber(vehicle.weightT)} т ·{' '}
             {formatNumber(vehicle.lengthM)}×{formatNumber(vehicle.widthM)} м
+            {bid.vehicles.length > 1 ? ` · ещё ТС: ${bid.vehicles.length - 1}` : ''}
           </Text>
         </View>
       ) : null}
@@ -367,4 +388,5 @@ const styles = StyleSheet.create({
   vehicle: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   comment: { ...font.body, color: colors.text, fontStyle: 'italic' },
   divider: { ...font.small, color: colors.textMuted, textAlign: 'center' },
+  editRow: { flexDirection: 'row', gap: spacing.sm },
 });

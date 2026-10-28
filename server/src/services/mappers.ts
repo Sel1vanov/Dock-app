@@ -56,10 +56,7 @@ export function toVehicleResponse(vehicle: Vehicle): VehicleResponseT {
   };
 }
 
-export function toOrderListItem(
-  order: Order,
-  extra: { bidsCount: number; myBid: Bid | null },
-): OrderListItemResponseT {
+export function toOrderListItem(order: Order, extra: { bidsCount: number; myBid: Bid | null }): OrderListItemResponseT {
   return {
     id: order.id,
     status: order.status,

@@ -4,7 +4,7 @@
  * Чистые функции без обращений к сети — их используют сервисы и ViewModel.
  * Те же правила продублированы в триггерах БД, чтобы их нельзя было обойти.
  */
-import type { DimensionsDTO, OrderStatus, PhotoDTO, PhotoStage } from './dto';
+import type { CargoDTO, DimensionsDTO, OrderStatus, PhotoDTO, PhotoStage, VehicleDTO } from './dto';
 
 // ---------------------------------------------------------------- Vehicle ---
 
@@ -13,9 +13,10 @@ export interface CompatibilityResult {
   issues: string[];
 }
 
-/** UC-09: помещается ли груз в ТС по массе и габаритам. */
-export function checkCompatibility(vehicle: DimensionsDTO, cargo: DimensionsDTO): CompatibilityResult {
+/** UC-09: помещается ли груз в ТС по массе и габаритам и возит ли ТС такой тип груза. */
+export function checkCompatibility(vehicle: VehicleDTO, cargo: CargoDTO): CompatibilityResult {
   const issues: string[] = [];
+  if (!vehicle.cargoTypes.some((c) => c.code === cargo.type)) issues.push(`не возит: ${cargo.typeName.toLowerCase()}`);
   if (cargo.weightT > vehicle.weightT) issues.push(`масса ${fmt(cargo.weightT)} т > ${fmt(vehicle.weightT)} т`);
   if (cargo.lengthM > vehicle.lengthM) issues.push(`длина ${fmt(cargo.lengthM)} м > ${fmt(vehicle.lengthM)} м`);
   if (cargo.widthM > vehicle.widthM) issues.push(`ширина ${fmt(cargo.widthM)} м > ${fmt(vehicle.widthM)} м`);
@@ -72,7 +73,6 @@ export function timelineIndex({ status, isEscrowLocked }: OrderState): number {
     case 'Completed':
       return 6;
     case 'Cancelled':
-    case 'Disputed':
       return -1;
   }
 }
@@ -81,6 +81,10 @@ export const isOpenForBids = (s: OrderState) => s.status === 'Created' || s.stat
 
 export const isActiveTrip = (s: OrderState) =>
   s.status === 'Assigned' || s.status === 'Loading' || s.status === 'InTransit' || s.status === 'Unloading';
+
+/** Изменить или удалить можно только заявку, на которую ещё никто не откликнулся. */
+export const canEdit = (s: OrderState) => s.status === 'Created';
+export const canDelete = canEdit;
 
 /** UC-07: отменить можно до оплаты. */
 export const canCancel = (s: OrderState) => isOpenForBids(s) || (s.status === 'Assigned' && !s.isEscrowLocked);

@@ -1,6 +1,7 @@
 /**
- * Схемы валидации входных данных форм (аналог Pydantic-схем из лекции, библиотека zod).
- * Форма хранит строки, схема проверяет их и превращает в типизированный объект.
+ * Схемы проверки форм до отправки запроса (те же правила, что у схем сервера, — библиотека zod).
+ * Форма хранит строки, схема проверяет обязательные поля, формат и диапазоны и превращает
+ * их в типизированный объект. Окончательная проверка всё равно выполняется на сервере.
  */
 import { z } from 'zod';
 
@@ -15,19 +16,38 @@ const decimal = (title: string, accusative: string, min: number, max: number) =>
     .refine((n) => n >= min, `${title}: не меньше ${min}`)
     .refine((n) => n <= max, `${title}: не больше ${max}`);
 
+const email = z.string().trim().toLowerCase().min(1, 'Укажите email').email('Некорректный email');
+
+const phone = z
+  .string()
+  .trim()
+  .min(1, 'Укажите телефон')
+  .refine((s) => /^\+?[0-9]{10,15}$/.test(s.replace(/[\s\-()]/g, '')), 'Телефон в формате +7 999 111-22-33');
+
+const fullName = z.string().trim().min(2, 'Укажите имя').max(100, 'Не больше 100 символов');
+
 export const signInSchema = z.object({
-  email: z.string().trim().toLowerCase().email('Некорректный email'),
-  password: z.string().min(6, 'Минимум 6 символов'),
+  email,
+  password: z.string().min(1, 'Укажите пароль'),
 });
 
-export const signUpSchema = signInSchema.extend({
-  fullName: z.string().trim().min(2, 'Укажите имя'),
-  phone: z
-    .string()
-    .trim()
-    .regex(/^\+?[0-9\s\-()]{10,18}$/, 'Телефон в формате +7 999 111-22-33'),
-  role: z.enum(['Client', 'Driver']),
-});
+export const signUpSchema = z
+  .object({
+    email,
+    password: z
+      .string()
+      .min(8, 'Минимум 8 символов')
+      .max(72, 'Не больше 72 символов')
+      .regex(/[A-Za-zА-Яа-яЁё]/, 'Добавьте хотя бы одну букву')
+      .regex(/[0-9]/, 'Добавьте хотя бы одну цифру'),
+    passwordConfirm: z.string().min(1, 'Повторите пароль'),
+    fullName,
+    phone,
+    role: z.enum(['Client', 'Driver']),
+  })
+  .refine((v) => v.password === v.passwordConfirm, { path: ['passwordConfirm'], message: 'Пароли не совпадают' });
+
+export const profileSchema = z.object({ fullName, phone });
 
 export const cargoSchema = z.object({
   type: z.enum(['Car', 'Container', 'Machinery', 'Agricultural', 'Equipment', 'Other']),
@@ -39,14 +59,17 @@ export const cargoSchema = z.object({
 });
 
 export const createOrderSchema = cargoSchema.extend({
-  origin: z.string().trim().min(3, 'Укажите адрес погрузки'),
-  destination: z.string().trim().min(3, 'Укажите адрес выгрузки'),
+  origin: z.string().trim().min(3, 'Укажите адрес погрузки').max(300, 'Не больше 300 символов'),
+  destination: z.string().trim().min(3, 'Укажите адрес выгрузки').max(300, 'Не больше 300 символов'),
   price: decimal('Цена', 'цену', 1000, 100_000_000),
 });
 
 export const vehicleSchema = z.object({
   type: z.enum(['Trawl', 'Manipulator', 'TowTruck', 'Flatbed', 'Other']),
-  model: z.string().trim().max(80),
+  model: z.string().trim().max(80, 'Не больше 80 символов'),
+  cargoTypes: z
+    .array(z.enum(['Car', 'Container', 'Machinery', 'Agricultural', 'Equipment', 'Other']))
+    .min(1, 'Выберите хотя бы один тип груза'),
   lengthM: decimal('Длина', 'длину платформы', 1, 40),
   widthM: decimal('Ширина', 'ширину платформы', 1, 6),
   heightM: decimal('Высота', 'допустимую высоту груза', 0.5, 8),
@@ -63,8 +86,10 @@ export const reviewSchema = z.object({
   comment: z.string().trim().max(500),
 });
 
-export type SignInInput = z.input<typeof signInSchema>;
-export type SignUpInput = z.input<typeof signUpSchema>;
+export type SignInInput = z.output<typeof signInSchema>;
+export type SignUpForm = z.input<typeof signUpSchema>;
+export type SignUpInput = z.output<typeof signUpSchema>;
+export type ProfileForm = z.input<typeof profileSchema>;
 export type CreateOrderForm = z.input<typeof createOrderSchema>;
 export type CreateOrderInput = z.output<typeof createOrderSchema>;
 export type VehicleForm = z.input<typeof vehicleSchema>;

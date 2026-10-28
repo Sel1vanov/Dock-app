@@ -222,22 +222,23 @@ export function PhotoGrid({ photos, emptyText }: { photos: PhotoDTO[]; emptyText
   return (
     <View style={s.photos}>
       {photos.map((p) => (
-        <Pressable key={p.id} onPress={() => p.url && setOpened(p.url)}>
-          {p.url ? (
-            <Image source={{ uri: p.url }} style={s.photo} />
-          ) : (
-            <View style={[s.photo, s.photoStub]}>
-              <Icon name="camera" color={colors.textMuted} />
-            </View>
-          )}
+        <Pressable key={p.id} onPress={() => setOpened(p.url)} accessibilityLabel="Открыть фото">
+          <Image source={{ uri: p.url }} style={s.photo} />
         </Pressable>
       ))}
-      <Modal visible={Boolean(opened)} transparent animationType="fade" onRequestClose={() => setOpened(null)}>
-        <Pressable style={s.viewer} onPress={() => setOpened(null)}>
-          {opened ? <Image source={{ uri: opened }} style={s.viewerImage} resizeMode="contain" /> : null}
-        </Pressable>
-      </Modal>
+      <PhotoViewer url={opened} onClose={() => setOpened(null)} />
     </View>
+  );
+}
+
+/** Полноэкранный просмотр фото (нажатие — закрыть). */
+export function PhotoViewer({ url, onClose }: { url: string | null; onClose: () => void }) {
+  return (
+    <Modal visible={Boolean(url)} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={s.viewer} onPress={onClose}>
+        {url ? <Image source={{ uri: url }} style={s.viewerImage} resizeMode="contain" /> : null}
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -358,7 +359,6 @@ const s = StyleSheet.create({
   tlText: { ...font.body, color: colors.textMuted, paddingTop: 1 },
   photos: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   photo: { width: 96, height: 96, borderRadius: radius.md, backgroundColor: colors.surfaceAlt },
-  photoStub: { alignItems: 'center', justifyContent: 'center' },
   viewer: { flex: 1, backgroundColor: 'rgba(5,10,25,0.92)', alignItems: 'center', justifyContent: 'center' },
   viewerImage: { width: '92%', height: '80%' },
   modalBackdrop: {

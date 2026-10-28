@@ -19,30 +19,51 @@ describe('Верификация водителя и модерация', () => 
     assert.equal(res.statusCode, 409, 'без документов отправить нельзя');
 
     for (const doc of ['passport', 'license', 'sts']) {
-      res = await api(ctx, 'PUT', `/users/me/documents/${doc}`, { token: driver.token, body: { imageBase64: TINY_JPEG } });
+      res = await api(ctx, 'PUT', `/users/me/documents/${doc}`, {
+        token: driver.token,
+        body: { imageBase64: TINY_JPEG },
+      });
       assert.equal(res.statusCode, 201);
     }
-    res = await api(ctx, 'PUT', '/users/me/documents/passport', { token: driver.token, body: { imageBase64: TINY_JPEG } });
+    res = await api(ctx, 'PUT', '/users/me/documents/passport', {
+      token: driver.token,
+      body: { imageBase64: TINY_JPEG },
+    });
     assert.equal(res.statusCode, 200, 'повторная загрузка заменяет документ');
-    assert.equal((await api(ctx, 'PUT', '/users/me/documents/diploma', { token: driver.token, body: { imageBase64: TINY_JPEG } })).statusCode, 422);
+    assert.equal(
+      (await api(ctx, 'PUT', '/users/me/documents/diploma', { token: driver.token, body: { imageBase64: TINY_JPEG } }))
+        .statusCode,
+      422,
+    );
 
     res = await api(ctx, 'POST', '/users/me/verification', { token: driver.token });
     assert.equal(res.data.verificationStatus, 'pending');
 
     // Водитель не может сам себя подтвердить — 403 на административном API
     assert.equal(
-      (await api(ctx, 'PATCH', `/admin/users/${driver.id}`, { token: driver.token, body: { verificationStatus: 'verified' } })).statusCode,
+      (
+        await api(ctx, 'PATCH', `/admin/users/${driver.id}`, {
+          token: driver.token,
+          body: { verificationStatus: 'verified' },
+        })
+      ).statusCode,
       403,
     );
 
     const queue = await api(ctx, 'GET', '/admin/users?verificationStatus=pending', { token: admin.token });
     assert.equal(queue.statusCode, 200);
-    assert.deepEqual(queue.data.items.map((u: { id: string }) => u.id), [driver.id]);
+    assert.deepEqual(
+      queue.data.items.map((u: { id: string }) => u.id),
+      [driver.id],
+    );
 
     const card = await api(ctx, 'GET', `/admin/users/${driver.id}`, { token: admin.token });
     assert.equal(card.data.documents.length, 3);
 
-    res = await api(ctx, 'PATCH', `/admin/users/${driver.id}`, { token: admin.token, body: { verificationStatus: 'verified' } });
+    res = await api(ctx, 'PATCH', `/admin/users/${driver.id}`, {
+      token: admin.token,
+      body: { verificationStatus: 'verified' },
+    });
     assert.equal(res.data.verificationStatus, 'verified');
     const [row] = await ctx.orm.em.fork().execute<any[]>('select verified_by_id from users where id = ?', [driver.id]);
     assert.equal(row.verified_by_id, admin.id);
@@ -55,17 +76,24 @@ describe('Верификация водителя и модерация', () => 
     assert.equal((await api(ctx, 'GET', '/users/me/documents', { token: client.token })).statusCode, 403);
     assert.equal((await api(ctx, 'GET', '/admin/users', { token: client.token })).statusCode, 403);
     assert.equal(
-      (await api(ctx, 'PATCH', `/admin/users/${otherAdmin.id}`, { token: admin.token, body: { isBlocked: true } })).statusCode,
+      (await api(ctx, 'PATCH', `/admin/users/${otherAdmin.id}`, { token: admin.token, body: { isBlocked: true } }))
+        .statusCode,
       403,
     );
-    const blocked = await api(ctx, 'PATCH', `/admin/users/${client.id}`, { token: admin.token, body: { isBlocked: true } });
+    const blocked = await api(ctx, 'PATCH', `/admin/users/${client.id}`, {
+      token: admin.token,
+      body: { isBlocked: true },
+    });
     assert.equal(blocked.data.isBlocked, true);
     assert.equal((await api(ctx, 'GET', '/users/me', { token: client.token })).statusCode, 403);
   });
 
   test('профиль: изменение имени и телефона, лишние поля запрещены', async () => {
     const user = await registerUser(ctx, 'Client');
-    const res = await api(ctx, 'PATCH', '/users/me', { token: user.token, body: { fullName: 'Мария Иванова', phone: '+7 916 000-11-22' } });
+    const res = await api(ctx, 'PATCH', '/users/me', {
+      token: user.token,
+      body: { fullName: 'Мария Иванова', phone: '+7 916 000-11-22' },
+    });
     assert.equal(res.statusCode, 200);
     assert.equal(res.data.phone, '+79160001122');
     const escalation = await api(ctx, 'PATCH', '/users/me', { token: user.token, body: { role: 'Admin' } });

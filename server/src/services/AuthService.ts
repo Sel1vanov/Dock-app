@@ -35,7 +35,10 @@ export class AuthService {
       if (e instanceof UniqueConstraintViolationException) throw new ConflictError(DUPLICATE_EMAIL);
       throw e;
     }
-    return { ...createAccessToken(this.ctx.config, { sub: user.id, role: user.role }), user: toUserResponse(user, null) };
+    return {
+      ...createAccessToken(this.ctx.config, { sub: user.id, role: user.role }),
+      user: toUserResponse(user, null),
+    };
   }
 
   async login(input: LoginInput) {
@@ -46,6 +49,9 @@ export class AuthService {
     if (user.isBlocked) throw new ForbiddenError('Аккаунт заблокирован администратором');
 
     const rating = (await this.users.getRatings([user.id])).get(user.id) ?? null;
-    return { ...createAccessToken(this.ctx.config, { sub: user.id, role: user.role }), user: toUserResponse(user, rating) };
+    return {
+      ...createAccessToken(this.ctx.config, { sub: user.id, role: user.role }),
+      user: toUserResponse(user, rating),
+    };
   }
 }

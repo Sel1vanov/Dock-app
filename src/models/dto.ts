@@ -1,23 +1,36 @@
 /**
  * DTO (Data Transfer Objects) — то, что видит слой представления.
  *
- * Строки таблиц Supabase (snake_case, килограммы, вложенные связи) не попадают в UI напрямую:
- * сервисы преобразуют их в эти плоские объекты (см. mappers.ts). Это даёт:
- *  - безопасность — экран не получит лишних полей (например, verification_doc_url чужого профиля);
+ * Ответы API (килограммы, относительные ссылки на файлы) не попадают в UI напрямую:
+ * сервисы преобразуют их в эти объекты (см. mappers.ts). Это даёт:
  *  - контроль — явно перечислены поля, нужные интерфейсу;
- *  - независимость — при изменении схемы БД меняется только маппер, экраны остаются прежними.
+ *  - независимость — при изменении формата API меняется только маппер, экраны остаются прежними.
  */
-import type { Enums } from './database.types';
+import type {
+  ApiBidStatus,
+  ApiDocumentType,
+  ApiOrderStatus,
+  ApiPhotoStage,
+  ApiUserRole,
+  ApiVehicleType,
+  ApiVerificationStatus,
+} from './api';
 
-export type UserRole = Enums<'user_role'>;
-export type OrderStatus = Enums<'order_status'>;
-export type BidStatus = Enums<'bid_status'>;
-export type CargoType = Enums<'cargo_type'>;
-export type VehicleType = Enums<'vehicle_type'>;
-export type PhotoStage = Enums<'photo_stage'>;
+export type UserRole = ApiUserRole;
+export type OrderStatus = ApiOrderStatus;
+export type BidStatus = ApiBidStatus;
+export type VehicleType = ApiVehicleType;
+export type PhotoStage = ApiPhotoStage;
+export type DocumentType = ApiDocumentType;
+/** Статус верификации водителя (UC-01/UC-02): нет документов → на проверке → подтверждён/отклонён. */
+export type VerificationStatus = ApiVerificationStatus;
+/** Код типа груза из справочника cargo_types. */
+export type CargoType = 'Car' | 'Container' | 'Machinery' | 'Agricultural' | 'Equipment' | 'Other';
 
-/** Статус верификации водителя (UC-01/UC-02): нет документов → на проверке → подтверждён. */
-export type VerificationStatus = 'none' | 'pending' | 'verified';
+export interface Page<T> {
+  items: T[];
+  total: number;
+}
 
 export interface RatingDTO {
   average: number;
@@ -29,21 +42,23 @@ export interface UserDTO {
   email: string;
   role: UserRole;
   fullName: string;
-  phone: string | null;
+  phone: string;
   isBlocked: boolean;
   verification: VerificationStatus;
+  rating: RatingDTO | null;
 }
 
 /** Контрагент по заказу: заказчик или водитель. */
 export interface PersonDTO {
   id: string;
   fullName: string;
+  /** Виден только контрагенту по назначенному заказу. */
   phone: string | null;
   isVerified: boolean;
   rating: RatingDTO | null;
 }
 
-/** Габариты в метрах, масса в тоннах (в БД масса хранится в килограммах). */
+/** Габариты в метрах, масса в тоннах (в БД и API масса — в килограммах). */
 export interface DimensionsDTO {
   lengthM: number;
   widthM: number;
@@ -53,13 +68,20 @@ export interface DimensionsDTO {
 
 export interface CargoDTO extends DimensionsDTO {
   type: CargoType;
+  typeName: string;
   description: string | null;
+}
+
+export interface CargoTypeDTO {
+  code: CargoType;
+  name: string;
 }
 
 export interface VehicleDTO extends DimensionsDTO {
   id: string;
   type: VehicleType;
   model: string | null;
+  cargoTypes: CargoTypeDTO[];
 }
 
 export interface MyBidDTO {
@@ -77,8 +99,9 @@ export interface OrderListItemDTO {
   destination: string;
   price: number;
   createdAt: string;
+  updatedAt: string;
   bidsCount: number;
-  clientName: string | null;
+  clientName: string;
   /** Отклик текущего водителя (для ленты водителя). */
   myBid: MyBidDTO | null;
 }
@@ -96,24 +119,26 @@ export interface BidDTO {
 export interface PhotoDTO {
   id: string;
   stage: PhotoStage;
-  /** Путь в бакете order-photos. */
-  path: string;
   /** Подписанная ссылка для показа (действует ограниченное время). */
-  url: string | null;
+  url: string;
   uploadedAt: string;
 }
 
 export interface OrderDetailsDTO extends OrderListItemDTO {
   clientId: string;
   driverId: string | null;
-  client: PersonDTO | null;
+  client: PersonDTO;
   driver: PersonDTO | null;
   bids: BidDTO[];
   photos: PhotoDTO[];
   cancelReason: string | null;
-  updatedAt: string;
   /** id авторов уже оставленных отзывов по заказу. */
   reviewAuthorIds: string[];
+}
+
+export interface FeedPageDTO extends Page<OrderListItemDTO> {
+  /** Сколько открытых заявок скрыто фильтром по ТС. */
+  hiddenCount: number;
 }
 
 /** Отклик водителя вместе с заказом — вкладка «Мои отклики». */
@@ -121,4 +146,25 @@ export interface DriverBidDTO extends MyBidDTO {
   comment: string | null;
   createdAt: string;
   order: OrderListItemDTO;
+}
+
+export interface DocumentDTO {
+  docType: DocumentType;
+  uploadedAt: string;
+  url: string;
+}
+
+export interface AdminUserDTO extends UserDTO {
+  createdAt: string;
+  documents: DocumentDTO[];
+  vehicles: VehicleDTO[];
+}
+
+/** Параметры серверного поиска, фильтрации и сортировки списков. */
+export type OrderSort = '-createdAt' | 'createdAt' | '-price' | 'price';
+
+export interface OrderListParams {
+  q?: string;
+  cargoType?: CargoType | null;
+  sort?: OrderSort;
 }

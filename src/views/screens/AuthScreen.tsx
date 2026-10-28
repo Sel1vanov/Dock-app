@@ -50,12 +50,7 @@ export function AuthScreen() {
               onChange={vm.switchMode}
             />
 
-            {vm.infoMessage ? (
-              <Banner tone="success" icon="email-outline" title="Почти готово" text={vm.infoMessage} />
-            ) : null}
-            {vm.errorMessage ? (
-              <Banner tone="danger" icon="alert-circle" title="Ошибка" text={vm.errorMessage} />
-            ) : null}
+            {vm.errorMessage ? <Banner tone="danger" icon="alert-circle" title={vm.errorMessage} /> : null}
 
             {isSignUp && (
               <View style={{ gap: spacing.sm }}>
@@ -114,13 +109,29 @@ export function AuthScreen() {
             <TextField
               label="Пароль"
               icon="lock-outline"
-              placeholder="Минимум 6 символов"
+              placeholder={isSignUp ? 'Минимум 8 символов, буквы и цифры' : 'Ваш пароль'}
               secureTextEntry
+              autoComplete={isSignUp ? 'new-password' : 'current-password'}
               value={vm.values.password}
               onChangeText={(t) => vm.setField('password', t)}
               error={vm.fieldErrors.password}
-              onSubmitEditing={vm.submit}
+              onSubmitEditing={isSignUp ? undefined : vm.submit}
+              maxLength={72}
             />
+            {isSignUp && (
+              <TextField
+                label="Повторите пароль"
+                icon="lock-check-outline"
+                placeholder="Ещё раз пароль"
+                secureTextEntry
+                autoComplete="new-password"
+                value={vm.values.passwordConfirm}
+                onChangeText={(t) => vm.setField('passwordConfirm', t)}
+                error={vm.fieldErrors.passwordConfirm}
+                onSubmitEditing={vm.submit}
+                maxLength={72}
+              />
+            )}
 
             <Button
               title={isSignUp ? 'Создать аккаунт' : 'Войти'}

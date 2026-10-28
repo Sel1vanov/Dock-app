@@ -39,7 +39,10 @@ declare module 'fastify' {
   }
 }
 
-export function registerDependencies(app: FastifyInstance, deps: { orm: MikroORM; config: Config; storage: FileStorage }) {
+export function registerDependencies(
+  app: FastifyInstance,
+  deps: { orm: MikroORM; config: Config; storage: FileStorage },
+) {
   app.decorate('config', deps.config);
   app.decorate('storage', deps.storage);
   app.decorateRequest('em', null as unknown as EntityManager);
@@ -80,7 +83,11 @@ export function currentUser(request: FastifyRequest): User {
 
 /** Сервисы для обработчика: каждый получает Session текущего запроса. */
 export function services(request: FastifyRequest) {
-  const ctx: ServiceContext = { em: getSession(request), config: request.server.config, storage: request.server.storage };
+  const ctx: ServiceContext = {
+    em: getSession(request),
+    config: request.server.config,
+    storage: request.server.storage,
+  };
   return {
     auth: new AuthService(ctx),
     users: new UserService(ctx),

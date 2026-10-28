@@ -17,7 +17,11 @@ export const Phone = z
   .transform((s) => s.replace(/[\s\-()]/g, ''))
   .pipe(z.string().regex(/^\+?[0-9]{10,15}$/, 'Телефон в формате +7 999 111-22-33'));
 
-export const FullName = z.string({ error: 'Укажите имя' }).trim().min(2, 'Укажите имя').max(100, 'Не больше 100 символов');
+export const FullName = z
+  .string({ error: 'Укажите имя' })
+  .trim()
+  .min(2, 'Укажите имя')
+  .max(100, 'Не больше 100 символов');
 
 /** bcrypt учитывает только первые 72 байта пароля, поэтому длиннее не принимаем. */
 const Password = z

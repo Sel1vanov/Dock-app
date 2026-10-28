@@ -17,14 +17,18 @@ export class Migration20261028110000_verification_and_search extends Migration {
       add column "verification_status" text not null default 'none',
       add column "verified_at" timestamptz null,
       add column "verified_by_id" uuid null;`);
-    this.addSql(`update "users" set "verification_status" = 'verified', "verified_at" = "updated_at" where "is_verified";`);
+    this.addSql(
+      `update "users" set "verification_status" = 'verified', "verified_at" = "updated_at" where "is_verified";`,
+    );
     this.addSql(`alter table "users" drop column "is_verified";`);
     this.addSql(`alter table "users"
       add constraint "users_verification_status_check" check ("verification_status" in ('none', 'pending', 'verified', 'rejected')),
       add constraint "ck_users_verification_driver_only" check (role = 'Driver' or verification_status = 'none'),
       add constraint "users_verified_by_id_foreign" foreign key ("verified_by_id") references "users" ("id") on delete set null;`);
     // Очередь модерации: только заявки «на проверке»
-    this.addSql(`create index "idx_users_verification_pending" on "users" ("updated_at") where verification_status = 'pending';`);
+    this.addSql(
+      `create index "idx_users_verification_pending" on "users" ("updated_at") where verification_status = 'pending';`,
+    );
 
     // 2. Документы для верификации
     this.addSql(`create table "verification_documents" (

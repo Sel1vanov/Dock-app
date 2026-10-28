@@ -36,7 +36,9 @@ export async function buildApp({ config, orm, storage }: AppDeps): Promise<Fasti
       level: config.LOG_LEVEL,
       // Токены и пароли не попадают в журнал.
       redact: ['req.headers.authorization', 'body.password', 'body.passwordConfirm'],
-      ...(config.NODE_ENV === 'development' ? { transport: { target: 'pino-pretty', options: { translateTime: 'HH:MM:ss' } } } : {}),
+      ...(config.NODE_ENV === 'development'
+        ? { transport: { target: 'pino-pretty', options: { translateTime: 'HH:MM:ss' } } }
+        : {}),
     },
     bodyLimit: 1024 * 1024,
   }).withTypeProvider<ZodTypeProvider>();

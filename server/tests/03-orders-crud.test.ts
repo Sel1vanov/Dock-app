@@ -6,7 +6,15 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 
-import { type TestContext, ORDER_BODY, api, createOrder, registerUser, setupTestApp, type TestUser } from './helpers.js';
+import {
+  type TestContext,
+  ORDER_BODY,
+  api,
+  createOrder,
+  registerUser,
+  setupTestApp,
+  type TestUser,
+} from './helpers.js';
 
 let ctx: TestContext;
 let client: TestUser;
@@ -75,7 +83,10 @@ describe('CRUD заявки', () => {
     const fields = invalid.data.error.details.map((d: { field: string }) => d.field);
     assert.ok(fields.includes('weightKg') && fields.includes('price') && fields.includes('originAddress'));
 
-    const unknownType = await api(ctx, 'POST', '/orders', { token: client.token, body: { ...ORDER_BODY, cargoTypeCode: 'Rocket' } });
+    const unknownType = await api(ctx, 'POST', '/orders', {
+      token: client.token,
+      body: { ...ORDER_BODY, cargoTypeCode: 'Rocket' },
+    });
     assert.equal(unknownType.statusCode, 422);
 
     const driver = await registerUser(ctx, 'Driver');
@@ -84,7 +95,10 @@ describe('CRUD заявки', () => {
     const order = await createOrder(ctx, client.token);
     const stranger = await registerUser(ctx, 'Client');
     assert.equal((await api(ctx, 'GET', `/orders/${order.id}`, { token: stranger.token })).statusCode, 403);
-    assert.equal((await api(ctx, 'PATCH', `/orders/${order.id}`, { token: stranger.token, body: { price: 1 } })).statusCode, 403);
+    assert.equal(
+      (await api(ctx, 'PATCH', `/orders/${order.id}`, { token: stranger.token, body: { price: 1 } })).statusCode,
+      403,
+    );
     assert.equal((await api(ctx, 'DELETE', `/orders/${order.id}`, { token: stranger.token })).statusCode, 403);
 
     assert.equal(
@@ -103,7 +117,12 @@ describe('Поиск, фильтрация, сортировка, пагинац
     const items = [
       { description: 'Трактор Беларус 1221', cargoTypeCode: 'Agricultural', price: 30000 },
       { description: 'Экскаватор Hitachi', cargoTypeCode: 'Machinery', price: 70000 },
-      { description: 'Генератор 200 кВт', cargoTypeCode: 'Equipment', price: 15000, originAddress: 'Тула, Красноармейский пр-т, 1' },
+      {
+        description: 'Генератор 200 кВт',
+        cargoTypeCode: 'Equipment',
+        price: 15000,
+        originAddress: 'Тула, Красноармейский пр-т, 1',
+      },
       { description: 'Каток Bomag', cargoTypeCode: 'Machinery', price: 50000 },
       { description: 'Погрузчик 50%_скидка', cargoTypeCode: 'Machinery', price: 20000 },
     ];

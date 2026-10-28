@@ -1,5 +1,15 @@
 import { Collection, type Opt } from '@mikro-orm/core';
-import { Check, Entity, Enum, Index, ManyToOne, OneToMany, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/es';
+import {
+  Check,
+  Entity,
+  Enum,
+  Index,
+  ManyToOne,
+  OneToMany,
+  PrimaryKey,
+  Property,
+  Unique,
+} from '@mikro-orm/decorators/es';
 
 import { UserRole, VerificationStatus } from './enums.js';
 import { Vehicle } from './Vehicle.js';
@@ -11,7 +21,10 @@ import { VerificationDocument } from './VerificationDocument.js';
  * из БД по умолчанию (lazy) — его явно запрашивает только вход в систему.
  */
 @Entity({ tableName: 'users', rowLevelSecurity: true })
-@Check({ name: 'ck_users_email_format', expression: `email = lower(email) and email ~ '^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]+$'` })
+@Check({
+  name: 'ck_users_email_format',
+  expression: `email = lower(email) and email ~ '^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]+$'`,
+})
 @Check({ name: 'ck_users_full_name', expression: 'char_length(btrim(full_name)) >= 2' })
 @Check({ name: 'ck_users_phone_format', expression: `phone ~ '^\\+?[0-9]{10,15}$'` })
 @Check({ name: 'ck_users_verification_driver_only', expression: `role = 'Driver' or verification_status = 'none'` })

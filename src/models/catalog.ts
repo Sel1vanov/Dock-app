@@ -1,4 +1,4 @@
-import type { BidStatus, CargoType, OrderStatus, VehicleType } from './dto';
+import type { BidStatus, CargoType, OrderSort, OrderStatus, UserRole, VehicleType, VerificationStatus } from './dto';
 
 /** Справочники: русские подписи и иконки (MaterialCommunityIcons) для перечислений БД. */
 
@@ -53,8 +53,6 @@ export function orderStatusInfo(
       return { label: 'Завершён', tone: 'success', icon: 'check-circle' };
     case 'Cancelled':
       return { label: 'Отменён', tone: 'muted', icon: 'close-circle' };
-    case 'Disputed':
-      return { label: 'Открыт спор', tone: 'danger', icon: 'alert-circle' };
   }
 }
 
@@ -68,3 +66,38 @@ export function bidStatusInfo(status: BidStatus): { label: string; tone: StatusT
       return { label: 'Отклонён', tone: 'muted' };
   }
 }
+
+/** Какие грузы обычно возит ТС такого типа — подставляется в форму ТС по умолчанию. */
+export const DEFAULT_CARGO_BY_VEHICLE: Record<VehicleType, CargoType[]> = {
+  Trawl: ['Machinery', 'Agricultural', 'Equipment'],
+  Manipulator: ['Container', 'Equipment', 'Other'],
+  TowTruck: ['Car'],
+  Flatbed: ['Equipment', 'Container', 'Other'],
+  Other: ['Other'],
+};
+
+export const ORDER_SORT_OPTIONS: { value: OrderSort; label: string; icon: string }[] = [
+  { value: '-createdAt', label: 'Сначала новые', icon: 'sort-calendar-descending' },
+  { value: 'createdAt', label: 'Сначала старые', icon: 'sort-calendar-ascending' },
+  { value: '-price', label: 'Дороже', icon: 'sort-numeric-descending' },
+  { value: 'price', label: 'Дешевле', icon: 'sort-numeric-ascending' },
+];
+
+export function verificationInfo(status: VerificationStatus): { label: string; tone: StatusTone; icon: string } {
+  switch (status) {
+    case 'verified':
+      return { label: 'Документы подтверждены', tone: 'success', icon: 'shield-check' };
+    case 'pending':
+      return { label: 'На проверке', tone: 'info', icon: 'clock-outline' };
+    case 'rejected':
+      return { label: 'Документы отклонены', tone: 'danger', icon: 'shield-off' };
+    case 'none':
+      return { label: 'Не пройдена', tone: 'warning', icon: 'shield-alert' };
+  }
+}
+
+export const ROLE_LABELS: Record<UserRole, string> = {
+  Client: 'Заказчик',
+  Driver: 'Водитель',
+  Admin: 'Администратор',
+};

@@ -10,7 +10,13 @@
  */
 import { type EntityManager, type ObjectQuery, LockMode, type QueryOrderMap, raw } from '@mikro-orm/postgresql';
 
-import { FINISHED_ORDER_STATUSES, OPEN_ORDER_STATUSES, Order, type OrderStatus, type Vehicle } from '../models/index.js';
+import {
+  FINISHED_ORDER_STATUSES,
+  OPEN_ORDER_STATUSES,
+  Order,
+  type OrderStatus,
+  type Vehicle,
+} from '../models/index.js';
 import { likePattern } from './query.js';
 
 export type OrderSortKey = '-createdAt' | 'createdAt' | '-price' | 'price';
@@ -54,7 +60,21 @@ function statusFilter(status: OrderFilter['status']): ObjectQuery<Order> {
 export class OrderRepository {
   constructor(private readonly em: EntityManager) {}
 
-  create(data: Pick<Order, 'client' | 'cargoType' | 'description' | 'cargoWeightKg' | 'cargoLengthM' | 'cargoWidthM' | 'cargoHeightM' | 'originAddress' | 'destinationAddress' | 'price'>): Order {
+  create(
+    data: Pick<
+      Order,
+      | 'client'
+      | 'cargoType'
+      | 'description'
+      | 'cargoWeightKg'
+      | 'cargoLengthM'
+      | 'cargoWidthM'
+      | 'cargoHeightM'
+      | 'originAddress'
+      | 'destinationAddress'
+      | 'price'
+    >,
+  ): Order {
     return this.em.create(Order, data);
   }
 

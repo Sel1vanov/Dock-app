@@ -1,29 +1,35 @@
-import { toAppError } from '../core/errors';
-import { supabase } from '../core/supabase';
-import type { Tables, TablesInsert } from '../models/database.types';
+import { apiRequest } from '../core/api';
+import type { ApiVehicle, ApiVehicleType } from '../models/api';
 
-export type VehicleRow = Tables<'vehicles'>;
+export interface VehiclePayload {
+  type: ApiVehicleType;
+  model: string | null;
+  maxWeightKg: number;
+  lengthM: number;
+  widthM: number;
+  heightM: number;
+  cargoTypeCodes: string[];
+}
 
-/** Транспорт водителя (таблица public.vehicles). */
+/** Транспорт водителя: CRUD /vehicles. */
 export const VehicleRepository = {
-  async addVehicle(vehicle: TablesInsert<'vehicles'>): Promise<VehicleRow> {
-    const { data, error } = await supabase.from('vehicles').insert(vehicle).select('*').single();
-    if (error) throw toAppError(error, 'Не удалось добавить ТС');
-    return data;
+  list(): Promise<ApiVehicle[]> {
+    return apiRequest('GET', '/vehicles');
   },
 
-  async getDriverVehicles(driverId: string): Promise<VehicleRow[]> {
-    const { data, error } = await supabase
-      .from('vehicles')
-      .select('*')
-      .eq('driver_id', driverId)
-      .order('created_at', { ascending: true });
-    if (error) throw toAppError(error, 'Не удалось загрузить транспорт');
-    return data;
+  get(id: string): Promise<ApiVehicle> {
+    return apiRequest('GET', `/vehicles/${id}`);
   },
 
-  async deleteVehicle(vehicleId: string): Promise<void> {
-    const { error } = await supabase.from('vehicles').delete().eq('id', vehicleId);
-    if (error) throw toAppError(error, 'Не удалось удалить ТС');
+  create(payload: VehiclePayload): Promise<ApiVehicle> {
+    return apiRequest('POST', '/vehicles', { body: payload });
+  },
+
+  update(id: string, payload: Partial<VehiclePayload>): Promise<ApiVehicle> {
+    return apiRequest('PATCH', `/vehicles/${id}`, { body: payload });
+  },
+
+  remove(id: string): Promise<void> {
+    return apiRequest('DELETE', `/vehicles/${id}`);
   },
 };

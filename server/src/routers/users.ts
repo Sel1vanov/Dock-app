@@ -15,7 +15,9 @@ import {
 export const usersRouter: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/me',
-    { schema: { tags: ['users'], summary: 'Мой профиль', response: { 200: UserResponse, ...errorResponses(401, 403) } } },
+    {
+      schema: { tags: ['users'], summary: 'Мой профиль', response: { 200: UserResponse, ...errorResponses(401, 403) } },
+    },
     async (request) => services(request).users.getProfile(currentUser(request)),
   );
 

@@ -18,7 +18,13 @@ import { vehiclesRouter } from './vehicles.js';
 export const apiV1: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/health',
-    { schema: { tags: ['system'], summary: 'Проверка работоспособности', response: { 200: z.object({ status: z.literal('ok') }) } } },
+    {
+      schema: {
+        tags: ['system'],
+        summary: 'Проверка работоспособности',
+        response: { 200: z.object({ status: z.literal('ok') }) },
+      },
+    },
     async () => ({ status: 'ok' as const }),
   );
 
