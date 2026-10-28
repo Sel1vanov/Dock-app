@@ -46,3 +46,6 @@ yarn-error.*
 # server: загруженные файлы
 server/storage/
 server/logs/
+
+# выгрузка базы (npm run db:dump)
+dock_dump.sql

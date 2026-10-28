@@ -84,6 +84,9 @@ npm run dev
 
 В корне: `npm start` — только приложение, `npm run typecheck`, `npm run lint`.
 
+Выгрузка локальной базы (Docker) в файл `dock_dump.sql` — `npm run db:dump`; загрузить её обратно
+(текущие данные заменятся) — `npm run db:restore`.
+
 Приложение само находит сервер на порту 8000 того же компьютера, где запущен Expo. Другой адрес задаётся в `.env`
 в корне: `EXPO_PUBLIC_API_URL=http://192.168.1.10:8000`.
 

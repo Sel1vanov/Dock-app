@@ -39,6 +39,8 @@
     "server": "npm --prefix server run dev",
     "test:server": "npm --prefix server test",
     "dev": "node scripts/dev.mjs",
+    "db:dump": "docker compose exec -T postgres pg_dump -U postgres --no-owner --clean --if-exists dock > dock_dump.sql",
+    "db:restore": "docker compose exec -T postgres psql -q -o /dev/null -U postgres -d dock < dock_dump.sql",
     "postinstall": "npm --prefix server install --no-audit --no-fund && npm --prefix server run env:init"
   },
   "private": true
