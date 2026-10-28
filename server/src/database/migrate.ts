@@ -28,7 +28,11 @@ try {
     process.exitCode = 1;
   }
 } catch (e) {
-  console.error('Ошибка миграции:', e instanceof Error ? e.message : e);
+  const message = e instanceof Error ? e.message : String(e);
+  console.error('Ошибка миграции:', message);
+  if (/already exists/i.test(message)) {
+    console.error('В базе остались таблицы старой версии проекта. Удалите их (docs/supabase-cleanup.sql) и повторите.');
+  }
   process.exitCode = 1;
 } finally {
   await orm.close();

@@ -1,8 +1,7 @@
 # Шпаргалка для защиты: кейсы 1–6
 
-Перед показом: `docker compose up -d` (или Supabase в `server/.env`) → в `server/`: `npm run db:migrate`,
-`npm run db:seed -- --fresh`, `npm run dev` → в корне: `npm run web` (или `npm start` + Expo Go).
-Пароль демо-пользователей — `Dock12345`.
+Перед показом: `npm run dev` в корне (база — Supabase или локальная, см. README). Свежие демо-данные:
+`npm --prefix server run db:seed -- --fresh`. Пароль демо-пользователей — `Dock12345`.
 
 ---
 

@@ -45,3 +45,4 @@ yarn-error.*
 
 # server: загруженные файлы
 server/storage/
+server/logs/

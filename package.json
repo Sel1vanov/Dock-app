@@ -37,7 +37,9 @@
     "lint": "expo lint",
     "format": "prettier --write src server/src server/tests",
     "server": "npm --prefix server run dev",
-    "test:server": "npm --prefix server test"
+    "test:server": "npm --prefix server test",
+    "dev": "node scripts/dev.mjs",
+    "postinstall": "npm --prefix server install --no-audit --no-fund && npm --prefix server run env:init"
   },
   "private": true
 }

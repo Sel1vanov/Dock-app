@@ -32,80 +32,34 @@
 
 ---
 
-## Запуск на чистом компьютере
+## Быстрый запуск
 
-Нужны **Node.js 22.17+** и **PostgreSQL** — локальный (Docker или установленный) или облачный Supabase.
+Нужен **Node.js 22.17+**. Команды выполняются в папке проекта.
 
-### 1. Код и зависимости
+**Один раз:**
 
-```bash
-git clone https://github.com/sel1vanov/Dock-app.git
-```
+1. Установить всё (приложение и сервер; заодно создаётся `server/.env` со случайными секретами):
+   ```bash
+   npm install
+   ```
+2. Указать базу в `server/.env` — строку `DATABASE_URL`:
+   - **Supabase:** Dashboard → кнопка **Connect** → **Session pooler** → скопировать строку и вместо
+     `[YOUR-PASSWORD]` вставить пароль базы (сбросить его можно в Project Settings → Database; лучше из букв и цифр).
+     Если в базе остались таблицы старой версии проекта — один раз выполнить `docs/supabase-cleanup.sql`
+     в Supabase → SQL Editor.
+   - **Локально:** `docker compose up -d` — тогда строку менять не нужно.
 
-```bash
-cd Dock-app
-```
-
-```bash
-npm install
-```
-
-```bash
-npm --prefix server install
-```
-
-### 2. База данных
-
-**Вариант А — локальный PostgreSQL в Docker** (из корня репозитория):
+**Каждый раз:**
 
 ```bash
-docker compose up -d
+npm run dev
 ```
 
-Строка подключения по умолчанию уже подходит: `postgres://postgres:postgres@localhost:5432/dock`.
-Если PostgreSQL установлен без Docker — создайте базу `dock` и при необходимости поправьте `DATABASE_URL`.
+Команда сама применит миграции, при пустой базе зальёт демо-данные, запустит сервер API и Expo. Дальше как
+обычно: QR-код для Expo Go (телефон в той же Wi-Fi сети) или клавиша **w** — браузер. **Ctrl+C** останавливает всё.
+Журнал сервера — `server/logs/dev.log`, документация API — <http://localhost:8000/docs>.
 
-**Вариант Б — Supabase.** В Dashboard проекта: **Connect → Session pooler**, скопируйте строку подключения
-и подставьте пароль базы данных (его можно сбросить в Project Settings → Database):
-
-```
-DATABASE_URL=postgresql://postgres.<project-ref>:<пароль>@aws-0-eu-central-1.pooler.supabase.com:5432/postgres
-DATABASE_SSL=true
-```
-
-### 3. Настройки сервера
-
-```bash
-cd server
-```
-
-```bash
-npm run env:init
-```
-
-Команда создаёт `server/.env` из `server/.env.example` и подставляет **случайные** секреты для JWT и подписи
-ссылок на файлы. Откройте `server/.env` и проверьте `DATABASE_URL`. Файл `.env` в git не попадает.
-
-### 4. Схема БД — только миграциями
-
-```bash
-npm run db:migrate
-```
-
-```bash
-npm run db:status
-```
-
-Применяются две миграции: начальная схема и изменение схемы (верификация водителей + поиск).
-Откат последней миграции — `npm run db:migrate:down`.
-
-### 5. Демо-данные
-
-```bash
-npm run db:seed
-```
-
-Пароль у всех пользователей — **Dock12345**:
+Пароль у всех демо-пользователей — **Dock12345**:
 
 | Email | Роль | Что показать |
 |---|---|---|
@@ -117,57 +71,21 @@ npm run db:seed
 | `admin@dock.ru` | Администратор | модерация: подтверждение документов, блокировка |
 | `blocked@dock.ru` | Заблокирован | вход → 403 |
 
-Пересоздать данные с нуля: `npm run db:seed -- --fresh`.
+## Команды по отдельности (для защиты)
 
-### 6. Сервер API
+В папке `server`:
 
-```bash
-npm run dev
-```
+| Команда | Что делает |
+|---|---|
+| `npm run db:migrate` / `npm run db:migrate:down` / `npm run db:status` | применить / откатить / показать миграции |
+| `npm run db:seed -- --fresh` | пересоздать демо-данные |
+| `npm run dev` | только сервер, журнал запросов в консоли (`DB_DEBUG=true` в `.env` — ещё и SQL) |
+| `npm test` | 34 автотеста API (нужен локальный PostgreSQL: отдельная база `dock_test` пересоздаётся миграциями) |
 
-- API: <http://localhost:8000/api/v1>
-- Swagger: <http://localhost:8000/docs> — «Authorize», вставить `accessToken` из `/auth/login`
+В корне: `npm start` — только приложение, `npm run typecheck`, `npm run lint`.
 
-### 7. Мобильное приложение
-
-Во втором терминале, из корня репозитория:
-
-```bash
-npm run web
-```
-
-или для телефона (QR-код для Expo Go):
-
-```bash
-npm start
-```
-
-Приложение само находит сервер на порту 8000 того же компьютера, где запущен Expo (телефон должен быть в той же
-Wi-Fi сети; в Windows разрешите Node.js в брандмауэре). Другой адрес задаётся в `.env` в корне:
-`EXPO_PUBLIC_API_URL=http://192.168.1.10:8000`.
-
-### 8. Тесты и проверки
-
-```bash
-npm run test:server
-```
-
-Тесты создают отдельную базу `dock_test` (из `TEST_DATABASE_URL`), разворачивают схему **с нуля миграциями**
-и проверяют API: CRUD, сохранение в PostgreSQL, 401/403/404/409/422, транзакции, отсутствие N+1.
-
-```bash
-npm run typecheck
-```
-
-```bash
-npm run lint
-```
-
-```bash
-npm --prefix server run typecheck
-```
-
----
+Приложение само находит сервер на порту 8000 того же компьютера, где запущен Expo. Другой адрес задаётся в `.env`
+в корне: `EXPO_PUBLIC_API_URL=http://192.168.1.10:8000`.
 
 ## Структура репозитория
 
