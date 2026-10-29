@@ -64,6 +64,10 @@ export class User {
   @Property({ type: 'boolean', default: false })
   isBlocked: Opt<boolean> = false;
 
+  /** Когда последний раз меняли пароль: токены, выданные раньше, больше не принимаются. */
+  @Property({ type: 'datetime', nullable: true })
+  passwordChangedAt: Date | null = null;
+
   @Property({ type: 'datetime', defaultRaw: 'now()' })
   createdAt: Opt<Date> = new Date();
 

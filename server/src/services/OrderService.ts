@@ -2,6 +2,7 @@ import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '.
 import {
   type Bid,
   BidStatus,
+  NotificationType,
   OPEN_ORDER_STATUSES,
   type Order,
   OrderStatus,
@@ -20,6 +21,7 @@ import {
 import type { FeedQueryT, OrderCreateInput, OrderListQueryT, OrderUpdateInput } from '../schemas/orders.js';
 import type { ServiceContext } from './context.js';
 import { toOrderListItem, toPersonResponse, toPhotoResponse, toVehicleResponse } from './mappers.js';
+import { NotificationService, orderTitle, rub } from './NotificationService.js';
 
 export const isOpen = (order: Order) => (OPEN_ORDER_STATUSES as readonly OrderStatus[]).includes(order.status);
 
@@ -122,6 +124,7 @@ export class OrderService {
       bids: visibleBids.map((b) => ({
         id: b.id,
         price: b.offeredPrice,
+        counterPrice: b.counterPrice,
         comment: b.comment,
         status: b.status,
         createdAt: b.createdAt.toISOString(),
@@ -205,7 +208,28 @@ export class OrderService {
     const allowed = isOpen(order) || (order.status === OrderStatus.Assigned && !order.isEscrowLocked);
     if (!allowed) throw new ConflictError('Заявку уже нельзя отменить: заказ оплачен или выполняется');
     await this.ctx.em.populate(order, ['bids']);
-    for (const bid of order.bids) if (bid.status === BidStatus.Pending) bid.status = BidStatus.Rejected;
+    const notifications = new NotificationService(this.ctx);
+    const reasonText = reason ? ` Причина: ${reason}` : '';
+    for (const bid of order.bids) {
+      if (bid.status !== BidStatus.Pending) continue;
+      bid.status = BidStatus.Rejected;
+      notifications.notify(
+        bid.driver,
+        NotificationType.OrderCancelled,
+        'Заявка отменена',
+        `Заказчик отменил ${orderTitle(order)}.${reasonText}`,
+        { order },
+      );
+    }
+    if (order.driver) {
+      notifications.notify(
+        order.driver,
+        NotificationType.OrderCancelled,
+        'Заказ отменён',
+        `Заказчик отменил ${orderTitle(order)} до оплаты.${reasonText}`,
+        { order },
+      );
+    }
     order.status = OrderStatus.Cancelled;
     order.cancelReason = reason || null;
     await this.ctx.em.flush();
@@ -219,6 +243,13 @@ export class OrderService {
       throw new ConflictError('Оплата доступна после выбора исполнителя и только один раз');
     }
     order.isEscrowLocked = true;
+    new NotificationService(this.ctx).notify(
+      order.driver!,
+      NotificationType.OrderPaid,
+      'Заказ оплачен',
+      `${rub(order.price)} за ${orderTitle(order)} заморожены на безопасной сделке. Можно ехать на погрузку.`,
+      { order },
+    );
     await this.ctx.em.flush();
     return this.getDetails(user, order.id);
   }
@@ -234,6 +265,13 @@ export class OrderService {
     }
     order.status = OrderStatus.Completed;
     order.isEscrowLocked = false;
+    new NotificationService(this.ctx).notify(
+      order.driver!,
+      NotificationType.OrderCompleted,
+      'Приёмка подтверждена',
+      `Заказчик принял груз ${orderTitle(order)}, ${rub(order.price)} переведены вам. Оцените заказчика.`,
+      { order },
+    );
     await this.ctx.em.flush();
     return this.getDetails(user, order.id);
   }

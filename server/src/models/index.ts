@@ -2,6 +2,7 @@
 export { Bid } from './Bid.js';
 export { CargoType } from './CargoType.js';
 export * from './enums.js';
+export { Notification } from './Notification.js';
 export { Order } from './Order.js';
 export { OrderPhoto } from './OrderPhoto.js';
 export { Review } from './Review.js';
@@ -12,6 +13,7 @@ export { VerificationDocument } from './VerificationDocument.js';
 
 import { Bid } from './Bid.js';
 import { CargoType } from './CargoType.js';
+import { Notification } from './Notification.js';
 import { Order } from './Order.js';
 import { OrderPhoto } from './OrderPhoto.js';
 import { Review } from './Review.js';
@@ -30,4 +32,5 @@ export const entities = [
   OrderPhoto,
   Review,
   VerificationDocument,
+  Notification,
 ];

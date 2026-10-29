@@ -115,6 +115,26 @@ describe('Исполнение рейса', () => {
 
     const profile = await api(ctx, 'GET', '/users/me', { token: driver.token });
     assert.deepEqual(profile.data.rating, { average: 5, count: 1 });
+    const reviews = await api(ctx, 'GET', '/users/me/reviews', { token: driver.token });
+    assert.equal(reviews.statusCode, 200);
+    assert.equal(reviews.data.total, 1);
+    assert.deepEqual(
+      [reviews.data.items[0].rating, reviews.data.items[0].comment, reviews.data.items[0].authorRole],
+      [5, 'Отлично', 'Client'],
+    );
+
+    // О каждом этапе рейса заказчик получил уведомление
+    const clientNotes = await api(ctx, 'GET', '/notifications?limit=50', { token: client.token });
+    const titles = clientNotes.data.items.map((n: { title: string }) => n.title);
+    for (const title of ['Водитель прибыл на погрузку', 'Груз в пути', 'Водитель прибыл на выгрузку']) {
+      assert.ok(titles.includes(title), `нет уведомления «${title}»`);
+    }
+    const driverTypes = (await api(ctx, 'GET', '/notifications?limit=50', { token: driver.token })).data.items.map(
+      (n: { type: string }) => n.type,
+    );
+    for (const type of ['BidAccepted', 'OrderPaid', 'OrderCompleted', 'ReviewReceived']) {
+      assert.ok(driverTypes.includes(type), `водителю не пришло уведомление ${type}`);
+    }
 
     // Фото открывается по подписанной ссылке, подделанная или без подписи — 403
     const file = await ctx.app.inject({ method: 'GET', url: photoUrl });

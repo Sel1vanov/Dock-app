@@ -21,6 +21,9 @@ export function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, BCRYPT_ROUNDS);
 }
 
+/** Версия пароля для токена: время последней смены пароля в мс (0 — пароль не меняли). */
+export const passwordVersion = (changedAt: Date | null) => changedAt?.getTime() ?? 0;
+
 export function verifyPassword(password: string, hash: string | null | undefined): Promise<boolean> {
   return bcrypt.compare(password, hash ?? DUMMY_HASH).then((ok) => ok && Boolean(hash));
 }
@@ -33,6 +36,8 @@ const JWT_AUDIENCE = 'dock-app';
 export interface AccessTokenPayload {
   sub: string;
   role: UserRole;
+  /** Версия пароля (время его последней смены, мс; 0 — не меняли). Смена пароля отзывает старые токены. */
+  pwv: number;
 }
 
 export interface IssuedToken {
@@ -46,7 +51,7 @@ export function createAccessToken(
   config: Pick<Config, 'JWT_SECRET' | 'JWT_EXPIRES_IN'>,
   payload: AccessTokenPayload,
 ): IssuedToken {
-  const accessToken = jwt.sign({ role: payload.role }, config.JWT_SECRET, {
+  const accessToken = jwt.sign({ role: payload.role, pwv: payload.pwv }, config.JWT_SECRET, {
     algorithm: 'HS256',
     subject: payload.sub,
     expiresIn: config.JWT_EXPIRES_IN,
@@ -67,7 +72,7 @@ export function verifyAccessToken(config: Pick<Config, 'JWT_SECRET'>, token: str
     if (typeof decoded !== 'object' || typeof decoded.sub !== 'string' || typeof decoded.role !== 'string') {
       throw new UnauthorizedError('Недействительный токен');
     }
-    return { sub: decoded.sub, role: decoded.role as UserRole };
+    return { sub: decoded.sub, role: decoded.role as UserRole, pwv: typeof decoded.pwv === 'number' ? decoded.pwv : 0 };
   } catch (e) {
     if (e instanceof jwt.TokenExpiredError) {
       throw new UnauthorizedError('Срок действия сессии истёк. Войдите снова', 'TOKEN_EXPIRED');

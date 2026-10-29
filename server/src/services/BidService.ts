@@ -4,6 +4,7 @@ import { ConflictError, ForbiddenError, NotFoundError } from '../core/errors.js'
 import {
   type Bid,
   BidStatus,
+  NotificationType,
   type Order,
   OrderStatus,
   type User,
@@ -12,9 +13,10 @@ import {
   VerificationStatus,
 } from '../models/index.js';
 import { BidRepository, OrderRepository, VehicleRepository } from '../repositories/index.js';
-import type { BidCreateInput, BidUpdateInput } from '../schemas/bids.js';
+import type { BidCounterInput, BidCreateInput, BidUpdateInput } from '../schemas/bids.js';
 import type { ServiceContext } from './context.js';
 import { toOrderListItem } from './mappers.js';
+import { NotificationService, orderTitle, rub } from './NotificationService.js';
 import { isOpen, OrderService } from './OrderService.js';
 
 /** UC-09: груз помещается в ТС по массе и габаритам, а тип груза ТС возит. */
@@ -28,16 +30,21 @@ export function fitsVehicle(vehicle: Vehicle, order: Order): boolean {
   );
 }
 
-/** Торг: отклики водителей (UC-10, UC-11) и выбор исполнителя заказчиком (UC-06). */
+/**
+ * Торг: отклики водителей (UC-10, UC-11), встречная цена заказчика и выбор исполнителя (UC-06).
+ * О каждом шаге торга другая сторона получает уведомление в той же транзакции.
+ */
 export class BidService {
   private readonly bids: BidRepository;
   private readonly orders: OrderRepository;
   private readonly vehicles: VehicleRepository;
+  private readonly notifications: NotificationService;
 
   constructor(private readonly ctx: ServiceContext) {
     this.bids = new BidRepository(ctx.em);
     this.orders = new OrderRepository(ctx.em);
     this.vehicles = new VehicleRepository(ctx.em);
+    this.notifications = new NotificationService(ctx);
   }
 
   /** Отклик по цене заказчика или со встречной ценой. Первый отклик переводит заявку в «Идёт торг». */
@@ -59,6 +66,15 @@ export class BidService {
 
     const bid = this.bids.create({ order, driver: user, offeredPrice: input.price, comment: input.comment || null });
     if (order.status === OrderStatus.Created) order.status = OrderStatus.Bidding;
+    this.notifications.notify(
+      order.client,
+      NotificationType.BidPlaced,
+      'Новый отклик',
+      input.price === order.price
+        ? `${user.fullName} откликается на ${orderTitle(order)} по вашей цене ${rub(input.price)}.`
+        : `${user.fullName} предлагает ${rub(input.price)} за ${orderTitle(order)}.`,
+      { order },
+    );
     try {
       await this.ctx.em.flush(); // INSERT отклика и UPDATE статуса заявки — одна транзакция
     } catch (e) {
@@ -68,10 +84,59 @@ export class BidService {
     return new OrderService(this.ctx).getDetails(user, bid.order.id);
   }
 
+  /** Водитель меняет цену или комментарий. Новая цена водителя снимает встречную цену заказчика. */
   async update(user: User, bidId: string, input: BidUpdateInput) {
     const bid = await this.getOwnedPending(user, bidId);
-    if (input.price !== undefined) bid.offeredPrice = input.price;
+    if (input.price !== undefined && input.price !== bid.offeredPrice) {
+      bid.offeredPrice = input.price;
+      bid.counterPrice = null;
+      this.notifications.notify(
+        bid.order.client,
+        NotificationType.BidUpdated,
+        'Водитель изменил цену',
+        `${user.fullName} теперь предлагает ${rub(input.price)} за ${orderTitle(bid.order)}.`,
+        { order: bid.order },
+      );
+    }
     if (input.comment !== undefined) bid.comment = input.comment || null;
+    await this.ctx.em.flush();
+    return new OrderService(this.ctx).getDetails(user, bid.order.id);
+  }
+
+  /** Заказчик предлагает водителю свою цену в ответ на его отклик. */
+  async counter(user: User, bidId: string, input: BidCounterInput) {
+    const bid = await this.bids.findById(bidId);
+    if (!bid) throw new NotFoundError('Отклик не найден');
+    if (bid.order.client.id !== user.id) throw new ForbiddenError('Предложить цену может только автор заявки');
+    if (bid.status !== BidStatus.Pending || !isOpen(bid.order)) throw new ConflictError('Отклик уже обработан');
+    if (input.price === bid.offeredPrice) {
+      throw new ConflictError('Водитель уже предлагает эту цену — просто выберите его исполнителем');
+    }
+    bid.counterPrice = input.price;
+    this.notifications.notify(
+      bid.driver,
+      NotificationType.CounterOffer,
+      'Встречная цена',
+      `Заказчик предлагает ${rub(input.price)} за ${orderTitle(bid.order)}. Ваша цена — ${rub(bid.offeredPrice)}.`,
+      { order: bid.order },
+    );
+    await this.ctx.em.flush();
+    return new OrderService(this.ctx).getDetails(user, bid.order.id);
+  }
+
+  /** Водитель соглашается на встречную цену заказчика: она становится ценой отклика. */
+  async acceptCounter(user: User, bidId: string) {
+    const bid = await this.getOwnedPending(user, bidId);
+    if (bid.counterPrice === null) throw new ConflictError('Заказчик не предлагал встречную цену');
+    bid.offeredPrice = bid.counterPrice;
+    bid.counterPrice = null;
+    this.notifications.notify(
+      bid.order.client,
+      NotificationType.CounterAccepted,
+      'Водитель согласен на вашу цену',
+      `${user.fullName} принимает вашу цену ${rub(bid.offeredPrice)} за ${orderTitle(bid.order)}. Можно выбрать исполнителя.`,
+      { order: bid.order },
+    );
     await this.ctx.em.flush();
     return new OrderService(this.ctx).getDetails(user, bid.order.id);
   }
@@ -107,7 +172,24 @@ export class BidService {
       order.price = bid.offeredPrice;
       order.status = OrderStatus.Assigned;
       bid.status = BidStatus.Accepted;
-      await em.flush(); // UPDATE orders, UPDATE bids — ещё внутри транзакции
+      bid.counterPrice = null;
+      this.notifications.notify(
+        bid.driver,
+        NotificationType.BidAccepted,
+        'Вас выбрали исполнителем',
+        `${orderTitle(order)} за ${rub(order.price)}. Рейс можно начать после оплаты заказчиком.`,
+        { order },
+      );
+      for (const other of await this.bids.listPendingExcept(order.id, bid.id)) {
+        this.notifications.notify(
+          other.driver,
+          NotificationType.BidRejected,
+          'Выбран другой исполнитель',
+          `Заказчик выбрал другого водителя для ${orderTitle(order)}.`,
+          { order },
+        );
+      }
+      await em.flush(); // UPDATE orders, UPDATE bids, INSERT уведомлений — ещё внутри транзакции
       await this.bids.rejectPendingExcept(order.id, bid.id);
       await em.commit();
     } catch (e) {
@@ -124,6 +206,14 @@ export class BidService {
     if (bid.order.client.id !== user.id) throw new ForbiddenError('Отклонить отклик может только автор заявки');
     if (bid.status !== BidStatus.Pending || !isOpen(bid.order)) throw new ConflictError('Отклик уже обработан');
     bid.status = BidStatus.Rejected;
+    bid.counterPrice = null;
+    this.notifications.notify(
+      bid.driver,
+      NotificationType.BidRejected,
+      'Отклик отклонён',
+      `Заказчик отклонил ваш отклик на ${orderTitle(bid.order)}.`,
+      { order: bid.order },
+    );
     await this.ctx.em.flush();
     return new OrderService(this.ctx).getDetails(user, bid.order.id);
   }
@@ -136,6 +226,7 @@ export class BidService {
     return bids.map((b) => ({
       id: b.id,
       price: b.offeredPrice,
+      counterPrice: b.counterPrice,
       comment: b.comment,
       status: b.status,
       createdAt: b.createdAt.toISOString(),

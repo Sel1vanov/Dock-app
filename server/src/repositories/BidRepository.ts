@@ -15,7 +15,16 @@ export class BidRepository {
   }
 
   findById(id: string): Promise<Bid | null> {
-    return this.em.findOne(Bid, { id }, { populate: ['order'], strategy: 'joined' });
+    return this.em.findOne(
+      Bid,
+      { id },
+      { populate: ['order', 'order.client', 'order.cargoType', 'driver'], strategy: 'joined' },
+    );
+  }
+
+  /** Ожидающие отклики заявки, кроме выбранного: их авторам уходит уведомление об отказе. */
+  listPendingExcept(orderId: string, exceptBidId: string): Promise<Bid[]> {
+    return this.em.find(Bid, { order: orderId, status: BidStatus.Pending, id: { $ne: exceptBidId } });
   }
 
   findByOrderAndDriver(orderId: string, driverId: string): Promise<Bid | null> {

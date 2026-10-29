@@ -1,6 +1,6 @@
 /**
- * API версии 1: все маршруты под префиксом /api/v1. Публичны только регистрация, вход,
- * проверка работоспособности и выдача файлов по подписанной ссылке; остальное требует JWT.
+ * API версии 1: все маршруты под префиксом /api/v1. Публичны только регистрация, вход, просьба
+ * о сбросе пароля, проверка работоспособности и выдача файлов по подписанной ссылке; остальное требует JWT.
  */
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
@@ -11,6 +11,7 @@ import { authRouter } from './auth.js';
 import { bidsRouter } from './bids.js';
 import { catalogRouter } from './catalog.js';
 import { filesRouter } from './files.js';
+import { notificationsRouter } from './notifications.js';
 import { ordersRouter } from './orders.js';
 import { usersRouter } from './users.js';
 import { vehiclesRouter } from './vehicles.js';
@@ -40,5 +41,6 @@ export const apiV1: FastifyPluginAsyncZod = async (app) => {
     await protectedApp.register(ordersRouter, { prefix: '/orders' });
     await protectedApp.register(bidsRouter, { prefix: '/bids' });
     await protectedApp.register(adminRouter, { prefix: '/admin' });
+    await protectedApp.register(notificationsRouter, { prefix: '/notifications' });
   });
 };

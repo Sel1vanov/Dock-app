@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto';
 
 import { ConflictError, ForbiddenError } from '../core/errors.js';
-import { DocumentType, type User, UserRole, VerificationStatus } from '../models/index.js';
-import { DocumentRepository, UserRepository } from '../repositories/index.js';
+import { DocumentType, NotificationType, type User, UserRole, VerificationStatus } from '../models/index.js';
+import { DocumentRepository, ReviewRepository, UserRepository } from '../repositories/index.js';
 import type { UserUpdateInput } from '../schemas/users.js';
 import type { ServiceContext } from './context.js';
 import { decodeImage } from './FileStorage.js';
 import { toDocumentResponse, toUserResponse } from './mappers.js';
+import { NotificationService } from './NotificationService.js';
 
 const DOCUMENT_LABELS: Record<DocumentType, string> = {
   [DocumentType.Passport]: 'паспорт',
@@ -33,6 +34,25 @@ export class UserService {
     this.ctx.em.assign(user, input);
     await this.ctx.em.flush();
     return this.getProfile(user);
+  }
+
+  /** Отзывы, которые оставили пользователю (UC-19), с пагинацией. */
+  async listMyReviews(user: User, page: { limit: number; offset: number }) {
+    const [reviews, total] = await new ReviewRepository(this.ctx.em).listByTarget(user.id, page);
+    return {
+      items: reviews.map((r) => ({
+        id: r.id,
+        rating: r.rating,
+        comment: r.comment,
+        authorName: r.author.fullName,
+        authorRole: r.author.role,
+        orderId: r.order.id,
+        createdAt: r.createdAt.toISOString(),
+      })),
+      total,
+      limit: page.limit,
+      offset: page.offset,
+    };
   }
 
   async listDocuments(user: User) {
@@ -82,6 +102,12 @@ export class UserService {
     user.verificationStatus = VerificationStatus.Pending;
     user.verifiedAt = null;
     user.verifiedBy = null;
+    await new NotificationService(this.ctx).notifyAdmins(
+      NotificationType.VerificationRequested,
+      'Документы на проверку',
+      `Водитель ${user.fullName} загрузил паспорт, ВУ и СТС и ждёт проверки.`,
+      user,
+    );
     await this.ctx.em.flush();
     return this.getProfile(user);
   }

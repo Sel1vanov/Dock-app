@@ -55,6 +55,24 @@ export enum DocumentType {
   Sts = 'sts',
 }
 
+/** Типы уведомлений: о каком событии сообщается пользователю. */
+export enum NotificationType {
+  BidPlaced = 'BidPlaced',
+  BidUpdated = 'BidUpdated',
+  CounterOffer = 'CounterOffer',
+  CounterAccepted = 'CounterAccepted',
+  BidAccepted = 'BidAccepted',
+  BidRejected = 'BidRejected',
+  OrderPaid = 'OrderPaid',
+  TripStatus = 'TripStatus',
+  OrderCompleted = 'OrderCompleted',
+  OrderCancelled = 'OrderCancelled',
+  ReviewReceived = 'ReviewReceived',
+  VerificationResult = 'VerificationResult',
+  VerificationRequested = 'VerificationRequested',
+  PasswordResetRequested = 'PasswordResetRequested',
+}
+
 export const OPEN_ORDER_STATUSES = [OrderStatus.Created, OrderStatus.Bidding] as const;
 export const ACTIVE_TRIP_STATUSES = [
   OrderStatus.Assigned,

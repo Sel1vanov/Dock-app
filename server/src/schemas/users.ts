@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { DocumentType, UserRole, VerificationStatus } from '../models/enums.js';
-import { ImageBase64, RatingResponse } from './common.js';
+import { ImageBase64, PaginationQuery, RatingResponse, pageOf } from './common.js';
 
 export const UserResponse = z
   .object({
@@ -44,6 +44,22 @@ export const DocumentResponse = z
     url: z.string().describe('Временная подписанная ссылка'),
   })
   .meta({ id: 'DocumentResponse' });
+
+export const ReviewsQuery = PaginationQuery;
+
+export const ReceivedReviewResponse = z
+  .object({
+    id: z.uuid(),
+    rating: z.number().int(),
+    comment: z.string().nullable(),
+    authorName: z.string(),
+    authorRole: z.enum(UserRole),
+    orderId: z.uuid(),
+    createdAt: z.string(),
+  })
+  .meta({ id: 'ReceivedReviewResponse' });
+
+export const ReceivedReviewPageResponse = pageOf(ReceivedReviewResponse).meta({ id: 'ReceivedReviewPageResponse' });
 
 export type UserResponseT = z.output<typeof UserResponse>;
 export type UserUpdateInput = z.output<typeof UserUpdateRequest>;

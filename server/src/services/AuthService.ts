@@ -1,15 +1,17 @@
 import { UniqueConstraintViolationException } from '@mikro-orm/core';
 
-import { ConflictError, ForbiddenError, UnauthorizedError } from '../core/errors.js';
-import { createAccessToken, hashPassword, verifyPassword } from '../core/security.js';
-import { UserRepository } from '../repositories/index.js';
-import type { LoginInput, RegisterInput } from '../schemas/auth.js';
+import { ConflictError, ForbiddenError, UnauthorizedError, ValidationError } from '../core/errors.js';
+import { createAccessToken, hashPassword, passwordVersion, verifyPassword } from '../core/security.js';
+import { NotificationType, type User, UserRole } from '../models/index.js';
+import { NotificationRepository, UserRepository } from '../repositories/index.js';
+import type { LoginInput, PasswordChangeInput, RegisterInput } from '../schemas/auth.js';
 import type { ServiceContext } from './context.js';
 import { toUserResponse } from './mappers.js';
+import { NotificationService } from './NotificationService.js';
 
 const DUPLICATE_EMAIL = 'Пользователь с таким email уже зарегистрирован';
 
-/** Регистрация и вход: хеширование пароля, проверка учётных данных, выдача JWT. */
+/** Регистрация, вход, смена пароля и просьба о его сбросе. */
 export class AuthService {
   private readonly users: UserRepository;
 
@@ -35,10 +37,7 @@ export class AuthService {
       if (e instanceof UniqueConstraintViolationException) throw new ConflictError(DUPLICATE_EMAIL);
       throw e;
     }
-    return {
-      ...createAccessToken(this.ctx.config, { sub: user.id, role: user.role }),
-      user: toUserResponse(user, null),
-    };
+    return { ...this.issueToken(user), user: toUserResponse(user, null) };
   }
 
   async login(input: LoginInput) {
@@ -49,9 +48,57 @@ export class AuthService {
     if (user.isBlocked) throw new ForbiddenError('Аккаунт заблокирован администратором');
 
     const rating = (await this.users.getRatings([user.id])).get(user.id) ?? null;
+    return { ...this.issueToken(user), user: toUserResponse(user, rating) };
+  }
+
+  /** Смена пароля по текущему паролю. Токены, выданные до смены, перестают приниматься; выдаётся новый. */
+  async changePassword(user: User, input: PasswordChangeInput) {
+    const withHash = await this.users.findByEmailWithPassword(user.email);
+    if (!withHash || !(await verifyPassword(input.currentPassword, withHash.passwordHash))) {
+      throw new ValidationError('Неверный текущий пароль', [
+        { field: 'currentPassword', message: 'Неверный текущий пароль' },
+      ]);
+    }
+    withHash.passwordHash = await hashPassword(input.newPassword);
+    withHash.passwordChangedAt = new Date();
+    await this.ctx.em.flush();
+    const rating = (await this.users.getRatings([user.id])).get(user.id) ?? null;
+    return { ...this.issueToken(withHash), user: toUserResponse(withHash, rating) };
+  }
+
+  /**
+   * «Забыли пароль?»: почтового сервиса в проекте нет, поэтому просьба уходит администраторам
+   * уведомлением, а администратор выдаёт временный пароль и сообщает его по телефону из профиля.
+   * Ответ одинаковый для любого email — не раскрываем, кто зарегистрирован.
+   */
+  async requestPasswordReset(email: string) {
+    const user = await this.users.findByEmail(email);
+    const notifications = new NotificationRepository(this.ctx.em);
+    if (
+      user &&
+      user.role !== UserRole.Admin &&
+      !user.isBlocked &&
+      !(await notifications.hasUnreadResetRequest(user.id))
+    ) {
+      await new NotificationService(this.ctx).notifyAdmins(
+        NotificationType.PasswordResetRequested,
+        'Просьба сбросить пароль',
+        `${user.fullName} (${user.email}, ${user.phone}) не может войти. Выдайте временный пароль и сообщите его по телефону.`,
+        user,
+      );
+      await this.ctx.em.flush();
+    }
     return {
-      ...createAccessToken(this.ctx.config, { sub: user.id, role: user.role }),
-      user: toUserResponse(user, rating),
+      message:
+        'Если такой аккаунт есть, администратор получил просьбу. Он позвонит на номер из профиля и сообщит временный пароль.',
     };
+  }
+
+  private issueToken(user: User) {
+    return createAccessToken(this.ctx.config, {
+      sub: user.id,
+      role: user.role,
+      pwv: passwordVersion(user.passwordChangedAt),
+    });
   }
 }

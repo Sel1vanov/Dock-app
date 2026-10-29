@@ -92,7 +92,12 @@ export const CargoResponse = z.object({
 });
 
 export const MyBidResponse = z
-  .object({ id: z.uuid(), price: z.number(), status: z.enum(BidStatus) })
+  .object({
+    id: z.uuid(),
+    price: z.number(),
+    counterPrice: z.number().nullable().describe('Встречная цена заказчика'),
+    status: z.enum(BidStatus),
+  })
   .nullable()
   .describe('Отклик текущего водителя, если он есть');
 
@@ -133,6 +138,7 @@ export const BidResponse = z
   .object({
     id: z.uuid(),
     price: z.number(),
+    counterPrice: z.number().nullable().describe('Встречная цена, которую предложил заказчик'),
     comment: z.string().nullable(),
     status: z.enum(BidStatus),
     createdAt: z.string(),

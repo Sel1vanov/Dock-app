@@ -21,6 +21,11 @@ export const BidUpdateRequest = z
   .refine((v) => Object.keys(v).length > 0, 'Передайте хотя бы одно поле')
   .meta({ id: 'BidUpdateRequest' });
 
+export const BidCounterRequest = z
+  .object({ price: positive(100_000_000, 'Цена') })
+  .strict()
+  .meta({ id: 'BidCounterRequest' });
+
 export const MyBidsQuery = z.object({
   status: z.enum(BidStatus).optional(),
 });
@@ -29,6 +34,7 @@ export const DriverBidResponse = z
   .object({
     id: z.uuid(),
     price: z.number(),
+    counterPrice: z.number().nullable().describe('Встречная цена заказчика'),
     comment: z.string().nullable(),
     status: z.enum(BidStatus),
     createdAt: z.string(),
@@ -38,4 +44,5 @@ export const DriverBidResponse = z
 
 export type BidCreateInput = z.output<typeof BidCreateRequest>;
 export type BidUpdateInput = z.output<typeof BidUpdateRequest>;
+export type BidCounterInput = z.output<typeof BidCounterRequest>;
 export type DriverBidResponseT = z.output<typeof DriverBidResponse>;

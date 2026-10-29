@@ -7,10 +7,11 @@ import {
   AdminUserPageResponse,
   AdminUsersQuery,
   AdminUserUpdateRequest,
+  TemporaryPasswordResponse,
 } from '../schemas/admin.js';
 import { errorResponses, IdParams } from '../schemas/common.js';
 
-/** Модерация (только роль Admin): проверка документов водителей и блокировка. */
+/** Модерация (только роль Admin): проверка документов водителей, блокировка, временный пароль. */
 export const adminRouter: FastifyPluginAsyncZod = async (app) => {
   app.addHook('preHandler', requireRole(UserRole.Admin));
 
@@ -52,5 +53,18 @@ export const adminRouter: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request) => services(request).admin.updateUser(currentUser(request), request.params.id, request.body),
+  );
+
+  app.post(
+    '/users/:id/temporary-password',
+    {
+      schema: {
+        tags: ['admin'],
+        summary: 'Выдать временный пароль (по просьбе «Забыли пароль?»); сессии пользователя завершаются',
+        params: IdParams,
+        response: { 200: TemporaryPasswordResponse, ...errorResponses(401, 403, 404, 422) },
+      },
+    },
+    async (request) => services(request).admin.issueTemporaryPassword(request.params.id),
   );
 };

@@ -1,10 +1,11 @@
 import { UniqueConstraintViolationException } from '@mikro-orm/core';
 
 import { ConflictError, ForbiddenError, NotFoundError } from '../core/errors.js';
-import { OrderStatus, type User } from '../models/index.js';
+import { NotificationType, OrderStatus, type User } from '../models/index.js';
 import { OrderRepository, ReviewRepository } from '../repositories/index.js';
 import type { ReviewCreateInput } from '../schemas/orders.js';
 import type { ServiceContext } from './context.js';
+import { NotificationService, orderTitle } from './NotificationService.js';
 
 const DUPLICATE = 'Вы уже оставили отзыв по этому заказу';
 
@@ -34,6 +35,13 @@ export class ReviewService {
       rating: input.rating,
       comment: input.comment || null,
     });
+    new NotificationService(this.ctx).notify(
+      review.target,
+      NotificationType.ReviewReceived,
+      'Новый отзыв',
+      `${user.fullName} оценивает заказ ${orderTitle(order)} на ${input.rating} из 5.`,
+      { order },
+    );
     try {
       await this.ctx.em.flush();
     } catch (e) {

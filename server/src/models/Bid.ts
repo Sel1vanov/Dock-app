@@ -7,7 +7,7 @@ import { User } from './User.js';
 
 /**
  * Отклик водителя с ценой (SAD 5, класс Bid). Связывает заказы и водителей (N:M с атрибутами:
- * цена, комментарий, статус). Один водитель — один отклик на заявку; принятый отклик — не более
+ * цена, комментарий, встречная цена заказчика, статус). Один водитель — один отклик на заявку; принятый отклик — не более
  * одного на заявку (частичный уникальный индекс).
  */
 @Entity({ tableName: 'bids', rowLevelSecurity: true })
@@ -15,6 +15,7 @@ import { User } from './User.js';
 @Unique({ name: 'uk_bids_one_accepted', properties: ['order'], where: `status = 'Accepted'` })
 @Index({ name: 'idx_bids_driver_created', columns: [{ name: 'driver_id' }, { name: 'created_at', sort: 'desc' }] })
 @Check({ name: 'ck_bids_price_positive', expression: 'offered_price > 0' })
+@Check({ name: 'ck_bids_counter_price_positive', expression: 'counter_price is null or counter_price > 0' })
 export class Bid {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
   id!: string;
@@ -31,6 +32,10 @@ export class Bid {
 
   @Property({ type: 'string', length: 300, nullable: true })
   comment: string | null = null;
+
+  /** Встречная цена заказчика (двусторонний торг). null — заказчик свою цену не предлагал. */
+  @Property({ type: new DecimalType('number'), precision: 12, scale: 2, nullable: true })
+  counterPrice: number | null = null;
 
   @Enum({ items: () => BidStatus, default: BidStatus.Pending })
   status: Opt<BidStatus> = BidStatus.Pending;

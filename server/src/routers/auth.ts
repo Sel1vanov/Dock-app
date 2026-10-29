@@ -1,10 +1,16 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 
 import { services } from '../dependencies.js';
-import { LoginRequest, RegisterRequest, TokenResponse } from '../schemas/auth.js';
+import {
+  LoginRequest,
+  MessageResponse,
+  PasswordResetRequest,
+  RegisterRequest,
+  TokenResponse,
+} from '../schemas/auth.js';
 import { errorResponses } from '../schemas/common.js';
 
-/** Публичные эндпоинты: регистрация и вход. Ограничены по частоте — защита от перебора паролей. */
+/** Публичные эндпоинты: регистрация, вход и просьба о сбросе пароля. Ограничены по частоте — защита от перебора паролей. */
 export const authRouter: FastifyPluginAsyncZod = async (app) => {
   const rateLimit = { max: 10, timeWindow: '1 minute' };
 
@@ -34,5 +40,20 @@ export const authRouter: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request) => services(request).auth.login(request.body),
+  );
+
+  app.post(
+    '/password-reset-request',
+    {
+      config: { rateLimit: { max: 3, timeWindow: '1 minute' } },
+      schema: {
+        tags: ['auth'],
+        summary: 'Забыли пароль: просьба администратору выдать временный пароль',
+        body: PasswordResetRequest,
+        response: { 202: MessageResponse, ...errorResponses(422, 429) },
+      },
+    },
+    async (request, reply) =>
+      reply.status(202).send(await services(request).auth.requestPasswordReset(request.body.email)),
   );
 };

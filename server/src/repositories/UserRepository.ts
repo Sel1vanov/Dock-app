@@ -29,6 +29,10 @@ export class UserRepository {
     return this.em.findOne(User, { email }, { populate: ['passwordHash'] });
   }
 
+  findByEmail(email: string): Promise<User | null> {
+    return this.em.findOne(User, { email });
+  }
+
   async existsByEmail(email: string): Promise<boolean> {
     return (await this.em.count(User, { email })) > 0;
   }

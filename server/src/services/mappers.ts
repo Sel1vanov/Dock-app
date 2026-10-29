@@ -77,7 +77,14 @@ export function toOrderListItem(order: Order, extra: { bidsCount: number; myBid:
     updatedAt: iso(order.updatedAt),
     bidsCount: extra.bidsCount,
     clientName: order.client.fullName,
-    myBid: extra.myBid ? { id: extra.myBid.id, price: extra.myBid.offeredPrice, status: extra.myBid.status } : null,
+    myBid: extra.myBid
+      ? {
+          id: extra.myBid.id,
+          price: extra.myBid.offeredPrice,
+          counterPrice: extra.myBid.counterPrice,
+          status: extra.myBid.status,
+        }
+      : null,
   };
 }
 

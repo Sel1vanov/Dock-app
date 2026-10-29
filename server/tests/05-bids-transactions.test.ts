@@ -123,6 +123,13 @@ describe('Отклики и выбор исполнителя', () => {
       ['Pending', 'Pending'],
       'отклики не изменились',
     );
+    const [notified] = await ctx.orm.em
+      .fork()
+      .execute<any[]>(
+        `select count(*)::int as count from notifications where order_id = ? and type in ('BidAccepted', 'BidRejected')`,
+        [order.id],
+      );
+    assert.equal(notified.count, 0, 'уведомления о выборе исполнителя откатились вместе с транзакцией');
   });
 
   test('водитель меняет и отзывает свой отклик; заявка без откликов снова «ищет исполнителя»', async () => {

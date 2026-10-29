@@ -28,14 +28,27 @@ export interface AppDeps {
   storage?: FileStorage;
 }
 
-const PUBLIC_ROUTES = ['/api/v1/auth/register', '/api/v1/auth/login', '/api/v1/health', '/api/v1/files/*'];
+const PUBLIC_ROUTES = [
+  '/api/v1/auth/register',
+  '/api/v1/auth/login',
+  '/api/v1/auth/password-reset-request',
+  '/api/v1/health',
+  '/api/v1/files/*',
+];
 
 export async function buildApp({ config, orm, storage }: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({
     logger: {
       level: config.LOG_LEVEL,
       // Токены и пароли не попадают в журнал.
-      redact: ['req.headers.authorization', 'body.password', 'body.passwordConfirm'],
+      redact: [
+        'req.headers.authorization',
+        'body.password',
+        'body.passwordConfirm',
+        'body.currentPassword',
+        'body.newPassword',
+        'body.newPasswordConfirm',
+      ],
       ...(config.NODE_ENV === 'development'
         ? { transport: { target: 'pino-pretty', options: { translateTime: 'HH:MM:ss' } } }
         : {}),
@@ -80,6 +93,7 @@ export async function buildApp({ config, orm, storage }: AppDeps): Promise<Fasti
         { name: 'bids', description: 'Отклики и выбор исполнителя' },
         { name: 'tracking', description: 'Исполнение рейса' },
         { name: 'admin', description: 'Модерация (роль Admin)' },
+        { name: 'notifications', description: 'Уведомления' },
         { name: 'catalog', description: 'Справочники' },
         { name: 'files', description: 'Файлы по подписанным ссылкам' },
         { name: 'system', description: 'Служебное' },

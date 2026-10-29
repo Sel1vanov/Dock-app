@@ -29,5 +29,9 @@ export const AdminUserUpdateRequest = z
   .refine((v) => Object.keys(v).length > 0, 'Передайте хотя бы одно поле')
   .meta({ id: 'AdminUserUpdateRequest' });
 
+export const TemporaryPasswordResponse = z
+  .object({ temporaryPassword: z.string().describe('Сообщите пользователю; он сменит его в профиле') })
+  .meta({ id: 'TemporaryPasswordResponse' });
+
 export type AdminUsersQueryT = z.output<typeof AdminUsersQuery>;
 export type AdminUserUpdateInput = z.output<typeof AdminUserUpdateRequest>;

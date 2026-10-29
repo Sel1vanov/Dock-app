@@ -3,10 +3,13 @@ import { z } from 'zod';
 
 import { currentUser, services } from '../dependencies.js';
 import { errorResponses } from '../schemas/common.js';
+import { PasswordChangeRequest, TokenResponse } from '../schemas/auth.js';
 import {
   DocumentResponse,
   DocumentTypeParams,
   DocumentUploadRequest,
+  ReceivedReviewPageResponse,
+  ReviewsQuery,
   UserResponse,
   UserUpdateRequest,
 } from '../schemas/users.js';
@@ -32,6 +35,32 @@ export const usersRouter: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request) => services(request).users.updateProfile(currentUser(request), request.body),
+  );
+
+  app.post(
+    '/me/password',
+    {
+      schema: {
+        tags: ['users'],
+        summary: 'Сменить пароль: старые токены отзываются, в ответе — новый токен',
+        body: PasswordChangeRequest,
+        response: { 200: TokenResponse, ...errorResponses(401, 403, 422) },
+      },
+    },
+    async (request) => services(request).auth.changePassword(currentUser(request), request.body),
+  );
+
+  app.get(
+    '/me/reviews',
+    {
+      schema: {
+        tags: ['users'],
+        summary: 'Отзывы обо мне, новые сверху (UC-19)',
+        querystring: ReviewsQuery,
+        response: { 200: ReceivedReviewPageResponse, ...errorResponses(401, 403, 422) },
+      },
+    },
+    async (request) => services(request).users.listMyReviews(currentUser(request), request.query),
   );
 
   app.get(

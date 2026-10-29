@@ -20,18 +20,22 @@ before(async () => {
 after(() => ctx.close());
 
 describe('Миграции и ограничения PostgreSQL', () => {
-  test('на пустой базе применены обе миграции, схема совпадает с моделями ORM', async () => {
+  test('на пустой базе применены все три миграции, схема совпадает с моделями ORM', async () => {
     const executed = await ctx.orm.migrator.getExecuted();
     assert.deepEqual(
       executed.map((m) => m.name),
-      ['Migration20261028100000_initial_schema', 'Migration20261028110000_verification_and_search'],
+      [
+        'Migration20261028100000_initial_schema',
+        'Migration20261028110000_verification_and_search',
+        'Migration20261029100000_notifications_and_bargaining',
+      ],
     );
     const tables = await ctx.orm.em
       .fork()
       .execute<{ table_name: string }[]>(
         `select table_name from information_schema.tables where table_schema = 'public' and table_name <> 'mikro_orm_migrations' order by 1`,
       );
-    assert.equal(tables.length, 9);
+    assert.equal(tables.length, 10);
     assert.equal((await ctx.orm.schema.getUpdateSchemaSQL()).replace("set names 'utf8';", '').trim(), '');
   });
 
@@ -39,7 +43,7 @@ describe('Миграции и ограничения PostgreSQL', () => {
     await ctx.orm.migrator.down({ to: 0 });
     assert.equal((await ctx.orm.migrator.getExecuted()).length, 0);
     await ctx.orm.migrator.up();
-    assert.equal((await ctx.orm.migrator.getExecuted()).length, 2);
+    assert.equal((await ctx.orm.migrator.getExecuted()).length, 3);
     const cargoTypes = await ctx.orm.em.fork().execute<any[]>('select code from cargo_types');
     assert.equal(cargoTypes.length, 6, 'справочник типов груза заполнен миграцией');
   });

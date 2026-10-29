@@ -14,7 +14,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import type { Config } from './core/config.js';
 import { ForbiddenError, UnauthorizedError } from './core/errors.js';
-import { verifyAccessToken } from './core/security.js';
+import { passwordVersion, verifyAccessToken } from './core/security.js';
 import { User, type UserRole } from './models/index.js';
 import { AdminService } from './services/AdminService.js';
 import { AuthService } from './services/AuthService.js';
@@ -22,6 +22,7 @@ import { BidService } from './services/BidService.js';
 import { CatalogService } from './services/CatalogService.js';
 import type { ServiceContext } from './services/context.js';
 import type { FileStorage } from './services/FileStorage.js';
+import { NotificationService } from './services/NotificationService.js';
 import { OrderService } from './services/OrderService.js';
 import { ReviewService } from './services/ReviewService.js';
 import { TrackingService } from './services/TrackingService.js';
@@ -66,6 +67,9 @@ export async function authenticate(request: FastifyRequest, _reply: FastifyReply
   const user = await getSession(request).findOne(User, { id: payload.sub });
   if (!user) throw new UnauthorizedError('Пользователь не найден. Войдите снова');
   if (user.isBlocked) throw new ForbiddenError('Аккаунт заблокирован администратором');
+  if (payload.pwv !== passwordVersion(user.passwordChangedAt)) {
+    throw new UnauthorizedError('Пароль был изменён. Войдите снова', 'TOKEN_EXPIRED');
+  }
   request.currentUser = user;
 }
 
@@ -98,5 +102,6 @@ export function services(request: FastifyRequest) {
     reviews: new ReviewService(ctx),
     admin: new AdminService(ctx),
     catalog: new CatalogService(ctx),
+    notifications: new NotificationService(ctx),
   };
 }
