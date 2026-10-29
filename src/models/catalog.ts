@@ -1,4 +1,13 @@
-import type { BidStatus, CargoType, OrderSort, OrderStatus, UserRole, VehicleType, VerificationStatus } from './dto';
+import type {
+  BidStatus,
+  CargoType,
+  NotificationType,
+  OrderSort,
+  OrderStatus,
+  UserRole,
+  VehicleType,
+  VerificationStatus,
+} from './dto';
 
 /** Справочники: русские подписи и иконки (MaterialCommunityIcons) для перечислений БД. */
 
@@ -101,3 +110,37 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   Driver: 'Водитель',
   Admin: 'Администратор',
 };
+
+/** Иконка и цвет уведомления по типу события. */
+export function notificationInfo(type: NotificationType): { icon: string; tone: StatusTone } {
+  switch (type) {
+    case 'BidPlaced':
+      return { icon: 'handshake-outline', tone: 'warning' };
+    case 'BidUpdated':
+      return { icon: 'cash-sync', tone: 'warning' };
+    case 'CounterOffer':
+      return { icon: 'swap-horizontal', tone: 'warning' };
+    case 'CounterAccepted':
+      return { icon: 'check-circle-outline', tone: 'success' };
+    case 'BidAccepted':
+      return { icon: 'trophy-outline', tone: 'success' };
+    case 'BidRejected':
+      return { icon: 'close-circle-outline', tone: 'muted' };
+    case 'OrderPaid':
+      return { icon: 'cash-lock', tone: 'success' };
+    case 'TripStatus':
+      return { icon: 'truck-fast-outline', tone: 'progress' };
+    case 'OrderCompleted':
+      return { icon: 'check-decagram-outline', tone: 'success' };
+    case 'OrderCancelled':
+      return { icon: 'cancel', tone: 'danger' };
+    case 'ReviewReceived':
+      return { icon: 'star-outline', tone: 'warning' };
+    case 'VerificationResult':
+      return { icon: 'shield-check-outline', tone: 'info' };
+    case 'VerificationRequested':
+      return { icon: 'card-account-details-outline', tone: 'info' };
+    case 'PasswordResetRequested':
+      return { icon: 'lock-reset', tone: 'danger' };
+  }
+}

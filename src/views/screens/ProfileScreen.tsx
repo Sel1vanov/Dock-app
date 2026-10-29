@@ -2,20 +2,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ROLE_LABELS, vehicleTypeInfo, verificationInfo } from '../../models/catalog';
 import { useProfileViewModel } from '../../viewmodels/ProfileViewModels';
-import { GradientHeader } from '../components/order';
-import {
-  Avatar,
-  Badge,
-  Banner,
-  Button,
-  Card,
-  Icon,
-  KeyValue,
-  RatingLabel,
-  ScreenScroll,
-  SectionTitle,
-} from '../components/ui';
-import { colors, font, formatNumber, spacing } from '../theme';
+import { ReviewCard, ScreenHeader } from '../components/order';
+import { Avatar, Badge, Banner, Button, Card, Icon, ScreenScroll, SectionTitle } from '../components/ui';
+import { colors, family, font, formatNumber, plural, radius, spacing } from '../theme';
 
 export function ProfileScreen() {
   const vm = useProfileViewModel();
@@ -24,56 +13,78 @@ export function ProfileScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <GradientHeader subtitle={ROLE_LABELS[user.role]} title="Профиль" />
+      <ScreenHeader title="Профиль" />
       <ScreenScroll refreshing={vm.isRefreshing} onRefresh={vm.refresh}>
-        <Card>
-          <View style={styles.person}>
-            <Avatar name={user.fullName} size={60} color={colors.accent} />
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text style={font.h2}>{user.fullName}</Text>
-              {vm.isAdmin ? (
-                <Badge label="Администратор" tone="progress" icon="shield-account" />
-              ) : (
-                <RatingLabel rating={vm.rating} />
-              )}
-            </View>
-            <Button title="" icon="pencil" variant="ghost" compact onPress={vm.editProfile} />
+        <View style={styles.person}>
+          <Avatar name={user.fullName} size={72} color={colors.accent} />
+          <View style={{ flex: 1, gap: 6 }}>
+            <Text style={font.h2}>{user.fullName}</Text>
+            <Text style={styles.meta}>
+              {ROLE_LABELS[user.role]} · {user.phone}
+            </Text>
+            {vm.isDriver ? (
+              <Badge label={verification.label} tone={verification.tone} icon={verification.icon} />
+            ) : null}
           </View>
-          <KeyValue icon="email-outline" label="Email" value={user.email} />
-          <KeyValue icon="phone" label="Телефон" value={user.phone} />
-        </Card>
+        </View>
+
+        {vm.isAdmin ? null : (
+          <View style={styles.stats}>
+            <View style={[styles.stat, styles.statDark]}>
+              <Text style={[styles.statValue, { color: colors.white }]}>
+                {user.rating ? user.rating.average.toFixed(1).replace('.', ',') : '—'}
+              </Text>
+              <Text style={[styles.statLabel, { color: '#C9C9C4' }]}>рейтинг</Text>
+            </View>
+            <View style={styles.stat}>
+              <Text style={styles.statValue}>{user.rating?.count ?? 0}</Text>
+              <Text style={styles.statLabel}>{plural(user.rating?.count ?? 0, 'отзыв', 'отзыва', 'отзывов')}</Text>
+            </View>
+            {vm.isDriver ? (
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{vm.vehicles.length}</Text>
+                <Text style={styles.statLabel}>ТС</Text>
+              </View>
+            ) : null}
+          </View>
+        )}
+
+        {vm.latestReview ? (
+          <Pressable onPress={vm.openReviews} accessibilityRole="button" accessibilityLabel="Все отзывы обо мне">
+            <ReviewCard review={vm.latestReview} roleLabel={ROLE_LABELS[vm.latestReview.authorRole]} />
+          </Pressable>
+        ) : null}
 
         {vm.isDriver ? (
           <>
-            <SectionTitle title="Верификация" />
-            <Banner
-              tone={verification.tone}
-              icon={verification.icon}
-              title={verification.label}
-              text={
-                user.verification === 'verified'
-                  ? 'Вам доступны отклики на заявки.'
-                  : user.verification === 'pending'
+            {user.verification !== 'verified' ? (
+              <Banner
+                tone={verification.tone}
+                icon={verification.icon}
+                title={verification.label}
+                text={
+                  user.verification === 'pending'
                     ? 'Администратор проверяет паспорт, ВУ и СТС.'
                     : user.verification === 'rejected'
                       ? 'Загрузите документы заново и отправьте на проверку.'
                       : 'Загрузите документы, чтобы откликаться на заявки.'
-              }
-              action={
-                user.verification === 'none' || user.verification === 'rejected' ? (
-                  <Button
-                    title="Пройти верификацию"
-                    compact
-                    icon="card-account-details"
-                    onPress={vm.openVerification}
-                  />
-                ) : undefined
-              }
-            />
+                }
+                action={
+                  user.verification === 'none' || user.verification === 'rejected' ? (
+                    <Button
+                      title="Пройти верификацию"
+                      compact
+                      icon="card-account-details"
+                      onPress={vm.openVerification}
+                    />
+                  ) : undefined
+                }
+              />
+            ) : null}
 
             <SectionTitle
-              title="Мой транспорт"
-              action={<Button title="Добавить" icon="plus-circle" variant="ghost" compact onPress={vm.addVehicle} />}
+              title="Транспорт"
+              action={<Button title="Добавить" icon="plus" variant="ghost" compact onPress={vm.addVehicle} />}
             />
             {vm.vehiclesError ? (
               <Banner
@@ -94,18 +105,15 @@ export function ProfileScreen() {
               const info = vehicleTypeInfo(v.type);
               return (
                 <Card key={v.id} onPress={() => vm.editVehicle(v.id)}>
-                  <View style={styles.person}>
+                  <View style={styles.row}>
                     <View style={styles.vehicleIcon}>
-                      <Icon name={info.icon} size={26} color={colors.navy700} />
+                      <Icon name={info.icon} size={26} color={colors.accentDark} />
                     </View>
                     <View style={{ flex: 1, gap: 2 }}>
                       <Text style={font.h3}>{v.model || info.label}</Text>
                       <Text style={styles.meta}>
-                        {info.label} · до {formatNumber(v.weightT)} т
-                      </Text>
-                      <Text style={styles.meta}>
-                        Платформа {formatNumber(v.lengthM)}×{formatNumber(v.widthM)} м, высота груза до{' '}
-                        {formatNumber(v.heightM)} м
+                        {info.label} · до {formatNumber(v.weightT)} т · {formatNumber(v.lengthM)}×
+                        {formatNumber(v.widthM)}×{formatNumber(v.heightM)} м
                       </Text>
                       <Text style={styles.meta} numberOfLines={2}>
                         Грузы: {v.cargoTypes.map((c) => c.name.toLowerCase()).join(', ')}
@@ -114,6 +122,7 @@ export function ProfileScreen() {
                     <Pressable
                       onPress={() => vm.removeVehicle(v.id)}
                       hitSlop={8}
+                      accessibilityRole="button"
                       accessibilityLabel="Удалить ТС"
                       style={styles.trash}
                     >
@@ -128,39 +137,81 @@ export function ProfileScreen() {
           <Card>
             <Badge label="Модерация" tone="progress" icon="shield-check" />
             <Text style={styles.meta}>
-              Проверяйте документы водителей и блокируйте нарушителей на вкладке «Модерация».
+              Проверяйте документы водителей, блокируйте нарушителей и выдавайте временные пароли на вкладке
+              «Модерация».
             </Text>
           </Card>
         ) : (
           <Card>
             <Badge label="Безопасная сделка" tone="success" icon="cash-lock" />
             <Text style={styles.meta}>
-              Оплата замораживается при старте рейса и переводится водителю только после вашей приёмки груза.
+              Оплата замораживается до начала рейса и переводится водителю только после вашей приёмки груза.
             </Text>
           </Card>
         )}
 
-        <Button
-          title="Выйти"
-          variant="secondary"
-          icon="logout"
-          onPress={vm.signOut}
-          style={{ marginTop: spacing.md }}
-        />
+        <View style={styles.menu}>
+          <MenuItem icon="account-edit-outline" label="Мои данные" onPress={vm.editProfile} />
+          <MenuItem icon="lock-outline" label="Сменить пароль" onPress={vm.changePassword} />
+          {vm.isAdmin ? null : (
+            <MenuItem
+              icon="star-outline"
+              label={vm.reviewsTotal > 0 ? `Отзывы обо мне · ${vm.reviewsTotal}` : 'Отзывы обо мне'}
+              onPress={vm.openReviews}
+            />
+          )}
+          {vm.isDriver ? (
+            <MenuItem icon="file-document-outline" label="Документы" onPress={vm.openVerification} />
+          ) : null}
+          <MenuItem icon="logout" label="Выйти" onPress={vm.signOut} danger last />
+        </View>
         <Text style={styles.version}>Dock · версия 1.0</Text>
       </ScreenScroll>
     </View>
   );
 }
 
+function MenuItem({
+  icon,
+  label,
+  onPress,
+  danger,
+  last,
+}: {
+  icon: string;
+  label: string;
+  onPress: () => void;
+  danger?: boolean;
+  last?: boolean;
+}) {
+  const color = danger ? colors.danger : colors.text;
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => [styles.menuItem, !last && styles.menuDivider, pressed && { opacity: 0.7 }]}
+    >
+      <Icon name={icon} size={22} color={color} />
+      <Text style={[styles.menuLabel, { color }]}>{label}</Text>
+      {danger ? null : <Icon name="chevron-right" size={20} color={colors.textMuted} />}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  person: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  person: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   meta: { ...font.small, color: colors.textSecondary },
+  stats: { flexDirection: 'row', gap: spacing.sm },
+  stat: { flex: 1, borderRadius: radius.lg, backgroundColor: colors.surfaceAlt, padding: 14, gap: 2 },
+  statDark: { backgroundColor: colors.text },
+  statValue: { fontFamily: family.bold, fontSize: 24, letterSpacing: -0.6, color: colors.text },
+  statLabel: { ...font.caption, color: colors.textSecondary },
   vehicleIcon: {
     width: 48,
     height: 48,
-    borderRadius: 14,
-    backgroundColor: colors.infoSoft,
+    borderRadius: 15,
+    backgroundColor: colors.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -172,5 +223,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  menu: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.lg,
+  },
+  menuItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: 15 },
+  menuDivider: { borderBottomWidth: 1, borderBottomColor: colors.border },
+  menuLabel: { ...font.bodyBold, flex: 1 },
   version: { ...font.caption, color: colors.textMuted, textAlign: 'center' },
 });

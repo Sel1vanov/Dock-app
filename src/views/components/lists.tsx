@@ -17,7 +17,7 @@ import {
 import { ORDER_SORT_OPTIONS } from '../../models/catalog';
 import type { CargoType, OrderSort } from '../../models/dto';
 import { useCargoTypes } from '../../viewmodels/useCargoTypes';
-import { colors, font, radius, spacing } from '../theme';
+import { colors, family, font, radius, spacing } from '../theme';
 import { Chip, Icon } from './ui';
 
 // --------------------------------------------------------------- Search ---
@@ -26,29 +26,28 @@ export function SearchBar({
   value,
   onChange,
   placeholder,
-  dark,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
-  dark?: boolean;
 }) {
   return (
-    <View style={[s.search, dark && s.searchDark]}>
-      <Icon name="magnify" size={20} color={dark ? '#9FB0D6' : colors.textMuted} />
+    <View style={s.search}>
+      <Icon name="magnify" size={20} color={colors.textMuted} />
       <TextInput
         value={value}
         onChangeText={onChange}
         placeholder={placeholder}
-        placeholderTextColor={dark ? '#9FB0D6' : colors.textMuted}
-        style={[s.searchInput, dark && { color: colors.white }]}
+        placeholderTextColor={colors.textMuted}
+        accessibilityLabel={placeholder}
+        style={s.searchInput}
         returnKeyType="search"
         autoCorrect={false}
         maxLength={100}
       />
       {value ? (
         <Pressable onPress={() => onChange('')} hitSlop={10} accessibilityLabel="Очистить поиск">
-          <Icon name="close-circle" size={18} color={dark ? '#9FB0D6' : colors.textMuted} />
+          <Icon name="close-circle" size={18} color={colors.textMuted} />
         </Pressable>
       ) : null}
     </View>
@@ -135,9 +134,11 @@ export function OptionsModal<T extends string>({
             const active = o.value === value;
             return (
               <Pressable key={o.value} style={[s.option, active && s.optionActive]} onPress={() => onSelect(o.value)}>
-                {o.icon ? <Icon name={o.icon} size={20} color={active ? colors.accent : colors.navy600} /> : null}
-                <Text style={[font.body, { flex: 1 }, active && { fontWeight: '700' }]}>{o.label}</Text>
-                {active ? <Icon name="check" size={20} color={colors.accent} /> : null}
+                {o.icon ? (
+                  <Icon name={o.icon} size={20} color={active ? colors.accentDark : colors.textSecondary} />
+                ) : null}
+                <Text style={[font.body, { flex: 1 }, active && { fontFamily: family.semibold }]}>{o.label}</Text>
+                {active ? <Icon name="check" size={20} color={colors.accentDark} /> : null}
               </Pressable>
             );
           })}
@@ -208,14 +209,11 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    minHeight: 44,
-    paddingHorizontal: spacing.md,
+    minHeight: 48,
+    paddingHorizontal: spacing.lg,
     borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt,
   },
-  searchDark: { backgroundColor: 'rgba(255,255,255,0.10)', borderColor: 'transparent' },
   searchInput: {
     flex: 1,
     minWidth: 0,
@@ -227,7 +225,7 @@ const s = StyleSheet.create({
   filterWrap: { flexGrow: 0, flexShrink: 0 },
   filterRow: { gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, alignItems: 'center' },
   divider: { width: 1, height: 24, backgroundColor: colors.border },
-  backdrop: { flex: 1, backgroundColor: 'rgba(5,10,25,0.5)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(17,17,17,0.45)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.xl,

@@ -2,7 +2,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { PhotoStage } from '../../models/dto';
 import { useTrackingViewModel } from '../../viewmodels/OrderDetailsViewModels';
-import { OrderStatusBadge, PhotoGrid, RouteView, StarInput, StatusTimeline } from '../components/order';
+import { ContactButtons, OrderStatusBadge, PhotoGrid, RouteView, StarInput, StatusTimeline } from '../components/order';
 import {
   Avatar,
   Banner,
@@ -14,7 +14,7 @@ import {
   RatingLabel,
   ScreenScroll,
 } from '../components/ui';
-import { colors, font, formatDateTime, formatPrice, radius, spacing } from '../theme';
+import { colors, family, font, formatDateTime, formatPrice, radius, spacing } from '../theme';
 
 /**
  * TrackingScreen (SAD 5.2): статус рейса (UC-15, UC-16), фотофиксация (UC-17),
@@ -71,7 +71,7 @@ export function TrackingScreen({ orderId }: { orderId: string }) {
           ) : null}
           {vm.nextStep.kind === 'wait' ? (
             <View style={styles.waiting}>
-              <Icon name="clock-outline" color={colors.navy600} />
+              <Icon name="clock-outline" color={colors.textSecondary} />
               <Text style={font.bodyBold}>{vm.nextStep.label}</Text>
             </View>
           ) : null}
@@ -122,10 +122,6 @@ export function TrackingScreen({ orderId }: { orderId: string }) {
         ) : (
           <StatusTimeline status={order.status} isEscrowLocked={order.isEscrowLocked} />
         )}
-        <Text style={styles.note}>
-          <Icon name="map-marker-radius" size={14} color={colors.textMuted} /> GPS-трекинг на карте появится на
-          следующем этапе.
-        </Text>
       </Card>
 
       <PhotoSection
@@ -153,9 +149,10 @@ export function TrackingScreen({ orderId }: { orderId: string }) {
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={font.h3}>{counterpart.fullName}</Text>
               <RatingLabel rating={counterpart.rating} />
+              {counterpart.phone ? <Text style={styles.meta}>{counterpart.phone}</Text> : null}
             </View>
-            {counterpart.phone ? <Text style={font.bodyBold}>{counterpart.phone}</Text> : null}
           </View>
+          {counterpart.phone && order.status !== 'Cancelled' ? <ContactButtons phone={counterpart.phone} /> : null}
         </Card>
       ) : null}
 
@@ -218,8 +215,7 @@ function PhotoSection({
 const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
   meta: { ...font.small, color: colors.textSecondary, flexShrink: 1 },
-  note: { ...font.small, color: colors.textMuted },
-  price: { fontSize: 26, fontWeight: '800', color: colors.navy900 },
+  price: { fontFamily: family.bold, fontSize: 28, letterSpacing: -0.7, color: colors.text },
   escrow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -228,7 +224,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.surfaceAlt,
   },
-  actionCard: { borderWidth: 2, borderColor: colors.accent },
+  actionCard: { borderWidth: 2, borderColor: colors.accent, backgroundColor: '#FFFBF7' },
   actionHint: { ...font.body, color: colors.textSecondary },
   waiting: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   person: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },

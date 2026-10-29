@@ -16,6 +16,16 @@ export const BidRepository = {
     return apiRequest('DELETE', `/bids/${bidId}`);
   },
 
+  /** Заказчик предлагает водителю встречную цену. */
+  counter(bidId: string, price: number): Promise<ApiOrderDetails> {
+    return apiRequest('POST', `/bids/${bidId}/counter`, { body: { price } });
+  },
+
+  /** Водитель соглашается на встречную цену заказчика. */
+  acceptCounter(bidId: string): Promise<ApiOrderDetails> {
+    return apiRequest('POST', `/bids/${bidId}/accept-counter`);
+  },
+
   /** UC-06: выбор исполнителя — на сервере одна транзакция. */
   accept(bidId: string): Promise<ApiOrderDetails> {
     return apiRequest('POST', `/bids/${bidId}/accept`);

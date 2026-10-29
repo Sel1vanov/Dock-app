@@ -1,19 +1,21 @@
-/** Компоненты предметной области: маршрут, габариты, карточка заказа, прогресс рейса, фото. */
-import { LinearGradient } from 'expo-linear-gradient';
+/** Компоненты предметной области: шапка, маршрут, габариты, карточка заказа, прогресс рейса, фото, связь. */
 import type { ReactNode } from 'react';
 import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState } from 'react';
 
+import { contactLinks, openLink } from '../../core/contacts';
 import { bidStatusInfo, cargoTypeInfo, orderStatusInfo } from '../../models/catalog';
 import { ORDER_TIMELINE, timelineIndex } from '../../models/domain';
-import type { CargoDTO, DimensionsDTO, OrderListItemDTO, OrderStatus, PhotoDTO } from '../../models/dto';
-import { colors, font, formatNumber, formatPrice, formatRelative, radius, spacing } from '../theme';
+import type { CargoDTO, DimensionsDTO, OrderListItemDTO, OrderStatus, PhotoDTO, ReviewDTO } from '../../models/dto';
+import { cargoTints, colors, family, font, formatNumber, formatPrice, formatRelative, radius, spacing } from '../theme';
+import { NotificationBell } from './NotificationBell';
 import { Badge, Button, Card, Icon, TextField } from './ui';
 
 // ------------------------------------------------------------- Header ---
 
-export function GradientHeader({
+/** Шапка главных экранов: знак Dock, крупный заголовок, колокольчик уведомлений. */
+export function ScreenHeader({
   title,
   subtitle,
   right,
@@ -26,21 +28,31 @@ export function GradientHeader({
 }) {
   const insets = useSafeAreaInsets();
   return (
-    <LinearGradient
-      colors={[colors.navy900, colors.navy700]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[s.header, { paddingTop: insets.top + spacing.lg }]}
-    >
+    <View style={[s.header, { paddingTop: insets.top + spacing.md }]}>
       <View style={s.headerRow}>
-        <View style={{ flex: 1, gap: 2 }}>
-          {subtitle ? <Text style={s.headerSubtitle}>{subtitle}</Text> : null}
-          <Text style={s.headerTitle}>{title}</Text>
-        </View>
+        <BrandMark />
+        <View style={{ flex: 1 }} />
         {right}
+        <NotificationBell />
+      </View>
+      <View style={{ gap: 4 }}>
+        <Text style={s.headerTitle}>{title}</Text>
+        {subtitle ? <Text style={s.headerSubtitle}>{subtitle}</Text> : null}
       </View>
       {children}
-    </LinearGradient>
+    </View>
+  );
+}
+
+/** Знак Dock: оранжевый квадрат с «платформой» и слово dock. */
+export function BrandMark({ size = 28 }: { size?: number }) {
+  return (
+    <View style={s.brand} accessibilityRole="header" accessibilityLabel="Dock">
+      <View style={[s.brandSquare, { width: size, height: size, borderRadius: size * 0.32 }]}>
+        <View style={{ width: size * 0.43, height: size * 0.29, borderRadius: 2, backgroundColor: colors.text }} />
+      </View>
+      <Text style={[s.brandText, { fontSize: size * 0.72 }]}>dock</Text>
+    </View>
   );
 }
 
@@ -101,10 +113,11 @@ export function DimensionTiles({ dims, accent }: { dims: DimensionsDTO; accent?:
   );
 }
 
-export function CargoTypeIcon({ cargo, size = 44 }: { cargo: Pick<CargoDTO, 'type'>; size?: number }) {
+export function CargoTypeIcon({ cargo, size = 52 }: { cargo: Pick<CargoDTO, 'type'>; size?: number }) {
+  const tint = cargoTints[cargo.type] ?? cargoTints.Other;
   return (
-    <View style={[s.cargoIcon, { width: size, height: size, borderRadius: size * 0.3 }]}>
-      <Icon name={cargoTypeInfo(cargo.type).icon} size={size * 0.55} color={colors.navy700} />
+    <View style={[s.cargoIcon, { width: size, height: size, borderRadius: size * 0.31, backgroundColor: tint.bg }]}>
+      <Icon name={cargoTypeInfo(cargo.type).icon} size={size * 0.55} color={tint.fg} />
     </View>
   );
 }
@@ -135,41 +148,89 @@ export function OrderCard({
           <Text style={s.cardTitle} numberOfLines={1}>
             {cargo.description || type.label}
           </Text>
-          <Text style={s.cardMeta}>
-            {type.label} · {formatRelative(order.createdAt)}
+          <Text style={s.cardMeta} numberOfLines={1}>
+            {type.label} · {formatNumber(cargo.weightT)} т · {formatNumber(cargo.lengthM)}×{formatNumber(cargo.widthM)}×
+            {formatNumber(cargo.heightM)} м
           </Text>
         </View>
-        <Text style={s.price}>{formatPrice(order.price)}</Text>
       </View>
-      <RouteView origin={order.origin} destination={order.destination} compact />
-      <View style={s.specRow}>
-        <Spec
-          icon="ruler"
-          text={`${formatNumber(cargo.lengthM)}×${formatNumber(cargo.widthM)}×${formatNumber(cargo.heightM)} м`}
-        />
-        <Spec icon="weight" text={`${formatNumber(cargo.weightT)} т`} />
+      <View style={s.routeBox}>
+        <RouteView origin={order.origin} destination={order.destination} compact />
       </View>
       <View style={s.cardBottom}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.price}>{formatPrice(order.price)}</Text>
+          <Text style={s.cardMeta}>{formatRelative(order.createdAt)}</Text>
+        </View>
         <OrderStatusBadge status={order.status} isEscrowLocked={order.isEscrowLocked} />
-        {footer}
       </View>
+      {footer ? <View style={s.cardFooter}>{footer}</View> : null}
     </Card>
   );
 }
 
-function Spec({ icon, text }: { icon: string; text: string }) {
+export function MyBidBadge({
+  status,
+  price,
+  counterPrice,
+}: {
+  status: Parameters<typeof bidStatusInfo>[0];
+  price: number;
+  counterPrice?: number | null;
+}) {
+  if (status === 'Pending' && counterPrice) {
+    return <Badge label={`Заказчик предлагает ${formatPrice(counterPrice)}`} tone="warning" icon="swap-horizontal" />;
+  }
+  const info = bidStatusInfo(status);
   return (
-    <View style={s.spec}>
-      <Icon name={icon} size={15} color={colors.textSecondary} />
-      <Text style={s.specText}>{text}</Text>
+    <Badge label={`Ваш отклик ${formatPrice(price)} · ${info.label.toLowerCase()}`} tone={info.tone} icon="handshake" />
+  );
+}
+
+// ------------------------------------------------------------- Review ---
+
+/** Отзыв контрагента: оценка звёздами, комментарий, автор и дата. */
+export function ReviewCard({ review, roleLabel }: { review: ReviewDTO; roleLabel: string }) {
+  return (
+    <View style={s.review}>
+      <View style={s.reviewStars} accessibilityLabel={`Оценка ${review.rating} из 5`}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <Icon key={n} name={n <= review.rating ? 'star' : 'star-outline'} size={18} color={colors.accentDark} />
+        ))}
+      </View>
+      {review.comment ? <Text style={s.reviewText}>«{review.comment}»</Text> : null}
+      <Text style={s.reviewMeta}>
+        {review.authorName}, {roleLabel.toLowerCase()} · {formatRelative(review.createdAt)}
+      </Text>
     </View>
   );
 }
 
-export function MyBidBadge({ status, price }: { status: Parameters<typeof bidStatusInfo>[0]; price: number }) {
-  const info = bidStatusInfo(status);
+// ------------------------------------------------------------ Contacts ---
+
+/** Связь с контрагентом: звонок, WhatsApp, Telegram (телефон виден только по назначенному заказу). */
+export function ContactButtons({ phone }: { phone: string }) {
+  const links = contactLinks(phone);
   return (
-    <Badge label={`Ваш отклик ${formatPrice(price)} · ${info.label.toLowerCase()}`} tone={info.tone} icon="handshake" />
+    <View style={s.contacts}>
+      <Button title="Позвонить" icon="phone" compact onPress={() => openLink(links.call)} style={{ flex: 1 }} />
+      <Pressable
+        onPress={() => openLink(links.whatsapp)}
+        accessibilityRole="button"
+        accessibilityLabel="Написать в WhatsApp"
+        style={({ pressed }) => [s.contactIcon, pressed && { opacity: 0.8 }]}
+      >
+        <Icon name="whatsapp" size={22} color={colors.text} />
+      </Pressable>
+      <Pressable
+        onPress={() => openLink(links.telegram)}
+        accessibilityRole="button"
+        accessibilityLabel="Написать в Telegram"
+        style={({ pressed }) => [s.contactIcon, pressed && { opacity: 0.8 }]}
+      >
+        <Icon name="send" size={20} color={colors.text} />
+      </Pressable>
+    </View>
   );
 }
 
@@ -190,19 +251,19 @@ export function StatusTimeline({ status, isEscrowLocked }: { status: OrderStatus
               <View
                 style={[
                   s.tlDot,
-                  done && { backgroundColor: colors.success, borderColor: colors.success },
+                  done && { backgroundColor: colors.text, borderColor: colors.text },
                   active && { backgroundColor: colors.accent, borderColor: colors.accentSoft, borderWidth: 4 },
                 ]}
               >
-                {done ? <Icon name="check-circle" size={14} color={colors.white} /> : null}
+                {done ? <Icon name="check" size={14} color={colors.white} /> : null}
               </View>
-              {!last && <View style={[s.tlLine, done && { backgroundColor: colors.success }]} />}
+              {!last && <View style={[s.tlLine, done && { backgroundColor: colors.text }]} />}
             </View>
             <Text
               style={[
                 s.tlText,
                 done && { color: colors.text },
-                active && { color: colors.accentDark, fontWeight: '800' },
+                active && { color: colors.accentDark, fontFamily: family.bold },
               ]}
             >
               {step.label}
@@ -244,21 +305,28 @@ export function PhotoViewer({ url, onClose }: { url: string | null; onClose: () 
 
 // ------------------------------------------------------------- Modals ---
 
-/** Диалог с текстовым полем — например, причина отмены заявки (UC-07). */
+/** Диалог с текстовым полем — причина отмены заявки (UC-07) или встречная цена. */
 export function PromptModal({
   visible,
   title,
+  message,
   placeholder,
   confirmText,
   onCancel,
   onConfirm,
+  numeric,
+  confirmVariant = 'danger',
 }: {
   visible: boolean;
   title: string;
+  message?: string;
   placeholder: string;
   confirmText: string;
   onCancel: () => void;
   onConfirm: (text: string) => void;
+  /** Поле для суммы в рублях. */
+  numeric?: boolean;
+  confirmVariant?: 'danger' | 'primary';
 }) {
   const [text, setText] = useState('');
   return (
@@ -266,12 +334,21 @@ export function PromptModal({
       <View style={s.modalBackdrop}>
         <View style={s.modalCard}>
           <Text style={font.h2}>{title}</Text>
-          <TextField value={text} onChangeText={setText} placeholder={placeholder} multiline />
+          {message ? <Text style={s.cardMeta}>{message}</Text> : null}
+          <TextField
+            value={text}
+            onChangeText={setText}
+            placeholder={placeholder}
+            multiline={!numeric}
+            keyboardType={numeric ? 'number-pad' : 'default'}
+            suffix={numeric ? '₽' : undefined}
+            accessibilityLabel={title}
+          />
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
             <Button title="Назад" variant="secondary" onPress={onCancel} style={{ flex: 1 }} />
             <Button
               title={confirmText}
-              variant="danger"
+              variant={confirmVariant}
               onPress={() => {
                 onConfirm(text);
                 setText('');
@@ -300,14 +377,16 @@ export function StarInput({ value, onChange }: { value: number; onChange: (v: nu
 const s = StyleSheet.create({
   header: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.sm,
     gap: spacing.lg,
-    borderBottomLeftRadius: radius.xl,
-    borderBottomRightRadius: radius.xl,
+    backgroundColor: colors.bg,
   },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  headerSubtitle: { ...font.small, color: '#9FB0D6', fontWeight: '600' },
-  headerTitle: { ...font.h1, color: colors.white },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  headerSubtitle: { ...font.body, color: colors.textSecondary },
+  headerTitle: { ...font.h1, color: colors.text },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  brandSquare: { backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  brandText: { fontFamily: family.extrabold, color: colors.text, letterSpacing: -0.6 },
   route: { flexDirection: 'row', gap: spacing.md },
   routeRail: { alignItems: 'center', paddingTop: 5, width: 12 },
   routeDot: { width: 11, height: 11, borderRadius: 6 },
@@ -328,20 +407,32 @@ const s = StyleSheet.create({
   },
   tileLabel: { ...font.caption, color: colors.textMuted },
   tileValue: { ...font.h3, color: colors.text },
-  cargoIcon: { backgroundColor: colors.infoSoft, alignItems: 'center', justifyContent: 'center' },
+  cargoIcon: { alignItems: 'center', justifyContent: 'center' },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   cardTitle: { ...font.h3, color: colors.text },
   cardMeta: { ...font.small, color: colors.textSecondary },
-  price: { ...font.h3, color: colors.navy800 },
-  specRow: { flexDirection: 'row', gap: spacing.lg, flexWrap: 'wrap' },
-  spec: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  specText: { ...font.small, color: colors.textSecondary, fontWeight: '600' },
+  routeBox: { backgroundColor: '#F7F7F5', borderRadius: radius.md, padding: spacing.md },
+  price: { fontFamily: family.bold, fontSize: 22, letterSpacing: -0.5, color: colors.text },
   cardBottom: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.sm,
     flexWrap: 'wrap',
+  },
+  cardFooter: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  contacts: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
+  review: { backgroundColor: colors.accentSoft, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.sm },
+  reviewStars: { flexDirection: 'row', gap: 2 },
+  reviewText: { fontFamily: family.medium, fontSize: 16, lineHeight: 22, color: colors.text },
+  reviewMeta: { ...font.small, color: '#8A3500' },
+  contactIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tlRow: { flexDirection: 'row', gap: spacing.md, minHeight: 38 },
   tlRail: { alignItems: 'center', width: 22 },
@@ -359,11 +450,11 @@ const s = StyleSheet.create({
   tlText: { ...font.body, color: colors.textMuted, paddingTop: 1 },
   photos: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   photo: { width: 96, height: 96, borderRadius: radius.md, backgroundColor: colors.surfaceAlt },
-  viewer: { flex: 1, backgroundColor: 'rgba(5,10,25,0.92)', alignItems: 'center', justifyContent: 'center' },
+  viewer: { flex: 1, backgroundColor: 'rgba(17,17,17,0.92)', alignItems: 'center', justifyContent: 'center' },
   viewerImage: { width: '92%', height: '80%' },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(5,10,25,0.5)',
+    backgroundColor: 'rgba(17,17,17,0.45)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.xl,

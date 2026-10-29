@@ -2,7 +2,7 @@ import { Text, View } from 'react-native';
 
 import { useDriverTripsViewModel } from '../../viewmodels/OrderViewModels';
 import { PagedList } from '../components/lists';
-import { GradientHeader, MyBidBadge, OrderCard } from '../components/order';
+import { MyBidBadge, OrderCard, ScreenHeader } from '../components/order';
 import { Banner, Chip, EmptyState, LoadingView, ScreenScroll, Segmented } from '../components/ui';
 import { colors, font, spacing } from '../theme';
 
@@ -12,7 +12,7 @@ export function DriverTripsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <GradientHeader subtitle="Работа" title="Мои рейсы">
+      <ScreenHeader title="Мои рейсы">
         <Segmented
           options={[
             { value: 'trips', label: 'Рейсы' },
@@ -21,7 +21,7 @@ export function DriverTripsScreen() {
           value={vm.tab}
           onChange={vm.setTab}
         />
-      </GradientHeader>
+      </ScreenHeader>
 
       {vm.isLoading ? (
         <LoadingView />
@@ -67,7 +67,7 @@ export function DriverTripsScreen() {
               key={b.id}
               order={b.order}
               onPress={() => vm.openOrder(b.order.id)}
-              footer={<MyBidBadge status={b.status} price={b.price} />}
+              footer={<MyBidBadge status={b.status} price={b.price} counterPrice={b.counterPrice} />}
             />
           ))}
           {vm.bids.length > 0 ? (

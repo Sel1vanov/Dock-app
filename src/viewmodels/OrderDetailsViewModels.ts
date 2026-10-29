@@ -29,10 +29,15 @@ import { useAction, useQuery } from './useAsync';
 
 const formatPrice = (n: number) => `${n.toLocaleString('ru-RU')} ₽`;
 
+/** Как часто перечитывать открытый заказ: отклики, встречная цена и этапы рейса появляются без обновления вручную. */
+const ORDER_POLL_MS = 15_000;
+
 /** Общая часть: загрузка заказа, роль пользователя в нём и действия, общие для обоих экранов. */
 function useOrderBase(orderId: string) {
   const user = useCurrentUser();
-  const query = useQuery(() => OrderService.getOrderDetails(orderId), [orderId, user.id]);
+  const query = useQuery(() => OrderService.getOrderDetails(orderId), [orderId, user.id], {
+    pollMs: ORDER_POLL_MS,
+  });
   const order = query.data;
   const isClient = Boolean(order && order.clientId === user.id);
   const isAssignedDriver = Boolean(order && order.driverId === user.id);
@@ -160,6 +165,35 @@ export function useOrderDetailsViewModel(orderId: string) {
       void runAction(() => BidService.acceptBid(bidId), 'Исполнитель выбран. Оплатите заказ на экране рейса');
   };
 
+  /** Встречная цена заказчика: окно с полем цены открывается для выбранного отклика. */
+  const [counterBidId, setCounterBidId] = useState<string | null>(null);
+  const submitCounter = async (priceText: string) => {
+    const bidId = counterBidId;
+    if (!bidId) return;
+    const checked = validate(bidSchema, { price: priceText, comment: '' });
+    if (!checked.ok) {
+      notify('Встречная цена', checked.errors.price);
+      return;
+    }
+    setCounterBidId(null);
+    await runAction(
+      () => BidService.counterOffer(bidId, checked.data.price),
+      'Предложение отправлено — водитель получит уведомление',
+    );
+  };
+
+  /** Водитель соглашается на цену заказчика. */
+  const acceptCounter = async () => {
+    const bid = order?.myBid;
+    if (!bid?.counterPrice) return;
+    const confirmed = await confirmAction(
+      'Согласиться на цену заказчика?',
+      `Ваш отклик изменится на ${formatPrice(bid.counterPrice)}`,
+      'Согласиться',
+    );
+    if (confirmed) void runAction(() => BidService.acceptCounterOffer(bid.id), 'Цена согласована');
+  };
+
   const rejectBid = async (bidId: string) => {
     if (await confirmAction('Отклонить отклик?', 'Водитель увидит, что предложение отклонено', 'Отклонить')) {
       void runAction(() => BidService.rejectBid(bidId), 'Отклик отклонён');
@@ -206,6 +240,11 @@ export function useOrderDetailsViewModel(orderId: string) {
     withdrawBid,
     acceptBid,
     rejectBid,
+    counterBid: order?.bids.find((b) => b.id === counterBidId) ?? null,
+    openCounter: setCounterBidId,
+    closeCounter: () => setCounterBidId(null),
+    submitCounter,
+    acceptCounter,
     hasTrip: Boolean(order && order.driverId && order.status !== 'Created' && order.status !== 'Bidding'),
     openTracking: () => router.push(`/tracking/${orderId}`),
     openVerification: () => router.push('/verification'),
@@ -253,7 +292,7 @@ export function useTrackingViewModel(orderId: string) {
   const payOrder = async (o: OrderDetailsDTO) => {
     const confirmed = await confirmAction(
       'Оплатить заказ',
-      `${formatPrice(o.price)} будут заморожены на счёте безопасной сделки и переведены водителю только после приёмки груза.\n\n(Демо-режим: платёжный шлюз подключается на следующем этапе.)`,
+      `${formatPrice(o.price)} будут заморожены на счёте безопасной сделки и переведены водителю только после приёмки груза.\n\n(Демо-режим: реальные деньги не списываются.)`,
       'Оплатить',
     );
     if (confirmed) void runAction(() => OrderService.payOrder(o), 'Оплата заморожена до приёмки груза');

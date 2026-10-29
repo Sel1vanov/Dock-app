@@ -9,6 +9,7 @@
 import type {
   ApiBidStatus,
   ApiDocumentType,
+  ApiNotificationType,
   ApiOrderStatus,
   ApiPhotoStage,
   ApiUserRole,
@@ -87,6 +88,8 @@ export interface VehicleDTO extends DimensionsDTO {
 export interface MyBidDTO {
   id: string;
   price: number;
+  /** Встречная цена заказчика; null — заказчик свою цену не предлагал. */
+  counterPrice: number | null;
   status: BidStatus;
 }
 
@@ -109,6 +112,8 @@ export interface OrderListItemDTO {
 export interface BidDTO {
   id: string;
   price: number;
+  /** Встречная цена, которую заказчик предложил водителю. */
+  counterPrice: number | null;
   comment: string | null;
   status: BidStatus;
   createdAt: string;
@@ -158,6 +163,34 @@ export interface AdminUserDTO extends UserDTO {
   createdAt: string;
   documents: DocumentDTO[];
   vehicles: VehicleDTO[];
+}
+
+export type NotificationType = ApiNotificationType;
+
+export interface NotificationDTO {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  orderId: string | null;
+  relatedUserId: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface NotificationPageDTO extends Page<NotificationDTO> {
+  unreadCount: number;
+}
+
+/** Отзыв о текущем пользователе (UC-19). */
+export interface ReviewDTO {
+  id: string;
+  rating: number;
+  comment: string | null;
+  authorName: string;
+  authorRole: UserRole;
+  orderId: string;
+  createdAt: string;
 }
 
 /** Параметры серверного поиска, фильтрации и сортировки списков. */

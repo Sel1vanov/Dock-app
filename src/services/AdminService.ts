@@ -22,6 +22,10 @@ export const AdminService = {
     return toAdminUserDTO(await AdminRepository.updateUser(id, { verificationStatus: decision }));
   },
 
+  async issueTemporaryPassword(id: string): Promise<string> {
+    return (await AdminRepository.issueTemporaryPassword(id)).temporaryPassword;
+  },
+
   async setBlocked(id: string, isBlocked: boolean): Promise<AdminUserDTO> {
     return toAdminUserDTO(await AdminRepository.updateUser(id, { isBlocked }));
   },

@@ -7,6 +7,7 @@ import type { BidDTO } from '../../models/dto';
 import { useOrderDetailsViewModel } from '../../viewmodels/OrderDetailsViewModels';
 import {
   CargoTypeIcon,
+  ContactButtons,
   DimensionTiles,
   MyBidBadge,
   OrderStatusBadge,
@@ -27,7 +28,7 @@ import {
   SectionTitle,
   TextField,
 } from '../components/ui';
-import { colors, font, formatNumber, formatPrice, formatRelative, spacing } from '../theme';
+import { colors, family, font, formatNumber, formatPrice, formatRelative, radius, spacing } from '../theme';
 
 /** Карточка заявки: торг (UC-10, UC-11), выбор исполнителя (UC-06), отмена (UC-07). */
 export function OrderDetailsScreen({ orderId }: { orderId: string }) {
@@ -112,7 +113,8 @@ export function OrderDetailsScreen({ orderId }: { orderId: string }) {
       {vm.isDriverRole && order.client ? (
         <Card>
           <Text style={styles.meta}>Заказчик</Text>
-          <PersonRow name={order.client.fullName} rating={order.client.rating} />
+          <PersonRow name={order.client.fullName} rating={order.client.rating} phone={order.client.phone} />
+          {vm.isAssignedDriver && order.client.phone ? <ContactButtons phone={order.client.phone} /> : null}
         </Card>
       ) : null}
 
@@ -142,6 +144,7 @@ export function OrderDetailsScreen({ orderId }: { orderId: string }) {
               orderPrice={order.price}
               onAccept={vm.acceptBid}
               onReject={vm.rejectBid}
+              onCounter={vm.openCounter}
               busy={vm.isBusy}
             />
           ))}
@@ -157,6 +160,7 @@ export function OrderDetailsScreen({ orderId }: { orderId: string }) {
             verified={order.driver.isVerified}
             phone={order.driver.phone}
           />
+          {order.driver.phone ? <ContactButtons phone={order.driver.phone} /> : null}
         </Card>
       ) : null}
 
@@ -174,6 +178,22 @@ export function OrderDetailsScreen({ orderId }: { orderId: string }) {
           setCancelOpen(false);
           await vm.cancelOrder(reason);
         }}
+      />
+
+      <PromptModal
+        visible={vm.counterBid !== null}
+        title="Встречная цена"
+        message={
+          vm.counterBid
+            ? `${vm.counterBid.driver.fullName} предлагает ${formatPrice(vm.counterBid.price)}. Водитель получит уведомление и сможет согласиться.`
+            : undefined
+        }
+        placeholder="Ваша цена"
+        confirmText="Предложить"
+        confirmVariant="primary"
+        numeric
+        onCancel={vm.closeCounter}
+        onConfirm={vm.submitCounter}
       />
     </ScreenScroll>
   );
@@ -223,9 +243,29 @@ function DriverBidSection({ vm }: { vm: ReturnType<typeof useOrderDetailsViewMod
         />
       ) : null}
 
+      {order.myBid?.status === 'Pending' && order.myBid.counterPrice ? (
+        <Banner
+          tone="warning"
+          icon="swap-horizontal"
+          title={`Заказчик предлагает ${formatPrice(order.myBid.counterPrice)}`}
+          text={`Ваша цена — ${formatPrice(order.myBid.price)}. Согласитесь или предложите другую цену ниже.`}
+          action={
+            <Button
+              title={`Согласиться на ${formatPrice(order.myBid.counterPrice)}`}
+              icon="check-circle"
+              compact
+              onPress={vm.acceptCounter}
+              loading={vm.isBusy}
+            />
+          }
+        />
+      ) : null}
+
       {vm.canBid && vm.hasVehicles ? (
         <Card>
-          {order.myBid ? <MyBidBadge status={order.myBid.status} price={order.myBid.price} /> : null}
+          {order.myBid ? (
+            <MyBidBadge status={order.myBid.status} price={order.myBid.price} counterPrice={order.myBid.counterPrice} />
+          ) : null}
           {!order.myBid ? (
             <Button
               title={`Откликнуться за ${formatPrice(order.price)}`}
@@ -298,12 +338,14 @@ function BidCard({
   orderPrice,
   onAccept,
   onReject,
+  onCounter,
   busy,
 }: {
   bid: BidDTO;
   orderPrice: number;
   onAccept: (id: string) => void;
   onReject: (id: string) => void;
+  onCounter: (id: string) => void;
   busy: boolean;
 }) {
   const diff = bid.price - orderPrice;
@@ -312,7 +354,7 @@ function BidCard({
   return (
     <Card style={bid.status === 'Rejected' ? { opacity: 0.6 } : undefined}>
       <View style={styles.person}>
-        <Avatar name={bid.driver.fullName} color={colors.navy600} />
+        <Avatar name={bid.driver.fullName} color={colors.text} />
         <View style={{ flex: 1, gap: 2 }}>
           <View style={styles.nameRow}>
             <Text style={font.h3}>{bid.driver.fullName}</Text>
@@ -323,7 +365,9 @@ function BidCard({
         <View style={{ alignItems: 'flex-end' }}>
           <Text style={styles.bidPrice}>{formatPrice(bid.price)}</Text>
           {diff !== 0 ? (
-            <Text style={[styles.meta, { color: diff < 0 ? colors.success : colors.warning, fontWeight: '700' }]}>
+            <Text
+              style={[styles.meta, { color: diff < 0 ? colors.success : colors.warning, fontFamily: family.semibold }]}
+            >
               {diff > 0 ? '+' : '−'}
               {formatPrice(Math.abs(diff))}
             </Text>
@@ -334,7 +378,7 @@ function BidCard({
       </View>
       {vehicle ? (
         <View style={styles.vehicle}>
-          <Icon name={vehicleTypeInfo(vehicle.type).icon} size={18} color={colors.navy600} />
+          <Icon name={vehicleTypeInfo(vehicle.type).icon} size={18} color={colors.textSecondary} />
           <Text style={styles.meta}>
             {vehicleTypeInfo(vehicle.type).label}
             {vehicle.model ? ` ${vehicle.model}` : ''} · до {formatNumber(vehicle.weightT)} т ·{' '}
@@ -344,24 +388,40 @@ function BidCard({
         </View>
       ) : null}
       {bid.comment ? <Text style={styles.comment}>«{bid.comment}»</Text> : null}
+      {bid.status === 'Pending' && bid.counterPrice ? (
+        <View style={styles.counter}>
+          <Icon name="swap-horizontal" size={18} color={colors.warning} />
+          <Text style={styles.counterText}>Вы предложили {formatPrice(bid.counterPrice)} — ждём ответа водителя</Text>
+        </View>
+      ) : null}
       {bid.status === 'Pending' ? (
-        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+        <View style={{ gap: spacing.sm }}>
           <Button
-            title="Отклонить"
-            variant="secondary"
-            compact
-            onPress={() => onReject(bid.id)}
-            disabled={busy}
-            style={{ flex: 1 }}
-          />
-          <Button
-            title="Выбрать"
+            title={`Выбрать за ${formatPrice(bid.price)}`}
             icon="check-circle"
             compact
             onPress={() => onAccept(bid.id)}
             disabled={busy}
-            style={{ flex: 2 }}
           />
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            <Button
+              title="Своя цена"
+              icon="swap-horizontal"
+              variant="secondary"
+              compact
+              onPress={() => onCounter(bid.id)}
+              disabled={busy}
+              style={{ flex: 1 }}
+            />
+            <Button
+              title="Отклонить"
+              variant="secondary"
+              compact
+              onPress={() => onReject(bid.id)}
+              disabled={busy}
+              style={{ flex: 1 }}
+            />
+          </View>
         </View>
       ) : (
         <Badge label={status.label} tone={status.tone} />
@@ -381,12 +441,21 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     flexWrap: 'wrap',
   },
-  price: { fontSize: 28, fontWeight: '800', color: colors.navy900 },
+  price: { fontFamily: family.bold, fontSize: 30, letterSpacing: -0.8, color: colors.text },
   person: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  bidPrice: { ...font.h3, fontSize: 18, color: colors.navy900 },
+  bidPrice: { fontFamily: family.bold, fontSize: 19, letterSpacing: -0.3, color: colors.text },
   vehicle: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   comment: { ...font.body, color: colors.text, fontStyle: 'italic' },
   divider: { ...font.small, color: colors.textMuted, textAlign: 'center' },
   editRow: { flexDirection: 'row', gap: spacing.sm },
+  counter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.warningSoft,
+  },
+  counterText: { ...font.small, color: colors.text, flex: 1 },
 });

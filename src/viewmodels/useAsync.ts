@@ -1,5 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
 import { errorMessage } from '../core/errors';
 
@@ -16,9 +17,14 @@ export interface QueryState<T> {
 
 /**
  * Загрузка данных для экрана. Перезапрашивает данные при каждом возвращении на экран,
- * чтобы статусы заказов и отклики были актуальными.
+ * чтобы статусы заказов и отклики были актуальными. С pollMs, пока экран открыт и приложение
+ * активно, данные тихо обновляются с этим интервалом — изменения другой стороны появляются сами.
  */
-export function useQuery<T>(loader: (() => Promise<T>) | null, deps: unknown[]): QueryState<T> {
+export function useQuery<T>(
+  loader: (() => Promise<T>) | null,
+  deps: unknown[],
+  options: { pollMs?: number } = {},
+): QueryState<T> {
   const [data, setData] = useState<T>();
   const [isLoading, setIsLoading] = useState(Boolean(loader));
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -65,14 +71,17 @@ export function useQuery<T>(loader: (() => Promise<T>) | null, deps: unknown[]):
   }, deps);
 
   const isFirstFocus = useRef(true);
+  const { pollMs } = options;
   useFocusEffect(
     useCallback(() => {
-      if (isFirstFocus.current) {
-        isFirstFocus.current = false;
-        return;
-      }
-      void fetchData();
-    }, [fetchData]),
+      if (isFirstFocus.current) isFirstFocus.current = false;
+      else void fetchData();
+      if (!pollMs) return undefined;
+      const timer = setInterval(() => {
+        if (AppState.currentState === 'active') void fetchData();
+      }, pollMs);
+      return () => clearInterval(timer);
+    }, [fetchData, pollMs]),
   );
 
   const refresh = useCallback(async () => {

@@ -1,7 +1,7 @@
 /**
  * Начальные данные для демонстрации и ручной проверки (npm run db:seed).
- * Покрывают все статусы заказа, связи (отклики, фото, отзывы, ТС с типами грузов),
- * фильтры и поиск, а также ошибочные сценарии: неверифицированный водитель,
+ * Покрывают все статусы заказа, связи (отклики, встречную цену, фото, отзывы, ТС с типами грузов,
+ * уведомления о событиях), фильтры и поиск, а также ошибочные сценарии: неверифицированный водитель,
  * водитель на проверке, заблокированный пользователь, закрытые заявки.
  *
  *   npm run db:seed            — заполнить пустую базу
@@ -22,6 +22,8 @@ import {
   BidStatus,
   CargoType,
   DocumentType,
+  Notification,
+  NotificationType,
   Order,
   OrderPhoto,
   OrderStatus,
@@ -275,10 +277,12 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
       status: OrderStatus.Bidding,
       createdAt: ago(0, 20),
     });
+    // На отклик Ивана заказчица ответила встречной ценой
     tx.create(Bid, {
       order: bidding,
       driver: ivan,
       offeredPrice: 28000,
+      counterPrice: 26000,
       comment: 'Могу забрать завтра утром',
       createdAt: ago(0, 18),
     });
@@ -390,6 +394,112 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
       createdAt: ago(7),
     });
 
+    // ---------------------------------------------------------- уведомления
+    // О событиях, которые уже есть в демо-данных выше: отклики, встречная цена, выбор исполнителя,
+    // оплата, этапы рейса, приёмка, отзывы, проверка документов.
+    const notice = (
+      user: User,
+      type: NotificationType,
+      title: string,
+      body: string,
+      createdAt: Date,
+      extra: { order?: Order; relatedUser?: User; isRead?: boolean } = {},
+    ) =>
+      tx.create(Notification, {
+        user,
+        type,
+        title,
+        body,
+        createdAt,
+        order: extra.order ?? null,
+        relatedUser: extra.relatedUser ?? null,
+        isRead: extra.isRead ?? false,
+      });
+
+    notice(
+      anna,
+      NotificationType.BidPlaced,
+      'Новый отклик',
+      'Иван Петров предлагает 28 000 ₽ за «Мини-экскаватор Hitachi ZX55».',
+      ago(0, 18),
+      { order: bidding },
+    );
+    notice(
+      anna,
+      NotificationType.BidPlaced,
+      'Новый отклик',
+      'Олег Новиков предлагает 33 000 ₽ за «Мини-экскаватор Hitachi ZX55».',
+      ago(0, 10),
+      { order: bidding },
+    );
+    notice(
+      ivan,
+      NotificationType.CounterOffer,
+      'Встречная цена',
+      'Заказчик предлагает 26 000 ₽ за «Мини-экскаватор Hitachi ZX55». Ваша цена — 28 000 ₽.',
+      ago(0, 9),
+      { order: bidding },
+    );
+    notice(
+      ivan,
+      NotificationType.BidAccepted,
+      'Вас выбрали исполнителем',
+      '«Дизельный генератор 200 кВт» за 26 000 ₽. Рейс можно начать после оплаты заказчиком.',
+      ago(2, 2),
+      { order: assigned },
+    );
+    notice(
+      ivan,
+      NotificationType.OrderPaid,
+      'Заказ оплачен',
+      '85 000 ₽ за «Комбайн Acros 595 (без жатки)» заморожены на безопасной сделке. Можно ехать на погрузку.',
+      ago(4, 18),
+      { order: inTransit, isRead: true },
+    );
+    notice(anna, NotificationType.TripStatus, 'Груз в пути', 'Заказ «Комбайн Acros 595 (без жатки)».', ago(1), {
+      order: inTransit,
+    });
+    notice(
+      ivan,
+      NotificationType.OrderCompleted,
+      'Приёмка подтверждена',
+      'Заказчик принял груз «Каток Bomag BW 213», 41 000 ₽ переведены вам. Оцените заказчика.',
+      ago(10),
+      { order: completed, isRead: true },
+    );
+    notice(
+      ivan,
+      NotificationType.ReviewReceived,
+      'Новый отзыв',
+      'Анна Смирнова оценивает заказ «Каток Bomag BW 213» на 5 из 5.',
+      ago(9),
+      { order: completed, isRead: true },
+    );
+    notice(
+      anna,
+      NotificationType.ReviewReceived,
+      'Новый отзыв',
+      'Иван Петров оценивает заказ «Каток Bomag BW 213» на 5 из 5.',
+      ago(9),
+      { order: completed, isRead: true },
+    );
+    notice(
+      ivan,
+      NotificationType.VerificationResult,
+      'Документы подтверждены',
+      'Теперь вы можете откликаться на заявки.',
+      ago(20),
+      { isRead: true },
+    );
+    notice(
+      admin,
+      NotificationType.VerificationRequested,
+      'Документы на проверку',
+      'Водитель Сергей Кузнецов загрузил паспорт, ВУ и СТС и ждёт проверки.',
+      ago(0, 5),
+      { relatedUser: sergey },
+    );
+
     await tx.flush(); // id заказов известны — сохраняем файлы с правильными ключами
 
     for (const [o, stage, name, at] of [
@@ -421,7 +531,7 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
 /** Удаляет данные всех таблиц, кроме справочника типов груза. */
 export async function truncateData(em: EntityManager): Promise<void> {
   await em.execute(
-    'truncate table "reviews", "order_photos", "bids", "orders", "vehicle_cargo_types", "vehicles", "verification_documents", "users" restart identity cascade',
+    'truncate table "notifications", "reviews", "order_photos", "bids", "orders", "vehicle_cargo_types", "vehicles", "verification_documents", "users" restart identity cascade',
   );
 }
 

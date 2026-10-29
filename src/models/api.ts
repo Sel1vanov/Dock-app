@@ -11,6 +11,21 @@ export type ApiBidStatus = 'Pending' | 'Accepted' | 'Rejected';
 export type ApiPhotoStage = 'Loading' | 'Unloading';
 export type ApiVehicleType = 'Trawl' | 'Manipulator' | 'TowTruck' | 'Flatbed' | 'Other';
 export type ApiDocumentType = 'passport' | 'license' | 'sts';
+export type ApiNotificationType =
+  | 'BidPlaced'
+  | 'BidUpdated'
+  | 'CounterOffer'
+  | 'CounterAccepted'
+  | 'BidAccepted'
+  | 'BidRejected'
+  | 'OrderPaid'
+  | 'TripStatus'
+  | 'OrderCompleted'
+  | 'OrderCancelled'
+  | 'ReviewReceived'
+  | 'VerificationResult'
+  | 'VerificationRequested'
+  | 'PasswordResetRequested';
 
 export interface ApiPage<T> {
   items: T[];
@@ -81,7 +96,7 @@ export interface ApiOrderListItem {
   updatedAt: string;
   bidsCount: number;
   clientName: string;
-  myBid: { id: string; price: number; status: ApiBidStatus } | null;
+  myBid: { id: string; price: number; counterPrice: number | null; status: ApiBidStatus } | null;
 }
 
 export interface ApiPerson {
@@ -95,6 +110,7 @@ export interface ApiPerson {
 export interface ApiBid {
   id: string;
   price: number;
+  counterPrice: number | null;
   comment: string | null;
   status: ApiBidStatus;
   createdAt: string;
@@ -127,6 +143,7 @@ export interface ApiFeedPage extends ApiPage<ApiOrderListItem> {
 export interface ApiDriverBid {
   id: string;
   price: number;
+  counterPrice: number | null;
   comment: string | null;
   status: ApiBidStatus;
   createdAt: string;
@@ -142,4 +159,29 @@ export interface ApiDocument {
 export interface ApiAdminUser extends ApiUser {
   documents: ApiDocument[];
   vehicles: ApiVehicle[];
+}
+
+export interface ApiNotification {
+  id: string;
+  type: ApiNotificationType;
+  title: string;
+  body: string;
+  orderId: string | null;
+  relatedUserId: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface ApiNotificationPage extends ApiPage<ApiNotification> {
+  unreadCount: number;
+}
+
+export interface ApiReceivedReview {
+  id: string;
+  rating: number;
+  comment: string | null;
+  authorName: string;
+  authorRole: ApiUserRole;
+  orderId: string;
+  createdAt: string;
 }

@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router/js-tabs';
 import type { ColorValue } from 'react-native';
 
 import { useCurrentUser } from '../../viewmodels/AuthViewModel';
+import { TabBar } from '../../views/components/TabBar';
 import { Icon } from '../../views/components/ui';
 import { colors } from '../../views/theme';
 
@@ -21,26 +22,21 @@ export default function TabsLayout() {
 
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: { borderTopColor: colors.border, backgroundColor: colors.surface },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-      }}
+      tabBar={(props) => <TabBar {...props} />}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.bg } }}
     >
       <Tabs.Protected guard={isClient}>
-        <Tabs.Screen name="orders" options={{ title: 'Мои заявки', tabBarIcon: tabIcon('clipboard-list') }} />
-        <Tabs.Screen name="create" options={{ title: 'Создать', tabBarIcon: tabIcon('plus-circle') }} />
+        <Tabs.Screen name="orders" options={{ title: 'Заявки', tabBarIcon: tabIcon('clipboard-list-outline') }} />
+        <Tabs.Screen name="create" options={{ title: 'Создать', tabBarIcon: tabIcon('plus') }} />
       </Tabs.Protected>
       <Tabs.Protected guard={isDriver}>
-        <Tabs.Screen name="feed" options={{ title: 'Поиск грузов', tabBarIcon: tabIcon('magnify') }} />
-        <Tabs.Screen name="trips" options={{ title: 'Мои рейсы', tabBarIcon: tabIcon('truck-fast') }} />
+        <Tabs.Screen name="feed" options={{ title: 'Грузы', tabBarIcon: tabIcon('magnify') }} />
+        <Tabs.Screen name="trips" options={{ title: 'Рейсы', tabBarIcon: tabIcon('truck-outline') }} />
       </Tabs.Protected>
       <Tabs.Protected guard={isAdmin}>
-        <Tabs.Screen name="moderation" options={{ title: 'Модерация', tabBarIcon: tabIcon('shield-check') }} />
+        <Tabs.Screen name="moderation" options={{ title: 'Модерация', tabBarIcon: tabIcon('shield-check-outline') }} />
       </Tabs.Protected>
-      <Tabs.Screen name="profile" options={{ title: 'Профиль', tabBarIcon: tabIcon('account-circle') }} />
+      <Tabs.Screen name="profile" options={{ title: 'Профиль', tabBarIcon: tabIcon('account-outline') }} />
     </Tabs>
   );
 }

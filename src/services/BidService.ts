@@ -5,7 +5,7 @@ import { toDriverBidDTO } from '../models/mappers';
 import type { BidInput } from '../models/schemas';
 import { BidRepository } from '../repositories/BidRepository';
 
-/** Торг: отклики водителей и выбор исполнителя заказчиком. */
+/** Торг: отклики водителей, встречная цена заказчика и выбор исполнителя. */
 export const BidService = {
   /**
    * UC-10 (по цене заказчика) и UC-11 (встречная цена).
@@ -27,6 +27,16 @@ export const BidService = {
   },
 
   withdrawBid: (bidId: string) => BidRepository.withdraw(bidId),
+
+  /** Заказчик предлагает свою цену в ответ на отклик. */
+  async counterOffer(bidId: string, price: number): Promise<void> {
+    await BidRepository.counter(bidId, price);
+  },
+
+  /** Водитель соглашается на встречную цену заказчика. */
+  async acceptCounterOffer(bidId: string): Promise<void> {
+    await BidRepository.acceptCounter(bidId);
+  },
 
   /** UC-06 */
   acceptBid: async (bidId: string) => {

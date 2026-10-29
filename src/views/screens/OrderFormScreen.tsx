@@ -2,7 +2,7 @@ import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } fro
 
 import { useOrderFormViewModel } from '../../viewmodels/OrderViewModels';
 import { useCargoTypes } from '../../viewmodels/useCargoTypes';
-import { DimensionTiles, GradientHeader } from '../components/order';
+import { DimensionTiles, ScreenHeader } from '../components/order';
 import {
   Banner,
   Button,
@@ -14,7 +14,7 @@ import {
   SectionTitle,
   TextField,
 } from '../components/ui';
-import { colors, font, radius, spacing } from '../theme';
+import { colors, family, font, radius, spacing } from '../theme';
 
 /**
  * OrderCreateScreen (SAD 5.2): UC-03 «Создать заявку», UC-04 «Указать габариты и вес», UC-05 «Маршрут».
@@ -33,7 +33,7 @@ export function OrderFormScreen({ orderId }: { orderId?: string }) {
       style={{ flex: 1, backgroundColor: colors.bg }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {vm.isEdit ? null : <GradientHeader subtitle="Новая заявка" title="Что перевозим?" />}
+      {vm.isEdit ? null : <ScreenHeader title="Что перевозим?" subtitle="Новая заявка" />}
       <ScreenScroll>
         <SectionTitle title="Тип груза" />
         <View style={styles.types}>
@@ -45,8 +45,8 @@ export function OrderFormScreen({ orderId }: { orderId?: string }) {
                 onPress={() => vm.setCargoType(t.value)}
                 style={[styles.type, selected && styles.typeSelected]}
               >
-                <Icon name={t.icon} size={30} color={selected ? colors.accent : colors.navy600} />
-                <Text style={[styles.typeText, selected && { color: colors.navy900 }]}>{t.label}</Text>
+                <Icon name={t.icon} size={30} color={selected ? colors.accentDark : colors.textSecondary} />
+                <Text style={[styles.typeText, selected && { color: colors.text }]}>{t.label}</Text>
               </Pressable>
             );
           })}
@@ -137,7 +137,6 @@ export function OrderFormScreen({ orderId }: { orderId?: string }) {
             onChangeText={(t) => vm.setField('destination', t)}
             error={errors.destination}
           />
-          <Text style={styles.note}>Выбор точек на карте появится на следующем этапе.</Text>
         </Card>
 
         <SectionTitle title={vm.isEdit ? 'Цена' : 'Начальная цена'} />
@@ -183,10 +182,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: colors.surface,
+    borderColor: colors.border,
   },
   typeSelected: { borderColor: colors.accent, backgroundColor: colors.accentSoft },
-  typeText: { ...font.caption, color: colors.textSecondary, fontWeight: '700' },
+  typeText: { fontFamily: family.semibold, fontSize: 12, color: colors.textSecondary },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   cell: { flexGrow: 1, flexBasis: '45%' },
   note: { ...font.small, color: colors.textMuted },

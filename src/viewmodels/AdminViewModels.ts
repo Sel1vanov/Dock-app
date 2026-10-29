@@ -39,6 +39,8 @@ export function useModerationViewModel() {
 export function useAdminUserViewModel(userId: string) {
   const query = useQuery(() => AdminService.getUser(userId), [userId]);
   const [busy, setBusy] = useState(false);
+  /** Выданный временный пароль: показывается на экране, пока администратор диктует его по телефону. */
+  const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
 
   const run = async (fn: () => Promise<AdminUserDTO>, success: string) => {
     setBusy(true);
@@ -57,6 +59,24 @@ export function useAdminUserViewModel(userId: string) {
     query,
     user: query.data,
     busy,
+    temporaryPassword,
+    /** «Забыли пароль?»: новый пароль сообщается пользователю по телефону, его прежние сессии завершаются. */
+    issueTemporaryPassword: async () => {
+      const ok = await confirmAction(
+        'Выдать временный пароль?',
+        'Старый пароль перестанет действовать, пользователь выйдет на всех устройствах. Сообщите новый пароль по телефону из профиля.',
+        'Выдать',
+      );
+      if (!ok) return;
+      setBusy(true);
+      try {
+        setTemporaryPassword(await AdminService.issueTemporaryPassword(userId));
+      } catch (e) {
+        notify('Не получилось', errorMessage(e));
+      } finally {
+        setBusy(false);
+      }
+    },
     approve: async () => {
       if (
         await confirmAction('Подтвердить документы?', 'Водитель получит доступ к откликам на заявки', 'Подтвердить')

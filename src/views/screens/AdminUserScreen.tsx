@@ -36,7 +36,7 @@ export function AdminUserScreen({ userId }: { userId: string }) {
     <ScreenScroll refreshing={vm.query.isRefreshing} onRefresh={vm.query.refresh}>
       <Card>
         <View style={styles.row}>
-          <Avatar name={user.fullName} size={56} />
+          <Avatar name={user.fullName} size={56} color={colors.text} />
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={font.h2}>{user.fullName}</Text>
             <Text style={styles.meta}>{ROLE_LABELS[user.role]}</Text>
@@ -106,6 +106,31 @@ export function AdminUserScreen({ userId }: { userId: string }) {
             </Card>
           ))}
         </>
+      ) : null}
+
+      {user.role !== 'Admin' ? (
+        <Banner
+          tone="info"
+          icon="lock-reset"
+          title="Временный пароль"
+          text={
+            vm.temporaryPassword
+              ? `Новый пароль: ${vm.temporaryPassword}\nСообщите его по телефону ${user.phone}. Пользователь сменит его в профиле.`
+              : 'Если пользователь забыл пароль, выдайте временный и сообщите его по телефону.'
+          }
+          action={
+            vm.temporaryPassword ? undefined : (
+              <Button
+                title="Выдать временный пароль"
+                variant="secondary"
+                compact
+                icon="key-variant"
+                onPress={vm.issueTemporaryPassword}
+                disabled={vm.busy}
+              />
+            )
+          }
+        />
       ) : null}
 
       {user.role !== 'Admin' ? (

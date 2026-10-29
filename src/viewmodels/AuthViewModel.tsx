@@ -4,7 +4,14 @@ import { onUnauthorized } from '../core/api';
 import { ApiError, errorMessage } from '../core/errors';
 import { tokenStorage } from '../core/tokenStorage';
 import type { UserDTO } from '../models/dto';
-import { type FieldErrors, type SignUpForm, signInSchema, signUpSchema, validate } from '../models/schemas';
+import {
+  type FieldErrors,
+  type SignUpForm,
+  passwordResetSchema,
+  signInSchema,
+  signUpSchema,
+  validate,
+} from '../models/schemas';
 import { AuthService } from '../services/AuthService';
 
 interface AuthContextValue {
@@ -104,7 +111,8 @@ export function useCurrentUser(): UserDTO {
   return lastKnownUser;
 }
 
-export type AuthMode = 'signIn' | 'signUp';
+/** signIn — вход, signUp — регистрация, reset — «Забыли пароль?». */
+export type AuthMode = 'signIn' | 'signUp' | 'reset';
 
 const EMPTY_FORM: SignUpForm = {
   email: '',
@@ -125,6 +133,8 @@ export function useAuthFormViewModel() {
   const [isLoading, setIsLoading] = useState(false);
   /** Сообщение «сессия истекла» показываем, пока пользователь не начал новое действие. */
   const [showSessionMessage, setShowSessionMessage] = useState(true);
+  /** Ответ сервера на просьбу о сбросе пароля. */
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   const setField = <K extends keyof SignUpForm>(key: K, value: SignUpForm[K]) => {
     setValues((v) => ({ ...v, [key]: value }));
@@ -136,6 +146,25 @@ export function useAuthFormViewModel() {
     setShowSessionMessage(false);
     setFieldErrors({});
     setErrorMessage(null);
+    setResetMessage(null);
+  };
+
+  /** «Забыли пароль?»: просьба уходит администраторам, ответ одинаковый для любого email. */
+  const requestReset = async () => {
+    setErrorMessage(null);
+    const checked = validate(passwordResetSchema, { email: values.email });
+    if (!checked.ok) {
+      setFieldErrors({ email: checked.errors.email });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      setResetMessage(await AuthService.requestPasswordReset(checked.data.email));
+    } catch (e) {
+      setErrorMessage(errorMessage(e));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const submit = async () => {
@@ -175,5 +204,7 @@ export function useAuthFormViewModel() {
     setField,
     switchMode,
     submit,
+    requestReset,
+    resetMessage,
   };
 }

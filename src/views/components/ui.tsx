@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 
 import type { StatusTone } from '../../models/catalog';
-import { colors, font, radius, shadow, spacing, toneColors } from '../theme';
+import { colors, family, font, radius, shadow, spacing, toneColors } from '../theme';
 
 export type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
@@ -48,9 +48,9 @@ export function Button({
   style?: ViewStyle;
 }) {
   const palette = {
-    primary: { bg: colors.accent, fg: colors.white, border: colors.accent },
-    secondary: { bg: colors.surface, fg: colors.navy800, border: colors.border },
-    ghost: { bg: 'transparent', fg: colors.navy700, border: 'transparent' },
+    primary: { bg: colors.accent, fg: colors.onAccent, border: colors.accent },
+    secondary: { bg: colors.surface, fg: colors.text, border: colors.border },
+    ghost: { bg: 'transparent', fg: colors.text, border: 'transparent' },
     danger: { bg: colors.dangerSoft, fg: colors.danger, border: colors.dangerSoft },
     success: { bg: colors.success, fg: colors.white, border: colors.success },
   }[variant];
@@ -74,7 +74,9 @@ export function Button({
       ) : (
         <>
           {icon ? <Icon name={icon} size={compact ? 16 : 20} color={palette.fg} /> : null}
-          <Text style={[styles.buttonText, compact && { fontSize: 14 }, { color: palette.fg }]}>{title}</Text>
+          {title ? (
+            <Text style={[styles.buttonText, compact && { fontSize: 14 }, { color: palette.fg }]}>{title}</Text>
+          ) : null}
         </>
       )}
     </Pressable>
@@ -136,26 +138,19 @@ export function Chip({
   icon,
   selected,
   onPress,
-  onDark,
 }: {
   label: string;
   icon?: string;
   selected?: boolean;
   onPress?: () => void;
-  /** Чип на тёмной шапке: выбранный выделяется акцентным цветом. */
-  onDark?: boolean;
 }) {
-  const fg = selected || onDark ? colors.white : colors.navy700;
+  const fg = selected ? colors.white : colors.text;
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected: Boolean(selected) }}
-      style={[
-        styles.chip,
-        onDark && styles.chipOnDark,
-        selected && (onDark ? styles.chipSelectedOnDark : styles.chipSelected),
-      ]}
+      style={[styles.chip, selected && styles.chipSelected]}
     >
       {icon ? <Icon name={icon} size={16} color={fg} /> : null}
       <Text style={[styles.chipText, { color: fg }]}>{label}</Text>
@@ -182,7 +177,7 @@ export function Segmented<T extends string>({
             onPress={() => onChange(o.value)}
             style={[styles.segment, active && styles.segmentActive]}
           >
-            <Text style={[styles.segmentText, active && { color: colors.navy900 }]}>{o.label}</Text>
+            <Text style={[styles.segmentText, active && { color: colors.text }]}>{o.label}</Text>
             {o.badge ? (
               <View style={styles.segmentBadge}>
                 <Text style={styles.segmentBadgeText}>{o.badge}</Text>
@@ -275,7 +270,7 @@ export function EmptyState({
   return (
     <View style={styles.empty}>
       <View style={styles.emptyIcon}>
-        <Icon name={icon} size={36} color={colors.navy600} />
+        <Icon name={icon} size={36} color={colors.accentDark} />
       </View>
       <Text style={styles.emptyTitle}>{title}</Text>
       {text ? <Text style={styles.emptyText}>{text}</Text> : null}
@@ -336,7 +331,7 @@ export const styles = StyleSheet.create({
   muted: { ...font.small, color: colors.textMuted },
   button: {
     minHeight: 52,
-    borderRadius: radius.md,
+    borderRadius: 26,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -344,28 +339,30 @@ export const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
-  buttonCompact: { minHeight: 40, paddingHorizontal: spacing.md, borderRadius: radius.sm },
-  buttonText: { fontSize: 16, fontWeight: '700' },
+  buttonCompact: { minHeight: 40, paddingHorizontal: spacing.lg, borderRadius: 20 },
+  buttonText: { fontFamily: family.semibold, fontSize: 16 },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: spacing.lg,
     gap: spacing.md,
     ...shadow,
   },
   sectionTitle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.sm },
   sectionTitleText: { ...font.h3, color: colors.text },
-  label: { ...font.caption, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.4 },
+  label: { ...font.caption, color: colors.textSecondary },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     minHeight: 50,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.surfaceAlt,
+    backgroundColor: colors.surfaceAlt,
   },
   input: {
     flex: 1,
@@ -381,21 +378,19 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: 14,
+    minHeight: 38,
     borderRadius: radius.pill,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E4E4E0',
   },
-  chipSelected: { backgroundColor: colors.navy800, borderColor: colors.navy800 },
-  chipOnDark: { backgroundColor: 'rgba(255,255,255,0.10)', borderColor: 'rgba(255,255,255,0.18)' },
-  chipSelectedOnDark: { backgroundColor: colors.accent, borderColor: colors.accent },
-  chipText: { ...font.small, fontWeight: '600', color: colors.navy700 },
+  chipSelected: { backgroundColor: colors.text, borderColor: colors.text },
+  chipText: { fontFamily: family.medium, fontSize: 14, color: colors.text },
   segmented: {
     flexDirection: 'row',
-    backgroundColor: '#E6EAF2',
-    borderRadius: radius.md,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.pill,
     padding: 4,
   },
   segment: {
@@ -405,10 +400,10 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 9,
-    borderRadius: radius.sm,
+    borderRadius: radius.pill,
   },
   segmentActive: { backgroundColor: colors.surface, ...shadow },
-  segmentText: { ...font.small, fontWeight: '700', color: colors.textSecondary },
+  segmentText: { fontFamily: family.semibold, fontSize: 14, color: colors.textSecondary },
   segmentBadge: {
     minWidth: 20,
     height: 20,
@@ -418,7 +413,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 5,
   },
-  segmentBadgeText: { color: colors.white, fontSize: 11, fontWeight: '800' },
+  segmentBadgeText: { color: colors.onAccent, fontSize: 11, fontFamily: family.bold },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -428,10 +423,10 @@ export const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: radius.pill,
   },
-  badgeText: { ...font.caption, fontWeight: '700' },
+  badgeText: { fontFamily: family.semibold, fontSize: 12 },
   avatar: { alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: colors.white, fontWeight: '800' },
-  ratingText: { ...font.small, fontWeight: '700', color: colors.text },
+  avatarText: { color: colors.white, fontFamily: family.bold },
+  ratingText: { fontFamily: family.semibold, fontSize: 13, color: colors.text },
   banner: {
     flexDirection: 'row',
     gap: spacing.md,
@@ -445,8 +440,8 @@ export const styles = StyleSheet.create({
   emptyIcon: {
     width: 76,
     height: 76,
-    borderRadius: 38,
-    backgroundColor: colors.infoSoft,
+    borderRadius: 24,
+    backgroundColor: colors.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,

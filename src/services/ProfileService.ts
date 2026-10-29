@@ -1,6 +1,6 @@
 import { AppError } from '../core/errors';
-import type { DocumentDTO, DocumentType, UserDTO } from '../models/dto';
-import { toDocumentDTO, toUserDTO } from '../models/mappers';
+import type { DocumentDTO, DocumentType, Page, ReviewDTO, UserDTO } from '../models/dto';
+import { toDocumentDTO, toReviewDTO, toUserDTO } from '../models/mappers';
 import { UserRepository } from '../repositories/UserRepository';
 
 /** Документы для верификации водителя (UC-01). */
@@ -13,6 +13,12 @@ export const VERIFICATION_DOCS: { key: DocumentType; label: string; hint: string
 export const ProfileService = {
   async updateProfile(patch: { fullName: string; phone: string }): Promise<UserDTO> {
     return toUserDTO(await UserRepository.updateMe(patch));
+  },
+
+  /** Отзывы обо мне, новые сверху (UC-19). */
+  async getReviews(offset: number, limit = 10): Promise<Page<ReviewDTO>> {
+    const page = await UserRepository.listReviews(limit, offset);
+    return { items: page.items.map(toReviewDTO), total: page.total };
   },
 
   async getDocuments(): Promise<DocumentDTO[]> {

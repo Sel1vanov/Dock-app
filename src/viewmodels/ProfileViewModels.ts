@@ -8,22 +8,28 @@ import { DEFAULT_CARGO_BY_VEHICLE } from '../models/catalog';
 import type { CargoType, DocumentType, VehicleType } from '../models/dto';
 import {
   type FieldErrors,
+  type PasswordChangeForm,
   type ProfileForm,
   type VehicleForm,
+  passwordChangeSchema,
   profileSchema,
   validate,
   vehicleSchema,
 } from '../models/schemas';
+import { AuthService } from '../services/AuthService';
 import { ProfileService, VERIFICATION_DOCS } from '../services/ProfileService';
 import { VehicleService } from '../services/VehicleService';
 import { useAuth, useCurrentUser } from './AuthViewModel';
-import { useAction, useQuery } from './useAsync';
+import { useAction, usePagedQuery, useQuery } from './useAsync';
 
 export function useProfileViewModel() {
   const { signOut, refreshUser } = useAuth();
   const user = useCurrentUser();
   const isDriver = user.role === 'Driver';
+  const isAdmin = user.role === 'Admin';
   const vehicles = useQuery(isDriver ? () => VehicleService.getMyVehicles() : null, [user.id, isDriver]);
+  /** Последний отзыв обо мне — карточка в профиле; все отзывы — на отдельном экране. */
+  const latestReview = useQuery(isAdmin ? null : () => ProfileService.getReviews(0, 1), [user.id, isAdmin]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const removeVehicle = async (id: string) => {
@@ -40,21 +46,25 @@ export function useProfileViewModel() {
   return {
     user,
     isDriver,
-    isAdmin: user.role === 'Admin',
+    isAdmin,
     rating: user.rating,
+    latestReview: latestReview.data?.items[0] ?? null,
+    reviewsTotal: latestReview.data?.total ?? 0,
     vehicles: vehicles.data ?? [],
     vehiclesError: vehicles.error,
     isLoading: vehicles.isLoading,
     isRefreshing: isRefreshing || vehicles.isRefreshing,
     refresh: async () => {
       setIsRefreshing(true);
-      await Promise.all([refreshUser(), vehicles.refresh()]);
+      await Promise.all([refreshUser(), vehicles.refresh(), latestReview.refresh()]);
       setIsRefreshing(false);
     },
     removeVehicle,
     addVehicle: () => router.push('/vehicle/new'),
     editVehicle: (id: string) => router.push(`/vehicle/${id}`),
     editProfile: () => router.push('/profile-edit'),
+    changePassword: () => router.push('/password'),
+    openReviews: () => router.push('/reviews'),
     openVerification: () => router.push('/verification'),
     /** Выход: токен удаляется с устройства, открывается экран входа. */
     signOut: async () => {
@@ -98,6 +108,51 @@ export function useProfileEditViewModel() {
     isSubmitting: action.isRunning,
     submitError: action.error,
   };
+}
+
+const EMPTY_PASSWORD: PasswordChangeForm = { currentPassword: '', newPassword: '', newPasswordConfirm: '' };
+
+/** Смена пароля: после неё сервер отзывает прежние сессии, приложение сохраняет новый токен. */
+export function usePasswordChangeViewModel() {
+  const { setCurrentUser } = useAuth();
+  const [values, setValues] = useState<PasswordChangeForm>(EMPTY_PASSWORD);
+  const [errors, setErrors] = useState<FieldErrors<PasswordChangeForm>>({});
+  const action = useAction(async (data: Parameters<typeof AuthService.changePassword>[0]) => {
+    try {
+      setCurrentUser(await AuthService.changePassword(data));
+    } catch (e) {
+      if (e instanceof ApiError) setErrors(e.fieldErrors);
+      throw e;
+    }
+    showToast('Пароль изменён');
+    router.back();
+  });
+
+  return {
+    values,
+    errors,
+    setField: (key: keyof PasswordChangeForm, value: string) => {
+      setValues((v) => ({ ...v, [key]: value }));
+      setErrors((e) => ({ ...e, [key]: undefined }));
+    },
+    submit: async () => {
+      const checked = validate(passwordChangeSchema, values);
+      if (!checked.ok) {
+        setErrors(checked.errors);
+        return;
+      }
+      await action.run(checked.data);
+    },
+    isSubmitting: action.isRunning,
+    submitError: action.error,
+  };
+}
+
+/** Отзывы обо мне (UC-19) — список страницами. */
+export function useReviewsViewModel() {
+  const user = useCurrentUser();
+  const list = usePagedQuery((offset) => ProfileService.getReviews(offset), [user.id]);
+  return { ...list, rating: user.rating };
 }
 
 const EMPTY_VEHICLE: VehicleForm = {

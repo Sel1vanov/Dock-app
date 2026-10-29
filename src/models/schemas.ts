@@ -31,15 +31,18 @@ export const signInSchema = z.object({
   password: z.string().min(1, 'Укажите пароль'),
 });
 
+/** Правила пароля — те же, что на сервере. */
+const newPassword = z
+  .string()
+  .min(8, 'Минимум 8 символов')
+  .max(72, 'Не больше 72 символов')
+  .regex(/[A-Za-zА-Яа-яЁё]/, 'Добавьте хотя бы одну букву')
+  .regex(/[0-9]/, 'Добавьте хотя бы одну цифру');
+
 export const signUpSchema = z
   .object({
     email,
-    password: z
-      .string()
-      .min(8, 'Минимум 8 символов')
-      .max(72, 'Не больше 72 символов')
-      .regex(/[A-Za-zА-Яа-яЁё]/, 'Добавьте хотя бы одну букву')
-      .regex(/[0-9]/, 'Добавьте хотя бы одну цифру'),
+    password: newPassword,
     passwordConfirm: z.string().min(1, 'Повторите пароль'),
     fullName,
     phone,
@@ -48,6 +51,23 @@ export const signUpSchema = z
   .refine((v) => v.password === v.passwordConfirm, { path: ['passwordConfirm'], message: 'Пароли не совпадают' });
 
 export const profileSchema = z.object({ fullName, phone });
+
+export const passwordChangeSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Укажите текущий пароль'),
+    newPassword,
+    newPasswordConfirm: z.string().min(1, 'Повторите новый пароль'),
+  })
+  .refine((v) => v.newPassword === v.newPasswordConfirm, {
+    path: ['newPasswordConfirm'],
+    message: 'Пароли не совпадают',
+  })
+  .refine((v) => v.newPassword !== v.currentPassword, {
+    path: ['newPassword'],
+    message: 'Новый пароль должен отличаться от текущего',
+  });
+
+export const passwordResetSchema = z.object({ email });
 
 export const cargoSchema = z.object({
   type: z.enum(['Car', 'Container', 'Machinery', 'Agricultural', 'Equipment', 'Other']),
@@ -90,6 +110,8 @@ export type SignInInput = z.output<typeof signInSchema>;
 export type SignUpForm = z.input<typeof signUpSchema>;
 export type SignUpInput = z.output<typeof signUpSchema>;
 export type ProfileForm = z.input<typeof profileSchema>;
+export type PasswordChangeForm = z.input<typeof passwordChangeSchema>;
+export type PasswordChangeInput = z.output<typeof passwordChangeSchema>;
 export type CreateOrderForm = z.input<typeof createOrderSchema>;
 export type CreateOrderInput = z.output<typeof createOrderSchema>;
 export type VehicleForm = z.input<typeof vehicleSchema>;

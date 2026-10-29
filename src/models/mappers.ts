@@ -8,10 +8,12 @@ import type {
   ApiBid,
   ApiDocument,
   ApiDriverBid,
+  ApiNotification,
   ApiOrderDetails,
   ApiOrderListItem,
   ApiPerson,
   ApiPhoto,
+  ApiReceivedReview,
   ApiUser,
   ApiVehicle,
 } from './api';
@@ -21,10 +23,12 @@ import type {
   CargoType,
   DocumentDTO,
   DriverBidDTO,
+  NotificationDTO,
   OrderDetailsDTO,
   OrderListItemDTO,
   PersonDTO,
   PhotoDTO,
+  ReviewDTO,
   UserDTO,
   VehicleDTO,
 } from './dto';
@@ -95,6 +99,7 @@ export function toBidDTO(b: ApiBid): BidDTO {
   return {
     id: b.id,
     price: b.price,
+    counterPrice: b.counterPrice,
     comment: b.comment,
     status: b.status,
     createdAt: b.createdAt,
@@ -121,6 +126,7 @@ export function toDriverBidDTO(b: ApiDriverBid): DriverBidDTO {
   return {
     id: b.id,
     price: b.price,
+    counterPrice: b.counterPrice,
     status: b.status,
     comment: b.comment,
     createdAt: b.createdAt,
@@ -139,4 +145,12 @@ export function toAdminUserDTO(u: ApiAdminUser): AdminUserDTO {
     documents: u.documents.map(toDocumentDTO),
     vehicles: u.vehicles.map(toVehicleDTO),
   };
+}
+
+export function toNotificationDTO(n: ApiNotification): NotificationDTO {
+  return { ...n };
+}
+
+export function toReviewDTO(r: ApiReceivedReview): ReviewDTO {
+  return { ...r };
 }

@@ -1,11 +1,14 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { vehicleTypeInfo } from '../../models/catalog';
 import { useOrderFeedViewModel } from '../../viewmodels/OrderViewModels';
-import { OrderFilterBar, PagedList, SearchBar } from '../components/lists';
-import { GradientHeader, MyBidBadge, OrderCard } from '../components/order';
-import { Banner, Button, Chip, EmptyState, Icon, LoadingView, ScreenScroll } from '../components/ui';
-import { colors, font, formatNumber, spacing } from '../theme';
+import { OptionsModal, OrderFilterBar, PagedList, SearchBar } from '../components/lists';
+import { MyBidBadge, OrderCard, ScreenHeader } from '../components/order';
+import { Banner, Button, EmptyState, Icon, LoadingView, ScreenScroll } from '../components/ui';
+import { colors, family, font, formatNumber, greeting, plural, radius, spacing } from '../theme';
+
+const ADD_VEHICLE = '__add__';
 
 /**
  * OrderFeedScreen (SAD 5.2): UC-08 «Список доступных заявок» + UC-09 «Фильтр по параметрам ТС».
@@ -14,6 +17,8 @@ import { colors, font, formatNumber, spacing } from '../theme';
 export function OrderFeedScreen() {
   const vm = useOrderFeedViewModel();
   const v = vm.selectedVehicle;
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const firstName = vm.user.fullName.split(' ')[0];
 
   const verificationBanner = !vm.canBid ? (
     <Banner
@@ -35,44 +40,48 @@ export function OrderFeedScreen() {
     />
   ) : null;
 
+  const subtitle =
+    !v || vm.isLoading
+      ? undefined
+      : vm.filters.hasFilters
+        ? `Найдено: ${vm.total}`
+        : `${vm.total} ${plural(vm.total, 'груз подходит', 'груза подходят', 'грузов подходят')} под ваш транспорт`;
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <GradientHeader subtitle="Поиск грузов" title="Заявки для вас">
-        {vm.vehicles.length > 0 ? (
-          <View style={{ gap: spacing.sm }}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
-              {vm.vehicles.map((vehicle) => (
-                <Chip
-                  key={vehicle.id}
-                  icon={vehicleTypeInfo(vehicle.type).icon}
-                  label={vehicle.model || vehicleTypeInfo(vehicle.type).label}
-                  selected={vehicle.id === v?.id}
-                  onPress={() => vm.selectVehicle(vehicle.id)}
-                  onDark
-                />
-              ))}
-              <Chip icon="plus-circle" label="ТС" onPress={vm.addVehicle} onDark />
-            </ScrollView>
-            {v ? (
-              <View style={styles.filter}>
-                <Icon name="cube-outline" size={16} color="#9FB0D6" />
-                <Text style={styles.filterText} numberOfLines={1}>
+      <ScreenHeader title={`${greeting()}, ${firstName}`} subtitle={subtitle}>
+        {v ? (
+          <>
+            <Pressable
+              onPress={() => setPickerOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Выбрать транспорт для ленты"
+              style={({ pressed }) => [styles.vehicle, pressed && { opacity: 0.85 }]}
+            >
+              <View style={styles.vehicleIcon}>
+                <Icon name={vehicleTypeInfo(v.type).icon} size={26} color={colors.text} />
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.vehicleTitle} numberOfLines={1}>
+                  {v.model || vehicleTypeInfo(v.type).label}
+                </Text>
+                <Text style={styles.vehicleMeta} numberOfLines={1}>
                   до {formatNumber(v.weightT)} т · {formatNumber(v.lengthM)}×{formatNumber(v.widthM)}×
-                  {formatNumber(v.heightM)} м · {v.cargoTypes.map((c) => c.name.toLowerCase()).join(', ')}
+                  {formatNumber(v.heightM)} м
                 </Text>
               </View>
-            ) : null}
+              <Icon name="chevron-down" size={22} color={colors.textSecondary} />
+            </Pressable>
             <SearchBar
               value={vm.filters.search}
               onChange={vm.filters.setSearch}
               placeholder="Поиск по грузу или адресу"
-              dark
             />
-          </View>
+          </>
         ) : null}
-      </GradientHeader>
+      </ScreenHeader>
 
-      {vm.vehicles.length > 0 ? (
+      {v ? (
         <OrderFilterBar
           cargoType={vm.filters.cargoType}
           onCargoType={vm.filters.setCargoType}
@@ -83,7 +92,7 @@ export function OrderFeedScreen() {
 
       {vm.isLoading ? (
         <LoadingView />
-      ) : vm.vehicles.length === 0 ? (
+      ) : !v ? (
         <ScreenScroll refreshing={vm.isRefreshing} onRefresh={vm.refresh}>
           {vm.error ? <Banner tone="danger" icon="alert-circle" title="Не удалось загрузить" text={vm.error} /> : null}
           {verificationBanner}
@@ -91,7 +100,7 @@ export function OrderFeedScreen() {
             icon="truck-flatbed"
             title="Добавьте свой транспорт"
             text="Лента покажет только те грузы, которые помещаются в ваш трал или манипулятор и подходят по типу"
-            action={<Button title="Добавить ТС" icon="plus-circle" onPress={vm.addVehicle} />}
+            action={<Button title="Добавить ТС" icon="plus" onPress={vm.addVehicle} />}
           />
         </ScreenScroll>
       ) : (
@@ -115,11 +124,8 @@ export function OrderFeedScreen() {
                 />
               ) : null}
               {verificationBanner}
-              {vm.total > 0 || vm.hiddenCount > 0 ? (
-                <Text style={styles.hidden}>
-                  Подходит заявок: {vm.total}
-                  {vm.hiddenCount > 0 ? ` · не подходят под это ТС: ${vm.hiddenCount}` : ''}
-                </Text>
+              {vm.hiddenCount > 0 ? (
+                <Text style={styles.hidden}>Ещё не подходят под это ТС: {vm.hiddenCount}</Text>
               ) : null}
             </>
           }
@@ -145,17 +151,62 @@ export function OrderFeedScreen() {
             <OrderCard
               order={order}
               onPress={() => vm.openOrder(order.id)}
-              footer={order.myBid ? <MyBidBadge status={order.myBid.status} price={order.myBid.price} /> : null}
+              footer={
+                order.myBid ? (
+                  <MyBidBadge
+                    status={order.myBid.status}
+                    price={order.myBid.price}
+                    counterPrice={order.myBid.counterPrice}
+                  />
+                ) : null
+              }
             />
           )}
         />
       )}
+
+      <OptionsModal
+        visible={pickerOpen}
+        title="Лента подбирается под транспорт"
+        options={[
+          ...vm.vehicles.map((x) => ({
+            value: x.id,
+            label: `${x.model || vehicleTypeInfo(x.type).label} · до ${formatNumber(x.weightT)} т`,
+            icon: vehicleTypeInfo(x.type).icon,
+          })),
+          { value: ADD_VEHICLE, label: 'Добавить транспорт', icon: 'plus' },
+        ]}
+        value={v?.id ?? ''}
+        onSelect={(id) => {
+          setPickerOpen(false);
+          if (id === ADD_VEHICLE) vm.addVehicle();
+          else vm.selectVehicle(id);
+        }}
+        onClose={() => setPickerOpen(false)}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  filter: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  filterText: { ...font.small, color: '#C5D1EC', fontWeight: '600', flex: 1 },
+  vehicle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: 10,
+    paddingRight: spacing.lg,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surfaceAlt,
+  },
+  vehicleIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  vehicleTitle: { fontFamily: family.semibold, fontSize: 15, color: colors.text },
+  vehicleMeta: { ...font.small, color: colors.textSecondary },
   hidden: { ...font.small, color: colors.textMuted },
 });

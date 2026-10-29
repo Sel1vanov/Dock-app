@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 import { isOpenForBids } from '../../models/domain';
 import { useClientOrdersViewModel } from '../../viewmodels/OrderViewModels';
 import { OrderFilterBar, PagedList, SearchBar } from '../components/lists';
-import { GradientHeader, OrderCard } from '../components/order';
+import { OrderCard, ScreenHeader } from '../components/order';
 import { Badge, Banner, Button, EmptyState, LoadingView, Segmented } from '../components/ui';
 import { colors, font } from '../theme';
 
@@ -15,7 +15,7 @@ export function ClientOrdersScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <GradientHeader subtitle={`Здравствуйте, ${firstName}`} title="Мои заявки">
+      <ScreenHeader title="Мои заявки" subtitle={`Здравствуйте, ${firstName}`}>
         <Segmented
           options={[
             { value: 'active', label: 'Активные' },
@@ -24,8 +24,8 @@ export function ClientOrdersScreen() {
           value={vm.status}
           onChange={vm.setStatus}
         />
-        <SearchBar value={filters.search} onChange={filters.setSearch} placeholder="Поиск по грузу или адресу" dark />
-      </GradientHeader>
+        <SearchBar value={filters.search} onChange={filters.setSearch} placeholder="Поиск по грузу или адресу" />
+      </ScreenHeader>
       <OrderFilterBar
         cargoType={filters.cargoType}
         onCargoType={filters.setCargoType}

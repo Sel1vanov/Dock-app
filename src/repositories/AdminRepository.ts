@@ -17,6 +17,11 @@ export const AdminRepository = {
     return apiRequest('GET', `/admin/users/${id}`);
   },
 
+  /** Временный пароль по просьбе «Забыли пароль?». */
+  issueTemporaryPassword(id: string): Promise<{ temporaryPassword: string }> {
+    return apiRequest('POST', `/admin/users/${id}/temporary-password`);
+  },
+
   updateUser(
     id: string,
     patch: { verificationStatus?: 'verified' | 'rejected'; isBlocked?: boolean },

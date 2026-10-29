@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ROLE_LABELS, verificationInfo } from '../../models/catalog';
 import { type ModerationFilter, useModerationViewModel } from '../../viewmodels/AdminViewModels';
 import { PagedList, SearchBar } from '../components/lists';
-import { GradientHeader } from '../components/order';
+import { ScreenHeader } from '../components/order';
 import { Avatar, Badge, Banner, Card, Chip, EmptyState, LoadingView } from '../components/ui';
 import { colors, font, spacing } from '../theme';
 
@@ -20,9 +20,9 @@ export function ModerationScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <GradientHeader subtitle="Администратор" title="Модерация">
-        <SearchBar value={vm.search} onChange={vm.setSearch} placeholder="Имя или email" dark />
-      </GradientHeader>
+      <ScreenHeader title="Модерация" subtitle="Проверка документов, блокировка, временные пароли">
+        <SearchBar value={vm.search} onChange={vm.setSearch} placeholder="Имя или email" />
+      </ScreenHeader>
       <View style={{ flexGrow: 0, flexShrink: 0 }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
           {FILTERS.map((f) => (
@@ -65,7 +65,7 @@ export function ModerationScreen() {
             return (
               <Card onPress={() => vm.openUser(user.id)}>
                 <View style={styles.row}>
-                  <Avatar name={user.fullName} color={user.isBlocked ? colors.textMuted : colors.navy600} />
+                  <Avatar name={user.fullName} color={user.isBlocked ? colors.textMuted : colors.text} />
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={font.h3}>{user.fullName}</Text>
                     <Text style={styles.meta}>
