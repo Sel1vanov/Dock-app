@@ -14,11 +14,13 @@
 | Сущность | Создание | Изменение | Ответ |
 |---|---|---|---|
 | Пользователь | `RegisterRequest` | `UserUpdateRequest` | `UserResponse`, `TokenResponse` |
+| Пароль | `PasswordResetRequest` (просьба о сбросе) | `PasswordChangeRequest` | `TokenResponse`, `MessageResponse` |
 | ТС | `VehicleCreateRequest` | `VehicleUpdateRequest` (все поля необязательны, хотя бы одно) | `VehicleResponse` |
 | Заявка | `OrderCreateRequest` | `OrderUpdateRequest` | `OrderListItemResponse`, `OrderDetailsResponse`, `OrderPageResponse` |
-| Отклик | `BidCreateRequest` | `BidUpdateRequest` | `BidResponse`, `DriverBidResponse` |
-| Отзыв | `ReviewCreateRequest` | — | `ReviewResponse` |
-| Админ | — | `AdminUserUpdateRequest` | `AdminUserDetailsResponse`, `AdminUserPageResponse` |
+| Отклик | `BidCreateRequest` | `BidUpdateRequest`, `BidCounterRequest` (встречная цена заказчика) | `BidResponse`, `DriverBidResponse` |
+| Отзыв | `ReviewCreateRequest` | — | `ReviewResponse`, `ReceivedReviewPageResponse` |
+| Уведомление | — (создаёт сервер) | — | `NotificationResponse`, `NotificationPageResponse`, `UnreadCountResponse` |
+| Админ | — | `AdminUserUpdateRequest` | `AdminUserDetailsResponse`, `AdminUserPageResponse`, `TemporaryPasswordResponse` |
 
 Проверяются **типы** (`price: "дорого"` → 422), **обязательные поля**, **допустимые значения** (enum статусов
 и ролей, диапазоны габаритов, длина строк, формат email/телефона/UUID) и **лишние поля** (`.strict()`:
@@ -31,15 +33,16 @@
 |---|---|
 | **200** OK | чтение, изменение, действия над заявкой |
 | **201** Created | регистрация, создание заявки/ТС/отклика/отзыва, загрузка фото и нового документа |
-| **204** No Content | удаление заявки, ТС, отзыв отклика |
+| 202 Accepted | просьба о сбросе пароля принята (ответ одинаковый для любого email) |
+| **204** No Content | удаление заявки, ТС, отзыв отклика, отметка уведомлений прочитанными |
 | 400 Bad Request | тело запроса — не JSON |
-| **401** Unauthorized | нет токена, токен поддельный или истёк (`code: TOKEN_EXPIRED`), неверный пароль |
+| **401** Unauthorized | нет токена, токен поддельный или истёк (`code: TOKEN_EXPIRED`), токен выдан до смены пароля (`TOKEN_EXPIRED`), неверный пароль |
 | **403** Forbidden | роль не та (водитель создаёт заявку), запись чужая, аккаунт заблокирован, водитель не проверен |
 | **404** Not Found | записи нет (или маршрута нет) |
-| **409** Conflict | дубликат (email, отклик, отзыв), действие недопустимо в текущем статусе (изменить заявку с откликами, оплатить дважды, «В пути» без фото) |
+| **409** Conflict | дубликат (email, отклик, отзыв), действие недопустимо в текущем статусе (изменить заявку с откликами, оплатить дважды, «В пути» без фото, встречная цена равна цене водителя, согласие без встречной цены) |
 | 413 Payload Too Large | файл больше 5 МБ |
-| **422** Unprocessable Entity | данные не прошли проверку схемой (с ошибками по полям) |
-| 429 Too Many Requests | больше 10 попыток входа/регистрации в минуту с одного адреса |
+| **422** Unprocessable Entity | данные не прошли проверку схемой (с ошибками по полям), неверный текущий пароль при смене пароля |
+| 429 Too Many Requests | больше 10 попыток входа/регистрации или 3 просьб о сбросе пароля в минуту с одного адреса |
 | 500 Internal Server Error | непредвиденная ошибка — без подробностей, детали только в журнале сервера |
 
 ## Формат ошибки
@@ -71,8 +74,11 @@
 |---|---|---|---|
 | POST | `/auth/register` 🔓 | — | 201 `TokenResponse`; 409 email занят; 422 |
 | POST | `/auth/login` 🔓 | — | 200 `TokenResponse`; 401 неверные данные; 403 заблокирован |
+| POST | `/auth/password-reset-request` 🔓 | — | 202 `MessageResponse` — просьба уходит администраторам уведомлением |
 | GET | `/users/me` | любая | 200 `UserResponse` (с рейтингом) |
 | PATCH | `/users/me` | любая | 200 — имя, телефон |
+| POST | `/users/me/password` | любая | 200 `TokenResponse` — новый токен, прежние отозваны; 422 неверный текущий пароль |
+| GET | `/users/me/reviews?limit=&offset=` | любая | страница отзывов обо мне, новые сверху |
 | GET | `/users/me/documents` | Driver | 200 документы с временными ссылками |
 | PUT | `/users/me/documents/{passport\|license\|sts}` | Driver | 201 новый / 200 заменён; 409 уже на проверке |
 | POST | `/users/me/verification` | Driver | 200 статус `pending`; 409 не все документы |
@@ -115,8 +121,10 @@
 | Метод | Путь | Роль | Ответ |
 |---|---|---|---|
 | GET | `/bids/my?status=` | Driver | мои отклики вместе с заявками |
-| PATCH | `/bids/{id}` | автор отклика | 200; 409 уже обработан |
+| PATCH | `/bids/{id}` | автор отклика | 200; 409 уже обработан. Новая цена водителя снимает встречную цену |
 | DELETE | `/bids/{id}` | автор отклика | 204 |
+| POST | `/bids/{id}/counter` | автор заявки | 200 — встречная цена `{"price": …}`; 409 отклик обработан или цена равна цене водителя |
+| POST | `/bids/{id}/accept-counter` | автор отклика | 200 — цена отклика становится встречной ценой; 409 встречной цены нет |
 | POST | `/bids/{id}/accept` | автор заявки | 200 — одна транзакция; 409 уже выбран |
 | POST | `/bids/{id}/reject` | автор заявки | 200 |
 
@@ -127,6 +135,20 @@
 | GET | `/admin/users?verificationStatus=&role=&q=&limit=&offset=` | страница пользователей |
 | GET | `/admin/users/{id}` | пользователь с документами и ТС |
 | PATCH | `/admin/users/{id}` | `{"verificationStatus":"verified"\|"rejected"}`, `{"isBlocked":true}` |
+| POST | `/admin/users/{id}/temporary-password` | `{"temporaryPassword":"…"}` — по просьбе «Забыли пароль?»; сессии пользователя завершаются |
+
+### Уведомления
+
+| Метод | Путь | Роль | Ответ |
+|---|---|---|---|
+| GET | `/notifications?unreadOnly=&limit=&offset=` | любая | страница уведомлений, новые сверху, + `unreadCount` |
+| GET | `/notifications/unread-count` | любая | `{"count": …}` — для значка на колокольчике |
+| POST | `/notifications/read-all` | любая | 204 |
+| POST | `/notifications/{id}/read` | получатель | 204; 403 чужое; 404 |
+
+Уведомления создаёт сервер в той же транзакции, что и событие: новый отклик, изменение цены, встречная цена
+и согласие на неё, выбор исполнителя и отказ, оплата, этапы рейса и фото выгрузки, приёмка, отмена, отзыв,
+решение по документам; администраторам — документы на проверку и просьбы о сбросе пароля.
 
 ### Служебные
 
@@ -135,7 +157,7 @@
 | GET | `/health` 🔓 | `{"status":"ok"}` |
 | GET | `/files/{key}?expires=&signature=` 🔓 | файл по **подписанной** ссылке (выдаётся в ответах API только тем, кому файл доступен; подделанная или устаревшая ссылка → 403) |
 
-Итого 36 эндпоинтов. Все, кроме служебного `/health` (для мониторинга), вызываются мобильным приложением —
+Итого 46 эндпоинтов. Все, кроме служебного `/health` (для мониторинга), вызываются мобильным приложением —
 см. `src/repositories/*.ts`.
 
 ## Пример

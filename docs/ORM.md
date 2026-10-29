@@ -97,7 +97,8 @@ try {
   // проверки: автор заявки, заявка открыта, отклик ожидает
   order.driver = bid.driver; order.price = bid.offeredPrice; order.status = 'Assigned';
   bid.status = 'Accepted';
-  await em.flush();                                  // UPDATE orders; UPDATE bids — ещё внутри транзакции
+  notifications.notify(bid.driver, BidAccepted, …);  // em.create(Notification) — только в Session
+  await em.flush();                                  // UPDATE orders; UPDATE bids; INSERT notifications — внутри транзакции
   await this.bids.rejectPendingExcept(order.id, bid.id);   // UPDATE bids … остальные → Rejected
   await em.commit();                                 // COMMIT
 } catch (e) {
@@ -111,8 +112,13 @@ try {
 
 **Как это доказано тестами** (`05-bids-transactions.test.ts`):
 1. успешный выбор — в журнале SQL `begin … for update … update "orders" … update "bids" … commit`;
-2. сбой на последнем шаге (имитирован) — `rollback`, заказ и отклики в БД остались прежними, клиент получил 500
-   без текста исключения.
+2. сбой на последнем шаге (имитирован) — `rollback`, заказ и отклики в БД остались прежними, уведомлений о выборе
+   исполнителя нет, клиент получил 500 без текста исключения.
+
+**Уведомления — в той же транзакции, что и событие.** `NotificationService.notify` не делает отдельного запроса:
+он только добавляет сущность `Notification` в Session текущего запроса (`em.create`), и она сохраняется тем же
+`em.flush()`, что и само изменение (отклик, смена статуса рейса, оплата…). Поэтому уведомление не может появиться
+о событии, которое откатилось, и не теряется, если событие сохранилось.
 
 **Ошибки целостности.** Если два запроса одновременно прошли проверку сервиса (например, регистрация с одним
 email), сработает UNIQUE в БД: `UniqueConstraintViolationException` перехватывается и превращается в 409

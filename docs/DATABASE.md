@@ -21,6 +21,8 @@ erDiagram
   orders ||--o{ bids : "order_id · CASCADE"
   orders ||--o{ order_photos : "order_id · CASCADE"
   orders ||--o{ reviews : "order_id · CASCADE"
+  users ||--o{ notifications : "user_id, related_user_id · CASCADE"
+  orders |o--o{ notifications : "order_id · CASCADE"
 
   users {
     uuid id PK
@@ -33,6 +35,7 @@ erDiagram
     timestamptz verified_at
     uuid verified_by_id FK
     boolean is_blocked
+    timestamptz password_changed_at "версия пароля в JWT"
   }
   cargo_types {
     varchar code PK "Machinery, Car …"
@@ -75,6 +78,7 @@ erDiagram
     uuid order_id FK
     uuid driver_id FK
     numeric offered_price "CHECK > 0"
+    numeric counter_price "NULL или > 0"
     varchar comment
     text status "Pending | Accepted | Rejected"
   }
@@ -98,12 +102,22 @@ erDiagram
     text doc_type "passport | license | sts"
     varchar file_key UK
   }
+  notifications {
+    uuid id PK
+    uuid user_id FK "получатель"
+    text type "BidPlaced, TripStatus …"
+    varchar title
+    varchar body
+    uuid order_id FK "NULL"
+    uuid related_user_id FK "NULL"
+    boolean is_read
+  }
 ```
 
-**9 таблиц.** Связи 1:N: пользователь → ТС, заказчик → заявки, заявка → отклики / фото / отзывы, пользователь →
-документы. Связь **N:M** «ТС ↔ типы грузов» — через промежуточную таблицу `vehicle_cargo_types` с составным
+**10 таблиц.** Связи 1:N: пользователь → ТС, заказчик → заявки, заявка → отклики / фото / отзывы, пользователь →
+документы, пользователь → уведомления. Связь **N:M** «ТС ↔ типы грузов» — через промежуточную таблицу `vehicle_cargo_types` с составным
 первичным ключом. `bids` — тоже связь заявок и водителей «многие ко многим», но с собственными атрибутами
-(цена, комментарий, статус), поэтому это отдельная сущность с суррогатным ключом.
+(цена, встречная цена заказчика, комментарий, статус), поэтому это отдельная сущность с суррогатным ключом.
 
 ## Ограничения целостности
 
@@ -125,6 +139,8 @@ erDiagram
 | `uk_bids_order_driver` UNIQUE | bids | второй отклик того же водителя на ту же заявку |
 | `uk_bids_one_accepted` (частичный UNIQUE `where status = 'Accepted'`) | bids | два принятых отклика на одну заявку |
 | `ck_bids_price_positive` | bids | цена ≤ 0 |
+| `ck_bids_counter_price_positive` | bids | встречная цена ≤ 0 (NULL — встречной цены нет) |
+| `notifications_type_check` | notifications | тип уведомления вне списка |
 | `uk_order_photos_file_key`, `uk_verification_documents_file_key` | фото, документы | две записи на один файл |
 | `uk_verification_documents_user_type` | verification_documents | два паспорта у одного водителя |
 | `uk_reviews_order_author` UNIQUE | reviews | второй отзыв от той же стороны по тому же заказу |
@@ -148,6 +164,9 @@ erDiagram
 | `reviews.author_id`, `reviews.target_id` → users | **RESTRICT** | отзывы формируют рейтинг, их нельзя терять незаметно |
 | `verification_documents.user_id` → users | **CASCADE** | персональные данные удаляются вместе с аккаунтом |
 | `users.verified_by_id` → users | **SET NULL** | если аккаунт администратора удалят, решение о проверке сохранится, но без автора |
+| `notifications.user_id` → users | **CASCADE** | уведомления — часть аккаунта получателя |
+| `notifications.order_id` → orders | **CASCADE** | уведомление об удалённой заявке теряет смысл (удалить можно только заявку без откликов) |
+| `notifications.related_user_id` → users | **CASCADE** | уведомление администратору о пользователе, которого больше нет, не нужно |
 
 ## Нормализация
 
@@ -161,6 +180,8 @@ erDiagram
 - **Осознанное решение:** `reviews.target_id` формально выводится из заказа и автора, но хранится явно —
   иначе подсчёт рейтинга потребовал бы соединения с `orders` и условий по ролям; корректность значения проверяет
   сервис, а `ck_reviews_not_self` не даёт оценить себя.
+- **Осознанное решение:** `notifications.title` и `body` хранят готовый текст, а не собираются из заказа при
+  чтении: уведомление фиксирует событие на момент, когда оно произошло (цена отклика могла потом измениться).
 - **Единицы измерения:** масса — килограммы, габариты — метры (`numeric` без потери точности); тонны показывает
   только интерфейс.
 
@@ -177,6 +198,8 @@ erDiagram
 | `idx_vehicles_driver`, `idx_order_photos_order` | ТС водителя, фото заявки (соединения по внешним ключам) |
 | `idx_reviews_target` | рейтинг: `avg(rating) … where target_id in (…) group by target_id` |
 | `idx_users_verification_pending (updated_at) where verification_status = 'pending'` | очередь модерации администратора |
+| `idx_notifications_user_created (user_id, created_at desc)` | список уведомлений: `where user_id = ? order by created_at desc limit … offset …` |
+| `idx_notifications_user_unread (user_id) where not is_read` | счётчик на колокольчике: `count(*) where user_id = ? and not is_read`; прочитанные строки в индекс не попадают |
 
 Не индексируются: `orders.cargo_type_code` (6 значений, низкая селективность — фильтр применяется поверх индекса
 открытых заявок), `vehicle_cargo_types.cargo_type_code` (обратный поиск «какие ТС возят тип X» не используется),
@@ -188,11 +211,12 @@ erDiagram
 |---|---|
 | `Migration20261028100000_initial_schema.ts` | Начальная схема: 8 таблиц, ограничения, индексы, справочник типов груза, RLS |
 | `Migration20261028110000_verification_and_search.ts` | **Изменение существующей схемы**: флаг `is_verified` заменён статусом `verification_status` (+ `verified_at`, `verified_by_id`) **с переносом данных**, новая таблица `verification_documents`, расширение `pg_trgm` и GIN-индекс поиска |
+| `Migration20261029100000_notifications_and_bargaining.ts` | Таблица `notifications` с индексами, столбец `bids.counter_price` (встречная цена заказчика) с CHECK, столбец `users.password_changed_at` (после смены пароля прежние токены не принимаются) |
 
 Команды (в папке `server`): `npm run db:migrate` (≈ `alembic upgrade head`), `npm run db:migrate:down`
 (≈ `alembic downgrade -1`), `npm run db:status` (≈ `alembic current/history`). Применённые миграции хранятся
 в таблице `mikro_orm_migrations`; каждая миграция и весь прогон — в транзакции (при ошибке всё откатывается).
-У обеих миграций есть `down()`: тест откатывает схему до пустой и накатывает снова.
+У всех трёх миграций есть `down()`: тест откатывает схему до пустой и накатывает снова.
 
 **Row Level Security.** В Supabase таблицы схемы `public` автоматически доступны через REST (PostgREST) по
 публичному ключу. Миграции включают RLS без политик — этот путь закрыт, данные доступны только через Dock API.
@@ -201,7 +225,9 @@ erDiagram
 ## Начальные данные
 
 `npm run db:seed` (`server/src/database/seed.ts`) создаёт через ORM в одной транзакции: 7 пользователей всех ролей
-и состояний (проверен / на проверке / без проверки / заблокирован), 4 ТС с разными типами грузов, 13 заявок во
-всех статусах (для фильтров, поиска, сортировки и пагинации), отклики, фото, взаимные отзывы, документы.
+и состояний (проверен / на проверке / без проверки / заблокирован), 4 ТС с разными типами грузов, 12 заявок во
+всех статусах (для фильтров, поиска, сортировки и пагинации), отклики (один — со встречной ценой заказчика), фото,
+взаимные отзывы, документы и 11 уведомлений о событиях из этих же данных (отклики, встречная цена, выбор
+исполнителя, оплата, этапы рейса, приёмка, отзывы, документы на проверку).
 Этого достаточно для ошибочных сценариев: отклик без проверки (403), чужая заявка (403), повторный отклик (409),
 отмена оплаченного заказа (409), вход заблокированного (403).
