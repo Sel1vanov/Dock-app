@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 
 import { ApiError, errorMessage } from '../core/errors';
+import { formatPhone } from '../core/phone';
 import { chooseImageSource, confirmAction, notify, pickImage } from '../core/platform';
 import { showToast } from '../core/toast';
 import { DEFAULT_CARGO_BY_VEHICLE } from '../models/catalog';
@@ -77,7 +78,10 @@ export function useProfileViewModel() {
 export function useProfileEditViewModel() {
   const { setCurrentUser } = useAuth();
   const user = useCurrentUser();
-  const [values, setValues] = useState<ProfileForm>({ fullName: user.fullName, phone: user.phone });
+  const [values, setValues] = useState<ProfileForm>({
+    fullName: user.fullName,
+    phone: formatPhone(user.phone),
+  });
   const [errors, setErrors] = useState<FieldErrors<ProfileForm>>({});
   const action = useAction(async (data: { fullName: string; phone: string }) => {
     try {

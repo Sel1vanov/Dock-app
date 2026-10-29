@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { formatPhone } from '../../core/phone';
 import { bidStatusInfo, cargoTypeInfo, vehicleTypeInfo } from '../../models/catalog';
 import { oversizeReasons } from '../../models/domain';
 import type { BidDTO } from '../../models/dto';
@@ -224,7 +225,7 @@ function DriverBidSection({ vm }: { vm: ReturnType<typeof useOrderDetailsViewMod
           tone="warning"
           icon="shield-alert"
           title="Отклики после верификации"
-          text="Администратор должен проверить ваши документы (UC-02)."
+          text="Администратор должен проверить ваши документы."
           action={
             vm.user.verification === 'none' ? (
               <Button title="Загрузить документы" compact onPress={vm.openVerification} />
@@ -327,7 +328,7 @@ function PersonRow({
           {verified ? <Icon name="shield-check" size={16} color={colors.success} /> : null}
         </View>
         <RatingLabel rating={rating} />
-        {phone ? <Text style={styles.meta}>{phone}</Text> : null}
+        {phone ? <Text style={styles.meta}>{formatPhone(phone)}</Text> : null}
       </View>
     </View>
   );

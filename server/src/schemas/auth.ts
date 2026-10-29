@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { UserRole } from '../models/enums.js';
+import { Phone } from './common.js';
 import { UserResponse } from './users.js';
 
 export const Email = z
@@ -9,13 +10,6 @@ export const Email = z
   .toLowerCase()
   .max(254, 'Слишком длинный email')
   .pipe(z.email('Некорректный email'));
-
-/** Телефон: допускаются пробелы, дефисы и скобки, в БД сохраняются только «+» и цифры. */
-export const Phone = z
-  .string({ error: 'Укажите телефон' })
-  .trim()
-  .transform((s) => s.replace(/[\s\-()]/g, ''))
-  .pipe(z.string().regex(/^\+?[0-9]{10,15}$/, 'Телефон в формате +7 999 111-22-33'));
 
 export const FullName = z
   .string({ error: 'Укажите имя' })

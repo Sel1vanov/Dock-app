@@ -20,7 +20,7 @@ before(async () => {
 after(() => ctx.close());
 
 describe('Миграции и ограничения PostgreSQL', () => {
-  test('на пустой базе применены все три миграции, схема совпадает с моделями ORM', async () => {
+  test('на пустой базе применены все четыре миграции, схема совпадает с моделями ORM', async () => {
     const executed = await ctx.orm.migrator.getExecuted();
     assert.deepEqual(
       executed.map((m) => m.name),
@@ -28,6 +28,7 @@ describe('Миграции и ограничения PostgreSQL', () => {
         'Migration20261028100000_initial_schema',
         'Migration20261028110000_verification_and_search',
         'Migration20261029100000_notifications_and_bargaining',
+        'Migration20261029120000_phone_format',
       ],
     );
     const tables = await ctx.orm.em
@@ -43,7 +44,7 @@ describe('Миграции и ограничения PostgreSQL', () => {
     await ctx.orm.migrator.down({ to: 0 });
     assert.equal((await ctx.orm.migrator.getExecuted()).length, 0);
     await ctx.orm.migrator.up();
-    assert.equal((await ctx.orm.migrator.getExecuted()).length, 3);
+    assert.equal((await ctx.orm.migrator.getExecuted()).length, 4);
     const cargoTypes = await ctx.orm.em.fork().execute<any[]>('select code from cargo_types');
     assert.equal(cargoTypes.length, 6, 'справочник типов груза заполнен миграцией');
   });
@@ -62,6 +63,11 @@ describe('Миграции и ограничения PostgreSQL', () => {
       em.execute(`update orders set status = 'Loading' where id = ?`, [order.id]),
       CheckConstraintViolationException,
       'рейс без водителя и оплаты невозможен',
+    );
+    await assert.rejects(
+      em.execute(`update users set phone = '89161234567' where id = ?`, [client.id]),
+      CheckConstraintViolationException,
+      'телефон хранится только в виде +7 и 10 цифр',
     );
     await assert.rejects(
       em.execute(

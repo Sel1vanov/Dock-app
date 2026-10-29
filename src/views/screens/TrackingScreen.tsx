@@ -1,5 +1,6 @@
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { formatPhone } from '../../core/phone';
 import type { PhotoStage } from '../../models/dto';
 import { useTrackingViewModel } from '../../viewmodels/OrderDetailsViewModels';
 import { ContactButtons, OrderStatusBadge, PhotoGrid, RouteView, StarInput, StatusTimeline } from '../components/order';
@@ -149,7 +150,7 @@ export function TrackingScreen({ orderId }: { orderId: string }) {
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={font.h3}>{counterpart.fullName}</Text>
               <RatingLabel rating={counterpart.rating} />
-              {counterpart.phone ? <Text style={styles.meta}>{counterpart.phone}</Text> : null}
+              {counterpart.phone ? <Text style={styles.meta}>{formatPhone(counterpart.phone)}</Text> : null}
             </View>
           </View>
           {counterpart.phone && order.status !== 'Cancelled' ? <ContactButtons phone={counterpart.phone} /> : null}

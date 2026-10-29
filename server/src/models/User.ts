@@ -26,7 +26,7 @@ import { VerificationDocument } from './VerificationDocument.js';
   expression: `email = lower(email) and email ~ '^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]+$'`,
 })
 @Check({ name: 'ck_users_full_name', expression: 'char_length(btrim(full_name)) >= 2' })
-@Check({ name: 'ck_users_phone_format', expression: `phone ~ '^\\+?[0-9]{10,15}$'` })
+@Check({ name: 'ck_users_phone_format', expression: `phone ~ '^\\+7[0-9]{10}$'` })
 @Check({ name: 'ck_users_verification_driver_only', expression: `role = 'Driver' or verification_status = 'none'` })
 // Очередь модерации администратора: WHERE verification_status = 'pending' ORDER BY updated_at
 @Index({ name: 'idx_users_verification_pending', properties: ['updatedAt'], where: `verification_status = 'pending'` })

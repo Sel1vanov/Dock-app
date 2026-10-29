@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { formatPhone } from '../../core/phone';
 import { ROLE_LABELS, vehicleTypeInfo, verificationInfo } from '../../models/catalog';
 import { useProfileViewModel } from '../../viewmodels/ProfileViewModels';
 import { ReviewCard, ScreenHeader } from '../components/order';
@@ -20,7 +21,7 @@ export function ProfileScreen() {
           <View style={{ flex: 1, gap: 6 }}>
             <Text style={font.h2}>{user.fullName}</Text>
             <Text style={styles.meta}>
-              {ROLE_LABELS[user.role]} · {user.phone}
+              {ROLE_LABELS[user.role]} · {formatPhone(user.phone)}
             </Text>
             {vm.isDriver ? (
               <Badge label={verification.label} tone={verification.tone} icon={verification.icon} />

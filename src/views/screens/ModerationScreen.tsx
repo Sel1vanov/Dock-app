@@ -75,7 +75,7 @@ export function ModerationScreen() {
                 </View>
                 <View style={styles.badges}>
                   {user.role === 'Driver' ? <Badge label={v.label} tone={v.tone} icon={v.icon} /> : null}
-                  {user.isBlocked ? <Badge label="Заблокирован" tone="danger" icon="cancel" /> : null}
+                  {user.isBlocked ? <Badge label="Заблокирован" tone="danger" icon="account-lock" /> : null}
                 </View>
               </Card>
             );

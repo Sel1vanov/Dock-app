@@ -41,7 +41,7 @@
 | Нормализация | раздел «Нормализация» |
 | Индексы под запросы | раздел «Индексы» (каждый с запросом, который он ускоряет) |
 | Начальные данные | `npm run db:seed` |
-| Начальная + последующая миграция | `Migration…_initial_schema`, `Migration…_verification_and_search` (изменение с переносом данных), `Migration…_notifications_and_bargaining` (новая таблица и столбцы) |
+| Начальная + последующая миграция | `Migration…_initial_schema`, `Migration…_verification_and_search` (изменение с переносом данных), `Migration…_notifications_and_bargaining` (новая таблица и столбцы), `Migration…_phone_format` (единый формат телефона с переносом данных) |
 | Развёртывание пустой БД только миграциями | `npm run db:migrate` на пустой базе; тест `01-database.test.ts` |
 | Ограничения на уровне БД | показать: `update orders set price = -1 …` → ошибка CHECK |
 

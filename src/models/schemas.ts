@@ -5,6 +5,8 @@
  */
 import { z } from 'zod';
 
+import { normalizePhone } from '../core/phone';
+
 /** Число из текстового поля: допускает запятую, проверяет диапазон. */
 const decimal = (title: string, accusative: string, min: number, max: number) =>
   z
@@ -18,11 +20,16 @@ const decimal = (title: string, accusative: string, min: number, max: number) =>
 
 const email = z.string().trim().toLowerCase().min(1, 'Укажите email').email('Некорректный email');
 
+/** Российский номер; на сервер уходит в виде +79991112233. */
 const phone = z
   .string()
   .trim()
   .min(1, 'Укажите телефон')
-  .refine((s) => /^\+?[0-9]{10,15}$/.test(s.replace(/[\s\-()]/g, '')), 'Телефон в формате +7 999 111-22-33');
+  .transform((s, ctx) => {
+    const normalized = normalizePhone(s);
+    if (!normalized) ctx.addIssue({ code: 'custom', message: 'Номер в формате +7 (999) 111-22-33' });
+    return normalized ?? s;
+  });
 
 const fullName = z.string().trim().min(2, 'Укажите имя').max(100, 'Не больше 100 символов');
 

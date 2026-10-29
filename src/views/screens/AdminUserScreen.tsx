@@ -1,6 +1,7 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useState } from 'react';
 
+import { formatPhone } from '../../core/phone';
 import { ROLE_LABELS, vehicleTypeInfo, verificationInfo } from '../../models/catalog';
 import { VERIFICATION_DOCS } from '../../services/ProfileService';
 import { useAdminUserViewModel } from '../../viewmodels/AdminViewModels';
@@ -44,11 +45,11 @@ export function AdminUserScreen({ userId }: { userId: string }) {
           </View>
         </View>
         <KeyValue icon="email-outline" label="Email" value={user.email} />
-        <KeyValue icon="phone" label="Телефон" value={user.phone} />
+        <KeyValue icon="phone" label="Телефон" value={formatPhone(user.phone)} />
         <KeyValue icon="calendar" label="Регистрация" value={formatDateTime(user.createdAt)} />
         <View style={styles.badges}>
           {user.role === 'Driver' ? <Badge label={v.label} tone={v.tone} icon={v.icon} /> : null}
-          {user.isBlocked ? <Badge label="Заблокирован" tone="danger" icon="cancel" /> : null}
+          {user.isBlocked ? <Badge label="Заблокирован" tone="danger" icon="account-lock" /> : null}
         </View>
       </Card>
 
@@ -115,7 +116,7 @@ export function AdminUserScreen({ userId }: { userId: string }) {
           title="Временный пароль"
           text={
             vm.temporaryPassword
-              ? `Новый пароль: ${vm.temporaryPassword}\nСообщите его по телефону ${user.phone}. Пользователь сменит его в профиле.`
+              ? `Новый пароль: ${vm.temporaryPassword}\nСообщите его по телефону ${formatPhone(user.phone)}. Пользователь сменит его в профиле.`
               : 'Если пользователь забыл пароль, выдайте временный и сообщите его по телефону.'
           }
           action={
@@ -134,21 +135,41 @@ export function AdminUserScreen({ userId }: { userId: string }) {
       ) : null}
 
       {user.role !== 'Admin' ? (
-        <Banner
-          tone={user.isBlocked ? 'success' : 'danger'}
-          icon={user.isBlocked ? 'lock-open-variant' : 'cancel'}
-          title={user.isBlocked ? 'Пользователь заблокирован' : 'Блокировка (UC-22)'}
-          text={user.isBlocked ? 'Вход и все действия запрещены.' : 'Заблокированный пользователь не сможет войти.'}
-          action={
-            <Button
-              title={user.isBlocked ? 'Разблокировать' : 'Заблокировать'}
-              variant={user.isBlocked ? 'secondary' : 'danger'}
-              compact
-              onPress={vm.toggleBlock}
-              disabled={vm.busy}
-            />
-          }
-        />
+        user.isBlocked ? (
+          <Banner
+            tone="danger"
+            icon="account-lock"
+            title="Пользователь заблокирован"
+            text="Вход и все действия в приложении запрещены."
+            action={
+              <Button
+                title="Разблокировать"
+                variant="secondary"
+                compact
+                icon="lock-open-variant"
+                onPress={vm.toggleBlock}
+                disabled={vm.busy}
+              />
+            }
+          />
+        ) : (
+          <Banner
+            tone="muted"
+            icon="account-check"
+            title="Доступ открыт"
+            text="После блокировки пользователь не сможет войти и пользоваться приложением."
+            action={
+              <Button
+                title="Заблокировать"
+                variant="danger"
+                compact
+                icon="lock"
+                onPress={vm.toggleBlock}
+                disabled={vm.busy}
+              />
+            }
+          />
+        )
       ) : null}
 
       <PhotoViewer url={opened} onClose={() => setOpened(null)} />

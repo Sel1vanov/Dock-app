@@ -16,8 +16,8 @@
 |---|---|---|
 | Клиент | `src/` | TypeScript, React Native 0.88, Expo SDK 58, Expo Router, MVVM; шрифт Onest (`@expo-google-fonts/onest`) |
 | Сервер API | `server/src/` | TypeScript, Fastify 5, MikroORM 7 (ORM), zod (схемы), bcrypt, JWT, Swagger |
-| База данных | `server/src/database/migrations/` | PostgreSQL 16–17: 10 таблиц, 3 миграции |
-| Тесты | `server/tests/` | `node:test`, 39 автотестов API на реальном PostgreSQL |
+| База данных | `server/src/database/migrations/` | PostgreSQL 16–17: 10 таблиц, 4 миграции |
+| Тесты | `server/tests/` | `node:test`, 40 автотестов API на реальном PostgreSQL |
 
 Документация для защиты:
 
@@ -81,7 +81,7 @@ npm run dev
 | `npm run db:migrate` / `npm run db:migrate:down` / `npm run db:status` | применить / откатить / показать миграции |
 | `npm run db:seed -- --fresh` | пересоздать демо-данные |
 | `npm run dev` | только сервер, журнал запросов в консоли (`DB_DEBUG=true` в `.env` — ещё и SQL) |
-| `npm test` | 39 автотестов API (нужен локальный PostgreSQL: отдельная база `dock_test` пересоздаётся миграциями) |
+| `npm test` | 40 автотестов API (нужен локальный PostgreSQL: отдельная база `dock_test` пересоздаётся миграциями) |
 
 В корне: `npm start` — только приложение, `npm run typecheck`, `npm run lint`.
 

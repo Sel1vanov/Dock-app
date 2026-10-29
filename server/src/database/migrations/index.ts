@@ -7,6 +7,7 @@ import type { MigrationObject } from '@mikro-orm/core';
 import { Migration20261028100000_initial_schema } from './Migration20261028100000_initial_schema.js';
 import { Migration20261028110000_verification_and_search } from './Migration20261028110000_verification_and_search.js';
 import { Migration20261029100000_notifications_and_bargaining } from './Migration20261029100000_notifications_and_bargaining.js';
+import { Migration20261029120000_phone_format } from './Migration20261029120000_phone_format.js';
 
 export const migrationsList: MigrationObject[] = [
   { name: 'Migration20261028100000_initial_schema', class: Migration20261028100000_initial_schema },
@@ -15,4 +16,5 @@ export const migrationsList: MigrationObject[] = [
     name: 'Migration20261029100000_notifications_and_bargaining',
     class: Migration20261029100000_notifications_and_bargaining,
   },
+  { name: 'Migration20261029120000_phone_format', class: Migration20261029120000_phone_format },
 ];

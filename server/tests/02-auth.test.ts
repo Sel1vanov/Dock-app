@@ -41,6 +41,14 @@ describe('Регистрация и вход', () => {
     assert.match(rows[0].password_hash, /^\$2[aby]\$12\$/, 'bcrypt с cost 12');
   });
 
+  test('телефон в любом привычном виде сохраняется как +7 и 10 цифр', async () => {
+    for (const [i, phone] of ['89161234567', '9161234567', '7 916 123 45 67', '8 (916) 123-45-67'].entries()) {
+      const res = await api(ctx, 'POST', '/auth/register', { body: { ...VALID, email: `phone${i}@mail.ru`, phone } });
+      assert.equal(res.statusCode, 201, phone);
+      assert.equal(res.data.user.phone, '+79161234567', phone);
+    }
+  });
+
   test('повторная регистрация с тем же email → 409', async () => {
     const res = await api(ctx, 'POST', '/auth/register', { body: { ...VALID, email: 'NEW.USER@mail.ru' } });
     assert.equal(res.statusCode, 409);
@@ -54,6 +62,10 @@ describe('Регистрация и вход', () => {
       [{ ...VALID, email: 'x1@mail.ru', passwordConfirm: 'Other123' }, 'passwordConfirm'],
       [{ ...VALID, email: 'x2@mail.ru', role: 'Admin' }, 'role'],
       [{ ...VALID, email: 'x3@mail.ru', fullName: undefined }, 'fullName'],
+      [{ ...VALID, email: 'x4@mail.ru', phone: '1234567890' }, 'phone'],
+      [{ ...VALID, email: 'x5@mail.ru', phone: '916123456' }, 'phone'],
+      [{ ...VALID, email: 'x6@mail.ru', phone: '+380441234567' }, 'phone'],
+      [{ ...VALID, email: 'x7@mail.ru', phone: '+7 916 abc 123-45-67' }, 'phone'],
     ];
     for (const [body, field] of cases) {
       const res = await api(ctx, 'POST', '/auth/register', { body });

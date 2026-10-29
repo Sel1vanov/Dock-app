@@ -1,3 +1,4 @@
+import { formatPhoneInput } from '../../core/phone';
 import { useProfileEditViewModel } from '../../viewmodels/ProfileViewModels';
 import { Banner, Button, Card, ScreenScroll, TextField } from '../components/ui';
 
@@ -18,9 +19,11 @@ export function ProfileEditScreen() {
         <TextField
           label="Телефон"
           icon="phone"
+          placeholder="+7 (999) 111-22-33"
           keyboardType="phone-pad"
+          autoComplete="tel"
           value={vm.values.phone}
-          onChangeText={(t) => vm.setField('phone', t)}
+          onChangeText={(t) => vm.setField('phone', formatPhoneInput(t))}
           error={vm.errors.phone}
         />
       </Card>

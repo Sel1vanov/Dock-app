@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { DocumentType, UserRole, VerificationStatus } from '../models/enums.js';
-import { ImageBase64, PaginationQuery, RatingResponse, pageOf } from './common.js';
+import { ImageBase64, PaginationQuery, Phone, RatingResponse, pageOf } from './common.js';
 
 export const UserResponse = z
   .object({
@@ -20,12 +20,7 @@ export const UserResponse = z
 export const UserUpdateRequest = z
   .object({
     fullName: z.string().trim().min(2, 'Укажите имя').max(100).optional(),
-    phone: z
-      .string()
-      .trim()
-      .transform((s) => s.replace(/[\s\-()]/g, ''))
-      .pipe(z.string().regex(/^\+?[0-9]{10,15}$/, 'Телефон в формате +7 999 111-22-33'))
-      .optional(),
+    phone: Phone.optional(),
   })
   .strict()
   .refine((v) => Object.keys(v).length > 0, 'Передайте хотя бы одно поле')

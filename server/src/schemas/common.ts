@@ -5,6 +5,22 @@
  */
 import { z } from 'zod';
 
+/**
+ * Российский номер телефона. Принимаются +7 916 123-45-67, 8 (916) 123-45-67, 79161234567 и 9161234567,
+ * в БД всегда сохраняется один вид — «+7» и 10 цифр. Код после +7: 3xx, 4xx, 8xx или 9xx.
+ */
+export const Phone = z
+  .string({ error: 'Укажите телефон' })
+  .trim()
+  .min(1, 'Укажите телефон')
+  .regex(/^[+0-9\s\-()]+$/, 'Номер может содержать только цифры, пробелы, «+», «-» и скобки')
+  .transform((s) => {
+    const digits = s.replace(/\D/g, '');
+    const national = digits.length === 11 && /^[78]/.test(digits) ? digits.slice(1) : digits;
+    return `+7${national}`;
+  })
+  .pipe(z.string().regex(/^\+7[3489][0-9]{9}$/, 'Номер в формате +7 (999) 111-22-33'));
+
 export const IdParams = z.object({
   id: z.uuid('Некорректный идентификатор'),
 });

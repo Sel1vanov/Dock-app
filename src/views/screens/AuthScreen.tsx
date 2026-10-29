@@ -1,6 +1,7 @@
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { formatPhoneInput } from '../../core/phone';
 import { useAuthFormViewModel } from '../../viewmodels/AuthViewModel';
 import { BrandMark } from '../components/order';
 import { Banner, Button, Icon, Segmented, TextField } from '../components/ui';
@@ -101,10 +102,11 @@ export function AuthScreen() {
             <TextField
               label="Телефон"
               icon="phone"
-              placeholder="+7 999 111-22-33"
+              placeholder="+7 (999) 111-22-33"
               keyboardType="phone-pad"
+              autoComplete="tel"
               value={vm.values.phone}
-              onChangeText={(t) => vm.setField('phone', t)}
+              onChangeText={(t) => vm.setField('phone', formatPhoneInput(t))}
               error={vm.fieldErrors.phone}
             />
           )}

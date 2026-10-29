@@ -127,7 +127,7 @@ erDiagram
 | Ограничение | Таблица | Что запрещает |
 |---|---|---|
 | `uk_users_email` UNIQUE | users | два аккаунта на один email (проверяется ещё и сервисом → 409) |
-| `ck_users_email_format`, `ck_users_phone_format`, `ck_users_full_name` | users | email не в нижнем регистре / без «@», телефон не из 10–15 цифр, пустое имя |
+| `ck_users_email_format`, `ck_users_phone_format`, `ck_users_full_name` | users | email не в нижнем регистре / без «@», телефон не в виде «+7» и 10 цифр, пустое имя |
 | `users_role_check`, `users_verification_status_check` | users | роли и статусы вне списка |
 | `ck_users_verification_driver_only` | users | статус проверки документов у заказчика или администратора |
 | `ck_vehicles_max_weight`, `ck_vehicles_dimensions` | vehicles | нулевые, отрицательные и нереальные габариты |
@@ -212,11 +212,12 @@ erDiagram
 | `Migration20261028100000_initial_schema.ts` | Начальная схема: 8 таблиц, ограничения, индексы, справочник типов груза, RLS |
 | `Migration20261028110000_verification_and_search.ts` | **Изменение существующей схемы**: флаг `is_verified` заменён статусом `verification_status` (+ `verified_at`, `verified_by_id`) **с переносом данных**, новая таблица `verification_documents`, расширение `pg_trgm` и GIN-индекс поиска |
 | `Migration20261029100000_notifications_and_bargaining.ts` | Таблица `notifications` с индексами, столбец `bids.counter_price` (встречная цена заказчика) с CHECK, столбец `users.password_changed_at` (после смены пароля прежние токены не принимаются) |
+| `Migration20261029120000_phone_format.ts` | **Изменение с переносом данных**: телефоны, сохранённые как ввели (`89161234567`, `9161234567`), приводятся к виду `+79161234567`; `ck_users_phone_format` ужесточён до «+7 и 10 цифр» |
 
 Команды (в папке `server`): `npm run db:migrate` (≈ `alembic upgrade head`), `npm run db:migrate:down`
 (≈ `alembic downgrade -1`), `npm run db:status` (≈ `alembic current/history`). Применённые миграции хранятся
 в таблице `mikro_orm_migrations`; каждая миграция и весь прогон — в транзакции (при ошибке всё откатывается).
-У всех трёх миграций есть `down()`: тест откатывает схему до пустой и накатывает снова.
+У всех четырёх миграций есть `down()`: тест откатывает схему до пустой и накатывает снова.
 
 **Row Level Security.** В Supabase таблицы схемы `public` автоматически доступны через REST (PostgREST) по
 публичному ключу. Миграции включают RLS без политик — этот путь закрыт, данные доступны только через Dock API.
