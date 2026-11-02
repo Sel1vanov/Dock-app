@@ -28,6 +28,12 @@ export type VerificationStatus = ApiVerificationStatus;
 /** Код типа груза из справочника cargo_types. */
 export type CargoType = 'Car' | 'Container' | 'Machinery' | 'Agricultural' | 'Equipment' | 'Other';
 
+/**
+ * Группы статусов для списка заявок (параметр status в GET /orders):
+ * active — все незавершённые, open — поиск исполнителя, inProgress — исполнитель выбран, archive — завершённые.
+ */
+export type OrderStatusGroup = 'active' | 'open' | 'inProgress' | 'archive';
+
 export interface Page<T> {
   items: T[];
   total: number;

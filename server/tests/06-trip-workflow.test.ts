@@ -37,7 +37,12 @@ describe('Исполнение рейса', () => {
 
     const bid = (await api(ctx, 'POST', `/orders/${order.id}/bids`, { token: driver.token, body: { price: 44000 } }))
       .data.myBid;
+    const clientList = (group: string) =>
+      api(ctx, 'GET', `/orders?status=${group}`, { token: client.token }).then((r) => r.data.total);
+    assert.deepEqual([await clientList('open'), await clientList('inProgress')], [1, 0]);
     await api(ctx, 'POST', `/bids/${bid.id}/accept`, { token: client.token });
+    // После выбора исполнителя заявка переходит из «Поиск» в «В работе»
+    assert.deepEqual([await clientList('open'), await clientList('inProgress')], [0, 1]);
 
     // До оплаты рейс начать нельзя
     let res = await status('/status', { status: 'Loading' });

@@ -5,6 +5,7 @@ import type {
   OrderDetailsDTO,
   OrderListParams,
   OrderStatus,
+  OrderStatusGroup,
   Page,
   OrderListItemDTO,
   VehicleDTO,
@@ -46,7 +47,7 @@ export const OrderService = {
 
   /** «Мои заявки» заказчика / «Мои рейсы» водителя — страница с сервера. */
   async getMyOrders(
-    status: 'active' | 'archive' | OrderStatus | undefined,
+    status: OrderStatusGroup | OrderStatus | undefined,
     params: OrderListParams,
     offset: number,
   ): Promise<Page<OrderListItemDTO>> {

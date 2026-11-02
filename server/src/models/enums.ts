@@ -81,3 +81,7 @@ export const ACTIVE_TRIP_STATUSES = [
   OrderStatus.Unloading,
 ] as const;
 export const FINISHED_ORDER_STATUSES = [OrderStatus.Completed, OrderStatus.Cancelled] as const;
+
+/** Группы статусов для фильтра списка заявок (GET /orders?status=…). */
+export const ORDER_STATUS_GROUPS = ['active', 'open', 'inProgress', 'archive'] as const;
+export type OrderStatusGroup = (typeof ORDER_STATUS_GROUPS)[number];

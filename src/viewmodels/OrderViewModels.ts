@@ -43,7 +43,7 @@ function useListFilters() {
 export function useClientOrdersViewModel() {
   const user = useCurrentUser();
   const filters = useListFilters();
-  const [status, setStatus] = useState<'active' | 'archive'>('active');
+  const [status, setStatus] = useState<'open' | 'inProgress' | 'archive'>('open');
   const list = usePagedQuery(
     (offset) => OrderService.getMyOrders(status, filters.params, offset),
     [status, filters.params.q, filters.params.cargoType, filters.params.sort],

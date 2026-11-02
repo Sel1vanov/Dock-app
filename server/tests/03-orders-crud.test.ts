@@ -161,6 +161,8 @@ describe('Поиск, фильтрация, сортировка, пагинац
   test('фильтры: тип груза и статус', async () => {
     assert.equal((await list('cargoType=Machinery&status=active')).data.total, 3);
     assert.equal((await list('status=archive')).data.total, 1);
+    assert.equal((await list('status=open')).data.total, 5, 'поиск исполнителя');
+    assert.equal((await list('status=inProgress')).data.total, 0, 'исполнитель ещё не выбран');
     assert.equal((await list('status=Cancelled')).data.items[0].description, undefined);
     assert.equal((await list('status=Cancelled')).data.items[0].cargo.description, 'Отменённая заявка');
     assert.equal((await list('sort=name')).statusCode, 422, 'недопустимое значение сортировки');

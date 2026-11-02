@@ -18,7 +18,8 @@ export function ClientOrdersScreen() {
       <ScreenHeader title="Мои заявки" subtitle={`Здравствуйте, ${firstName}`}>
         <Segmented
           options={[
-            { value: 'active', label: 'Активные' },
+            { value: 'open', label: 'Поиск' },
+            { value: 'inProgress', label: 'В работе' },
             { value: 'archive', label: 'Архив' },
           ]}
           value={vm.status}
@@ -65,10 +66,22 @@ export function ClientOrdersScreen() {
                 text="Попробуйте изменить запрос или фильтр"
                 action={<Button title="Сбросить фильтры" variant="secondary" onPress={filters.reset} />}
               />
+            ) : vm.status === 'inProgress' ? (
+              <EmptyState
+                icon="truck-outline"
+                title="Заказов в работе нет"
+                text="Здесь появятся заявки, для которых вы выбрали исполнителя: оплата, рейс, приёмка"
+              />
+            ) : vm.status === 'archive' ? (
+              <EmptyState
+                icon="archive-outline"
+                title="Архив пуст"
+                text="Здесь будут завершённые и отменённые заказы"
+              />
             ) : (
               <EmptyState
                 icon="package-variant"
-                title={vm.status === 'active' ? 'Активных заявок нет' : 'Архив пуст'}
+                title="Нет заявок в поиске исполнителя"
                 text="Опишите груз и маршрут — водители со спецтехникой предложат свои цены"
                 action={<Button title="Создать заявку" icon="plus-circle" onPress={vm.createOrder} />}
               />

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { BidStatus, OrderStatus, PhotoStage } from '../models/enums.js';
+import { BidStatus, ORDER_STATUS_GROUPS, OrderStatus, PhotoStage } from '../models/enums.js';
 import { ImageBase64, PaginationQuery, RatingResponse, SearchQuery, pageOf, positive } from './common.js';
 import { VehicleResponse } from './vehicles.js';
 
@@ -34,9 +34,12 @@ export const OrderSort = z
 
 export const OrderListQuery = PaginationQuery.extend({
   status: z
-    .union([z.enum(['active', 'archive']), z.enum(OrderStatus)])
+    .union([z.enum(ORDER_STATUS_GROUPS), z.enum(OrderStatus)])
     .optional()
-    .describe('active — в работе, archive — завершённые и отменённые, либо конкретный статус'),
+    .describe(
+      'Группа: active — все незавершённые, open — поиск исполнителя, inProgress — исполнитель выбран, ' +
+        'archive — завершённые и отменённые; либо конкретный статус',
+    ),
   q: SearchQuery.describe('Поиск по описанию груза и адресам'),
   cargoType: z.string().trim().max(32).optional().describe('Код типа груза'),
   sort: OrderSort,

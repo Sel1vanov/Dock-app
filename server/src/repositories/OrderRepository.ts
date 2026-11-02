@@ -11,10 +11,12 @@
 import { type EntityManager, type ObjectQuery, LockMode, type QueryOrderMap, raw } from '@mikro-orm/postgresql';
 
 import {
+  ACTIVE_TRIP_STATUSES,
   FINISHED_ORDER_STATUSES,
   OPEN_ORDER_STATUSES,
   Order,
   type OrderStatus,
+  type OrderStatusGroup,
   type Vehicle,
 } from '../models/index.js';
 import { likePattern } from './query.js';
@@ -22,7 +24,7 @@ import { likePattern } from './query.js';
 export type OrderSortKey = '-createdAt' | 'createdAt' | '-price' | 'price';
 
 export interface OrderFilter {
-  status?: 'active' | 'archive' | OrderStatus;
+  status?: OrderStatusGroup | OrderStatus;
   q?: string;
   cargoType?: string;
   sort: OrderSortKey;
@@ -52,9 +54,18 @@ function commonFilters(filter: Pick<OrderFilter, 'q' | 'cargoType'>): ObjectQuer
 
 function statusFilter(status: OrderFilter['status']): ObjectQuery<Order> {
   if (!status) return {};
-  if (status === 'active') return { status: { $nin: [...FINISHED_ORDER_STATUSES] } };
-  if (status === 'archive') return { status: { $in: [...FINISHED_ORDER_STATUSES] } };
-  return { status };
+  switch (status) {
+    case 'active':
+      return { status: { $nin: [...FINISHED_ORDER_STATUSES] } };
+    case 'open':
+      return { status: { $in: [...OPEN_ORDER_STATUSES] } };
+    case 'inProgress':
+      return { status: { $in: [...ACTIVE_TRIP_STATUSES] } };
+    case 'archive':
+      return { status: { $in: [...FINISHED_ORDER_STATUSES] } };
+    default:
+      return { status };
+  }
 }
 
 export class OrderRepository {
