@@ -1,7 +1,7 @@
 /**
  * Хранилище файлов (фото груза, сканы документов). Файлы приватные: API отдаёт их только
  * по подписанной ссылке с ограниченным сроком действия (core/security.ts → signFileUrl).
- * Реализация — локальная папка FILES_DIR; интерфейс позволяет заменить её на S3/Supabase Storage.
+ * Реализация — локальная папка FILES_DIR; интерфейс позволяет заменить её на S3-хранилище.
  */
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';

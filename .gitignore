@@ -40,7 +40,7 @@ yarn-error.*
 /ios
 /android
 
-# Supabase keys
+# секреты (server/.env, .env)
 .env
 
 # server: загруженные файлы

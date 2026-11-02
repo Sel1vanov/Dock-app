@@ -88,7 +88,7 @@ function fileSignature(secret: string, key: string, expires: number): string {
   return createHmac('sha256', secret).update(`${key}:${expires}`).digest('base64url');
 }
 
-/** Временная ссылка на приватный файл (аналог signed URL в S3/Supabase Storage). */
+/** Временная ссылка на приватный файл (аналог signed URL в S3). */
 export function signFileUrl(
   config: Pick<Config, 'FILE_URL_SECRET' | 'FILE_URL_TTL'>,
   key: string,

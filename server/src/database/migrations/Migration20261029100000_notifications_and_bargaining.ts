@@ -27,7 +27,6 @@ export class Migration20261029100000_notifications_and_bargaining extends Migrat
       constraint "notifications_order_id_foreign" foreign key ("order_id") references "orders" ("id") on delete cascade,
       constraint "notifications_related_user_id_foreign" foreign key ("related_user_id") references "users" ("id") on delete cascade
     );`);
-    this.addSql(`alter table "notifications" enable row level security;`);
     // Список уведомлений пользователя, новые сверху
     this.addSql(`create index "idx_notifications_user_created" on "notifications" ("user_id", "created_at" desc);`);
     // Счётчик непрочитанных: индекс только по непрочитанным строкам

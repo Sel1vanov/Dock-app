@@ -9,7 +9,7 @@ import { User } from './User.js';
  * Уведомление пользователю о событии: новый отклик, выбор исполнителя, смена статуса рейса и т. д.
  * Создаётся в той же транзакции, что и само событие: если операция откатилась, уведомления тоже нет.
  */
-@Entity({ tableName: 'notifications', rowLevelSecurity: true })
+@Entity({ tableName: 'notifications' })
 // Список уведомлений пользователя: WHERE user_id = ? ORDER BY created_at DESC
 @Index({ name: 'idx_notifications_user_created', columns: [{ name: 'user_id' }, { name: 'created_at', sort: 'desc' }] })
 // Счётчик непрочитанных на колокольчике: WHERE user_id = ? AND NOT is_read

@@ -10,7 +10,7 @@ import { Vehicle } from './Vehicle.js';
  *  - ТС удалено → его строки удаляются (CASCADE);
  *  - тип груза, который кто-то возит, удалить нельзя (RESTRICT).
  */
-@Entity({ tableName: 'vehicle_cargo_types', rowLevelSecurity: true })
+@Entity({ tableName: 'vehicle_cargo_types' })
 export class VehicleCargoType {
   [PrimaryKeyProp]?: ['vehicle', 'cargoType'];
 

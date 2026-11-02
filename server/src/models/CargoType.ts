@@ -7,7 +7,7 @@ import { Entity, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/es';
  * и не требует соединения с таблицей, чтобы понять, о каком типе речь.
  * Строки справочника создаёт начальная миграция.
  */
-@Entity({ tableName: 'cargo_types', rowLevelSecurity: true })
+@Entity({ tableName: 'cargo_types' })
 export class CargoType {
   [PrimaryKeyProp]?: 'code';
 

@@ -31,7 +31,9 @@ try {
   const message = e instanceof Error ? e.message : String(e);
   console.error('Ошибка миграции:', message);
   if (/already exists/i.test(message)) {
-    console.error('В базе остались таблицы старой версии проекта. Удалите их (docs/supabase-cleanup.sql) и повторите.');
+    console.error(
+      'База не пустая и не совпадает с миграциями. Пересоздайте её: docker compose down -v && docker compose up -d',
+    );
   }
   process.exitCode = 1;
 } finally {

@@ -1,7 +1,8 @@
 // Запуск всего проекта одной командой (npm run dev):
-//   1) проверяет настройки и применяет миграции, при пустой базе заливает демо-данные;
-//   2) запускает сервер API в фоне (журнал — server/logs/dev.log);
-//   3) запускает Expo (QR-код для телефона, «w» — браузер).
+//   1) поднимает PostgreSQL в Docker (docker-compose.yml) и ждёт его готовности;
+//   2) применяет миграции, при пустой базе заливает демо-данные;
+//   3) запускает сервер API в фоне (журнал — server/logs/dev.log);
+//   4) запускает Expo (QR-код для телефона, «w» — браузер).
 // Ctrl+C останавливает и Expo, и сервер.
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdirSync, openSync } from 'node:fs';
@@ -17,10 +18,16 @@ function fail(message) {
   process.exit(1);
 }
 
+console.log('▶ Запуск PostgreSQL в Docker…');
+const db = spawnSync('docker', ['compose', 'up', '-d', '--wait'], { cwd: root, stdio: 'inherit' });
+if (db.status !== 0) {
+  fail('PostgreSQL не запустился. Убедитесь, что Docker Desktop открыт, и повторите.');
+}
+
 console.log('▶ Подготовка базы данных (миграции и демо-данные)…');
 const prepare = spawnSync(npm, ['run', 'prepare:db'], { cwd: server, stdio: 'inherit', shell: isWindows });
 if (prepare.status !== 0) {
-  fail('База не готова. Проверьте строку DATABASE_URL в файле server/.env (см. README, «Запуск»).');
+  fail('База не готова. Подробности — в сообщении выше (см. README, «Быстрый запуск»).');
 }
 
 mkdirSync(resolve(server, 'logs'), { recursive: true });

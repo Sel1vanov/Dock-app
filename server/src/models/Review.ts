@@ -8,7 +8,7 @@ import { User } from './User.js';
  * Отзыв и оценка контрагенту после завершения заказа (UC-19).
  * Каждая сторона оставляет не больше одного отзыва по заказу; оценить себя нельзя.
  */
-@Entity({ tableName: 'reviews', rowLevelSecurity: true })
+@Entity({ tableName: 'reviews' })
 @Unique({ name: 'uk_reviews_order_author', properties: ['order', 'author'] })
 @Check({ name: 'ck_reviews_rating_range', expression: 'rating between 1 and 5' })
 @Check({ name: 'ck_reviews_not_self', expression: 'author_id <> target_id' })

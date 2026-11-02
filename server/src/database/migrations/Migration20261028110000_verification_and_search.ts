@@ -43,17 +43,9 @@ export class Migration20261028110000_verification_and_search extends Migration {
       constraint "verification_documents_doc_type_check" check ("doc_type" in ('passport', 'license', 'sts')),
       constraint "verification_documents_user_id_foreign" foreign key ("user_id") references "users" ("id") on delete cascade
     );`);
-    this.addSql(`alter table "verification_documents" enable row level security;`);
 
-    // 3. Триграммный индекс для поиска (в Supabase расширения принято ставить в схему extensions)
-    this.addSql(`do $$
-      begin
-        if exists (select 1 from pg_namespace where nspname = 'extensions') then
-          create extension if not exists pg_trgm with schema extensions;
-        else
-          create extension if not exists pg_trgm;
-        end if;
-      end $$;`);
+    // 3. Триграммный индекс для поиска
+    this.addSql(`create extension if not exists pg_trgm;`);
     this.addSql(`create index "idx_orders_search_trgm" on "orders" using gin
       ((coalesce(description, '') || ' ' || origin_address || ' ' || destination_address) gin_trgm_ops);`);
   }

@@ -13,7 +13,7 @@ import { User } from './User.js';
  * Согласованность статуса, исполнителя и оплаты проверяется CHECK-ограничениями,
  * поэтому некорректную комбинацию нельзя записать даже в обход API.
  */
-@Entity({ tableName: 'orders', rowLevelSecurity: true })
+@Entity({ tableName: 'orders' })
 @Check({
   name: 'ck_orders_cargo_dimensions',
   expression: 'cargo_weight_kg > 0 and cargo_length_m > 0 and cargo_width_m > 0 and cargo_height_m > 0',

@@ -1,6 +1,6 @@
 # База данных Dock (кейс 3)
 
-PostgreSQL 16–17. Схема создаётся **только миграциями** (`server/src/database/migrations`) — ни одной таблицы
+PostgreSQL 17 (контейнер Docker, `docker-compose.yml`). Схема создаётся **только миграциями** (`server/src/database/migrations`) — ни одной таблицы
 вручную. ORM-модели описаны в `server/src/models`; тест `01-database.test.ts` проверяет, что после миграций
 схема в БД полностью совпадает с моделями.
 
@@ -209,7 +209,7 @@ erDiagram
 
 | Файл | Что делает |
 |---|---|
-| `Migration20261028100000_initial_schema.ts` | Начальная схема: 8 таблиц, ограничения, индексы, справочник типов груза, RLS |
+| `Migration20261028100000_initial_schema.ts` | Начальная схема: 8 таблиц, ограничения, индексы, справочник типов груза |
 | `Migration20261028110000_verification_and_search.ts` | **Изменение существующей схемы**: флаг `is_verified` заменён статусом `verification_status` (+ `verified_at`, `verified_by_id`) **с переносом данных**, новая таблица `verification_documents`, расширение `pg_trgm` и GIN-индекс поиска |
 | `Migration20261029100000_notifications_and_bargaining.ts` | Таблица `notifications` с индексами, столбец `bids.counter_price` (встречная цена заказчика) с CHECK, столбец `users.password_changed_at` (после смены пароля прежние токены не принимаются) |
 | `Migration20261029120000_phone_format.ts` | **Изменение с переносом данных**: телефоны, сохранённые как ввели (`89161234567`, `9161234567`), приводятся к виду `+79161234567`; `ck_users_phone_format` ужесточён до «+7 и 10 цифр» |
@@ -218,10 +218,6 @@ erDiagram
 (≈ `alembic downgrade -1`), `npm run db:status` (≈ `alembic current/history`). Применённые миграции хранятся
 в таблице `mikro_orm_migrations`; каждая миграция и весь прогон — в транзакции (при ошибке всё откатывается).
 У всех четырёх миграций есть `down()`: тест откатывает схему до пустой и накатывает снова.
-
-**Row Level Security.** В Supabase таблицы схемы `public` автоматически доступны через REST (PostgREST) по
-публичному ключу. Миграции включают RLS без политик — этот путь закрыт, данные доступны только через Dock API.
-В обычном PostgreSQL это ни на что не влияет.
 
 ## Начальные данные
 

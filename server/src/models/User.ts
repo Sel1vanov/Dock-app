@@ -20,7 +20,7 @@ import { VerificationDocument } from './VerificationDocument.js';
  * Пароль хранится только в виде bcrypt-хеша; поле скрыто при сериализации и не выбирается
  * из БД по умолчанию (lazy) — его явно запрашивает только вход в систему.
  */
-@Entity({ tableName: 'users', rowLevelSecurity: true })
+@Entity({ tableName: 'users' })
 @Check({
   name: 'ck_users_email_format',
   expression: `email = lower(email) and email ~ '^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]+$'`,

@@ -14,10 +14,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(8000),
   DATABASE_URL: z
     .string({ error: 'Не задан DATABASE_URL — вставьте строку подключения к базе в server/.env' })
-    .url('DATABASE_URL должен быть строкой подключения postgres://… (проверьте server/.env)')
-    .refine((v) => !v.includes('[YOUR-PASSWORD]'), 'В DATABASE_URL вместо [YOUR-PASSWORD] подставьте пароль базы'),
-  /** SSL для облачной БД. auto — включается сам для адресов Supabase и строк с sslmode=require. */
-  DATABASE_SSL: z.enum(['true', 'false', 'auto']).default('auto'),
+    .url('DATABASE_URL должен быть строкой подключения postgres://… (проверьте server/.env)'),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET: не короче 32 символов'),
   /** Время жизни access-токена в секундах. */
   JWT_EXPIRES_IN: z.coerce.number().int().min(60).max(86_400).default(3600),
@@ -35,12 +32,7 @@ const envSchema = z.object({
     .transform((v) => v === 'true'),
 });
 
-export type Config = Omit<z.infer<typeof envSchema>, 'DATABASE_SSL'> & { DATABASE_SSL: boolean };
-
-function resolveSsl(mode: 'true' | 'false' | 'auto', url: string): boolean {
-  if (mode !== 'auto') return mode === 'true';
-  return /supabase\.(co|com)/.test(url) || /sslmode=require/.test(url);
-}
+export type Config = z.infer<typeof envSchema>;
 
 /** Подхватывает server/.env, если он есть (переменные окружения процесса имеют приоритет). */
 export function loadEnvFile(path = resolve(import.meta.dirname, '../../.env')): void {
@@ -53,5 +45,5 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     const problems = parsed.error.issues.map((i) => `  - ${i.path.join('.')}: ${i.message}`).join('\n');
     throw new Error(`Некорректная конфигурация окружения:\n${problems}\nСм. server/.env.example`);
   }
-  return { ...parsed.data, DATABASE_SSL: resolveSsl(parsed.data.DATABASE_SSL, parsed.data.DATABASE_URL) };
+  return parsed.data;
 }

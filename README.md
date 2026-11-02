@@ -9,14 +9,14 @@
 
 ```
 Мобильное приложение (Expo / React Native)  ──HTTPS + JWT──▶  Dock API v1 (Node.js, Fastify)  ──ORM──▶  PostgreSQL
-  iOS · Android · Web                                          /api/v1/…, Swagger /docs             локально или Supabase
+  iOS · Android · Web                                          /api/v1/…, Swagger /docs             в Docker
 ```
 
 | Часть | Папка | Стек |
 |---|---|---|
 | Клиент | `src/` | TypeScript, React Native 0.88, Expo SDK 58, Expo Router, MVVM; шрифт Onest (`@expo-google-fonts/onest`) |
 | Сервер API | `server/src/` | TypeScript, Fastify 5, MikroORM 7 (ORM), zod (схемы), bcrypt, JWT, Swagger |
-| База данных | `server/src/database/migrations/` | PostgreSQL 16–17: 10 таблиц, 4 миграции |
+| База данных | `server/src/database/migrations/`, `docker-compose.yml` | PostgreSQL 17 в Docker: 10 таблиц, 4 миграции |
 | Тесты | `server/tests/` | `node:test`, 40 автотестов API на реальном PostgreSQL |
 
 Документация для защиты:
@@ -35,20 +35,13 @@
 
 ## Быстрый запуск
 
-Нужен **Node.js 22.17+**. Команды выполняются в папке проекта.
+Нужны **Node.js 22.17+** и **Docker Desktop** (запущенный). Команды выполняются в папке проекта.
 
-**Один раз:**
+**Один раз** — установить всё (приложение и сервер; заодно создаётся `server/.env` со случайными секретами):
 
-1. Установить всё (приложение и сервер; заодно создаётся `server/.env` со случайными секретами):
-   ```bash
-   npm install
-   ```
-2. Указать базу в `server/.env` — строку `DATABASE_URL`:
-   - **Supabase:** Dashboard → кнопка **Connect** → **Session pooler** → скопировать строку и вместо
-     `[YOUR-PASSWORD]` вставить пароль базы (сбросить его можно в Project Settings → Database; лучше из букв и цифр).
-     Если в базе остались таблицы старой версии проекта — один раз выполнить `docs/supabase-cleanup.sql`
-     в Supabase → SQL Editor.
-   - **Локально:** `docker compose up -d` — тогда строку менять не нужно.
+```bash
+npm install
+```
 
 **Каждый раз:**
 
@@ -56,7 +49,8 @@
 npm run dev
 ```
 
-Команда сама применит миграции, при пустой базе зальёт демо-данные, запустит сервер API и Expo. Дальше как
+Команда сама поднимет PostgreSQL в Docker (`docker-compose.yml`, данные хранятся в томе `dock-pg`), применит
+миграции, при пустой базе зальёт демо-данные, запустит сервер API и Expo. Дальше как
 обычно: QR-код для Expo Go (телефон в той же Wi-Fi сети) или клавиша **w** — браузер. **Ctrl+C** останавливает всё.
 Журнал сервера — `server/logs/dev.log`, документация API — <http://localhost:8000/docs>.
 
@@ -81,12 +75,14 @@ npm run dev
 | `npm run db:migrate` / `npm run db:migrate:down` / `npm run db:status` | применить / откатить / показать миграции |
 | `npm run db:seed -- --fresh` | пересоздать демо-данные |
 | `npm run dev` | только сервер, журнал запросов в консоли (`DB_DEBUG=true` в `.env` — ещё и SQL) |
-| `npm test` | 40 автотестов API (нужен локальный PostgreSQL: отдельная база `dock_test` пересоздаётся миграциями) |
+| `npm test` | 40 автотестов API (нужен запущенный PostgreSQL из Docker: отдельная база `dock_test` пересоздаётся миграциями) |
 
 В корне: `npm start` — только приложение, `npm run typecheck`, `npm run lint`.
 
-Выгрузка локальной базы (Docker) в файл `dock_dump.sql` — `npm run db:dump`; загрузить её обратно
-(текущие данные заменятся) — `npm run db:restore`.
+База в Docker: `docker compose up -d` / `docker compose stop` — запустить / остановить; `docker compose down -v` —
+удалить вместе с данными (следующий `npm run dev` развернёт её заново миграциями и демо-данными).
+Выгрузка базы в файл `dock_dump.sql` — `npm run db:dump`; загрузить её обратно (текущие данные заменятся) —
+`npm run db:restore`.
 
 Приложение само находит сервер на порту 8000 того же компьютера, где запущен Expo. Другой адрес задаётся в `.env`
 в корне: `EXPO_PUBLIC_API_URL=http://192.168.1.10:8000`.
@@ -117,7 +113,7 @@ Dock-app/
 │   │   └── main.ts         запуск
 │   └── tests/              автотесты API
 ├── docs/                   документация для защиты
-└── docker-compose.yml      локальный PostgreSQL
+└── docker-compose.yml      PostgreSQL 17 в Docker
 ```
 
 ## Реализованные сценарии (Vision, раздел 5)

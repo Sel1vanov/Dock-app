@@ -8,7 +8,7 @@ import { User } from './User.js';
  * Скан документа водителя для верификации (UC-01): паспорт, ВУ, СТС.
  * По одному документу каждого типа — повторная загрузка заменяет файл.
  */
-@Entity({ tableName: 'verification_documents', rowLevelSecurity: true })
+@Entity({ tableName: 'verification_documents' })
 @Unique({ name: 'uk_verification_documents_user_type', properties: ['user', 'docType'] })
 export class VerificationDocument {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })

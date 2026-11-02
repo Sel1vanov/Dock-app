@@ -1,6 +1,6 @@
 # Шпаргалка для защиты: кейсы 1–6
 
-Перед показом: `npm run dev` в корне (база — Supabase или локальная, см. README). Свежие демо-данные:
+Перед показом: открыть Docker Desktop, `npm run dev` в корне (PostgreSQL поднимется в Docker сам). Свежие демо-данные:
 `npm --prefix server run db:seed -- --fresh`. Пароль демо-пользователей — `Dock12345`.
 
 ---
@@ -70,7 +70,7 @@
 | Session через зависимости | `server/src/dependencies.ts` (`getSession`, `services`, `authenticate`, `requireRole`) |
 | Конфигурация из переменных окружения | `server/src/core/config.ts`, `server/.env.example` |
 | Обработка исключений и журналирование | `core/errorHandler.ts`, журнал pino в консоли сервера |
-| ≥ 5 тестов API: создание, получение, изменение, удаление, ошибка | `server/tests/03-orders-crud.test.ts` (+ ещё 30 тестов, всего 39) — `npm run test:server` |
+| ≥ 5 тестов API: создание, получение, изменение, удаление, ошибка | `server/tests/03-orders-crud.test.ts` (+ ещё 31 тест, всего 40) — `npm run test:server` |
 | Сохранение в PostgreSQL и доступность после повторного запроса | там же: строка читается прямым SQL, затем повторным `GET` |
 | README: БД, миграции, сервер, клиент | [README.md](../README.md) |
 

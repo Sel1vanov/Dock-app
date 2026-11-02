@@ -4,11 +4,8 @@ import { Migration } from '@mikro-orm/migrations';
  * Миграция 1 — начальная схема Dock: 8 таблиц, связи 1:N, связь N:M через vehicle_cargo_types,
  * ограничения целостности и индексы под запросы API. Применяется к пустой базе.
  *
- * Сгенерирована по ORM-моделям (scripts/schema-sql.ts) и дополнена:
- *  - строками справочника cargo_types (без них нельзя создать ни одной заявки);
- *  - включением Row Level Security: в Supabase таблицы схемы public видны через автоматический
- *    REST (PostgREST). RLS без политик закрывает этот путь — данные доступны только через наш API,
- *    который подключается владельцем таблиц. В обычном PostgreSQL эти команды ни на что не влияют.
+ * Сгенерирована по ORM-моделям (scripts/schema-sql.ts) и дополнена строками справочника cargo_types
+ * (без них нельзя создать ни одной заявки).
  */
 export class Migration20261028100000_initial_schema extends Migration {
   override name = 'Migration20261028100000_initial_schema';
@@ -178,10 +175,6 @@ export class Migration20261028100000_initial_schema extends Migration {
       constraint "reviews_target_id_foreign" foreign key ("target_id") references "users" ("id") on delete restrict
     );`);
     this.addSql(`create index "idx_reviews_target" on "reviews" ("target_id");`);
-
-    for (const table of TABLES) {
-      this.addSql(`alter table "${table}" enable row level security;`);
-    }
   }
 
   override down(): void {

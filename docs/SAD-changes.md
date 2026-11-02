@@ -15,7 +15,7 @@ MikroORM, PostgreSQL). Причины:
   слоистой архитектуры сервера с тестами и собственной реализации регистрации/хеширования/JWT;
 - правила (статусная модель, права, проверка владельца) теперь в одном месте — сервисном слое, на TypeScript,
   и покрыты тестами, а не разнесены по триггерам и политикам;
-- клиент не зависит от SDK конкретного облака: Supabase остаётся как хостинг PostgreSQL (или любой PostgreSQL).
+- клиент не зависит от SDK конкретного облака; Supabase не используется совсем — база PostgreSQL разворачивается в Docker.
 
 Что предлагается заменить в SAD:
 
@@ -26,7 +26,7 @@ MikroORM, PostgreSQL). Причины:
 | 3. Архитектурное представление | Авторизация — собственная (bcrypt + JWT), хранение файлов — сервер API с подписанными ссылками |
 | 5.1. Слои | Клиент: View → ViewModel → Service → Repository → HTTP. Сервер: routers → services → repositories → ORM → PostgreSQL — см. [ARCHITECTURE.md](ARCHITECTURE.md) |
 | 5.2. Пакеты | + пакеты Services, DTO; репозитории клиента — HTTP-клиенты API; на сервере — пакеты routers, services, repositories, models, schemas, database |
-| 7. Развёртывание | Мобильные устройства (iOS/Android, Expo) и браузер → HTTPS → сервер Dock API (Node.js) → PostgreSQL (Supabase, eu-central-1, или локальный) |
+| 7. Развёртывание | Мобильные устройства (iOS/Android, Expo) и браузер → HTTPS → сервер Dock API (Node.js) → PostgreSQL 17 (контейнер Docker, `docker-compose.yml`) |
 | 8. Реализация | структура репозитория из [README.md](../README.md) |
 | 9. Данные | ER-диаграмма и ограничения — [DATABASE.md](DATABASE.md); эндпоинты версии 4.0 — [API.md](API.md) |
 

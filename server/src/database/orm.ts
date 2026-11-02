@@ -9,12 +9,11 @@ import type { Config } from '../core/config.js';
 import { entities } from '../models/index.js';
 import { migrationsList } from './migrations/index.js';
 
-type OrmConfig = Pick<Config, 'DATABASE_URL' | 'DATABASE_SSL' | 'DB_DEBUG'>;
+type OrmConfig = Pick<Config, 'DATABASE_URL' | 'DB_DEBUG'>;
 
 export function ormOptions(config: OrmConfig, overrides: Partial<Options> = {}): Options {
   return defineConfig({
     clientUrl: config.DATABASE_URL,
-    driverOptions: config.DATABASE_SSL ? { ssl: { rejectUnauthorized: false } } : undefined,
     entities,
     extensions: [Migrator],
     migrations: {

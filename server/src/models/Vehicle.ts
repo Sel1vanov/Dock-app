@@ -7,7 +7,7 @@ import { User } from './User.js';
 import { VehicleCargoType } from './VehicleCargoType.js';
 
 /** Транспорт водителя с габаритно-весовыми характеристиками (SAD 5, класс Vehicle). */
-@Entity({ tableName: 'vehicles', rowLevelSecurity: true })
+@Entity({ tableName: 'vehicles' })
 @Check({ name: 'ck_vehicles_max_weight', expression: 'max_weight_kg > 0 and max_weight_kg <= 200000' })
 @Check({
   name: 'ck_vehicles_dimensions',

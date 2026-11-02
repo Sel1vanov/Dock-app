@@ -40,7 +40,6 @@ export async function setupTestApp(): Promise<TestContext> {
     ...process.env,
     NODE_ENV: 'test',
     DATABASE_URL: TEST_DATABASE_URL,
-    DATABASE_SSL: 'false',
     JWT_SECRET: 'test-jwt-secret-test-jwt-secret-0123456789',
     JWT_EXPIRES_IN: '3600',
     FILE_URL_SECRET: 'test-file-secret-test-file-secret-0123456789',

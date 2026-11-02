@@ -79,9 +79,6 @@ export function timelineIndex({ status, isEscrowLocked }: OrderState): number {
 
 export const isOpenForBids = (s: OrderState) => s.status === 'Created' || s.status === 'Bidding';
 
-export const isActiveTrip = (s: OrderState) =>
-  s.status === 'Assigned' || s.status === 'Loading' || s.status === 'InTransit' || s.status === 'Unloading';
-
 /** Изменить или удалить можно только заявку, на которую ещё никто не откликнулся. */
 export const canEdit = (s: OrderState) => s.status === 'Created';
 export const canDelete = canEdit;

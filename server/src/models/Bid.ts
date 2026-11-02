@@ -10,7 +10,7 @@ import { User } from './User.js';
  * цена, комментарий, встречная цена заказчика, статус). Один водитель — один отклик на заявку; принятый отклик — не более
  * одного на заявку (частичный уникальный индекс).
  */
-@Entity({ tableName: 'bids', rowLevelSecurity: true })
+@Entity({ tableName: 'bids' })
 @Unique({ name: 'uk_bids_order_driver', properties: ['order', 'driver'] })
 @Unique({ name: 'uk_bids_one_accepted', properties: ['order'], where: `status = 'Accepted'` })
 @Index({ name: 'idx_bids_driver_created', columns: [{ name: 'driver_id' }, { name: 'created_at', sort: 'desc' }] })

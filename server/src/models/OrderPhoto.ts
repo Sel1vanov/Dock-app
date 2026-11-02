@@ -9,7 +9,7 @@ import { Order } from './Order.js';
  * Хранится ключ файла в хранилище, а не публичная ссылка: ссылку для показа API подписывает
  * на ограниченное время. Кто загрузил — не хранится: это всегда назначенный водитель заказа.
  */
-@Entity({ tableName: 'order_photos', rowLevelSecurity: true })
+@Entity({ tableName: 'order_photos' })
 export class OrderPhoto {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
   id!: string;
