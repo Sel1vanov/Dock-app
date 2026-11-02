@@ -1,6 +1,6 @@
 /**
  * Начальные данные для демонстрации и ручной проверки (npm run db:seed).
- * Покрывают все статусы заказа, связи (отклики, встречную цену, фото, отзывы, ТС с типами грузов,
+ * Покрывают все статусы заказа, связи (отклики, встречную цену, фото, отзывы, спор, ТС с типами грузов,
  * уведомления о событиях), фильтры и поиск, а также ошибочные сценарии: неверифицированный водитель,
  * водитель на проверке, заблокированный пользователь, закрытые заявки.
  *
@@ -21,6 +21,7 @@ import {
   Bid,
   BidStatus,
   CargoType,
+  Dispute,
   DocumentType,
   Notification,
   NotificationType,
@@ -394,6 +395,39 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
       createdAt: ago(7),
     });
 
+    // Спор: груз повреждён при погрузке, заказчик открыл спор — ждёт решения администратора
+    const disputed = order({
+      client: stroy,
+      cargoType: machinery,
+      description: 'Мини-погрузчик Bobcat S530',
+      cargoWeightKg: 2900,
+      cargoLengthM: 3.4,
+      cargoWidthM: 1.8,
+      cargoHeightM: 2,
+      originAddress: 'Москва, Волгоградский пр-т, 42',
+      destinationAddress: 'Коломна, ул. Октябрьской Революции, 366',
+      price: 22000,
+      status: OrderStatus.Disputed,
+      driver: ivan,
+      isEscrowLocked: true,
+      createdAt: ago(3),
+    });
+    tx.create(Bid, {
+      order: disputed,
+      driver: ivan,
+      offeredPrice: 22000,
+      status: BidStatus.Accepted,
+      createdAt: ago(2, 22),
+    });
+    const disputeReason = 'На фото погрузки видна трещина на ковше, при сдаче груза её не было. Прошу вернуть оплату.';
+    tx.create(Dispute, {
+      order: disputed,
+      openedBy: stroy,
+      reason: disputeReason,
+      orderStatusAtOpen: OrderStatus.Loading,
+      createdAt: ago(0, 3),
+    });
+
     // ---------------------------------------------------------- уведомления
     // О событиях, которые уже есть в демо-данных выше: отклики, встречная цена, выбор исполнителя,
     // оплата, этапы рейса, приёмка, отзывы, проверка документов.
@@ -492,6 +526,22 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
       { isRead: true },
     );
     notice(
+      ivan,
+      NotificationType.DisputeOpened,
+      'Открыт спор',
+      `Заказчик Пётр Иванов (СтройТех) открыл спор по заказу «Мини-погрузчик Bobcat S530»: «${disputeReason}». Рейс приостановлен до решения администратора.`,
+      ago(0, 3),
+      { order: disputed },
+    );
+    notice(
+      admin,
+      NotificationType.DisputeOpened,
+      'Новый спор',
+      `Заказчик Пётр Иванов (СтройТех): «${disputeReason}» — заказ «Мини-погрузчик Bobcat S530», 22 000 ₽.`,
+      ago(0, 3),
+      { order: disputed },
+    );
+    notice(
       admin,
       NotificationType.VerificationRequested,
       'Документы на проверку',
@@ -504,6 +554,7 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
 
     for (const [o, stage, name, at] of [
       [inTransit, PhotoStage.Loading, 'loading.jpg', ago(1)],
+      [disputed, PhotoStage.Loading, 'loading.jpg', ago(0, 4)],
       [completed, PhotoStage.Loading, 'loading.jpg', ago(11)],
       [completed, PhotoStage.Unloading, 'unloading.jpg', ago(10)],
     ] as const) {
@@ -531,7 +582,7 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
 /** Удаляет данные всех таблиц, кроме справочника типов груза. */
 export async function truncateData(em: EntityManager): Promise<void> {
   await em.execute(
-    'truncate table "notifications", "reviews", "order_photos", "bids", "orders", "vehicle_cargo_types", "vehicles", "verification_documents", "users" restart identity cascade',
+    'truncate table "disputes", "notifications", "reviews", "order_photos", "bids", "orders", "vehicle_cargo_types", "vehicles", "verification_documents", "users" restart identity cascade',
   );
 }
 

@@ -41,6 +41,11 @@ export class NotificationRepository {
     );
   }
 
+  /** Отметить прочитанными уведомления заданного типа о заказе (у всех получателей). */
+  markReadByOrder(orderId: string, type: NotificationType): Promise<number> {
+    return this.em.nativeUpdate(Notification, { order: orderId, type, isRead: false }, { isRead: true });
+  }
+
   /** Есть ли непрочитанная просьба о сбросе пароля — чтобы не дублировать её администраторам. */
   async hasUnreadResetRequest(relatedUserId: string): Promise<boolean> {
     const count = await this.em.count(Notification, {

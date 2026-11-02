@@ -3,6 +3,7 @@ import { Check, Entity, Enum, Index, ManyToOne, OneToMany, PrimaryKey, Property 
 
 import { Bid } from './Bid.js';
 import { CargoType } from './CargoType.js';
+import { Dispute } from './Dispute.js';
 import { OrderStatus } from './enums.js';
 import { OrderPhoto } from './OrderPhoto.js';
 import { Review } from './Review.js';
@@ -26,13 +27,13 @@ import { User } from './User.js';
 @Check({
   name: 'ck_orders_driver_by_status',
   expression: `(status in ('Created', 'Bidding') and driver_id is null)
-    or (status in ('Assigned', 'Loading', 'InTransit', 'Unloading', 'Completed') and driver_id is not null)
+    or (status in ('Assigned', 'Loading', 'InTransit', 'Unloading', 'Disputed', 'Completed') and driver_id is not null)
     or status = 'Cancelled'`,
 })
 @Check({
   name: 'ck_orders_escrow_by_status',
-  expression: `(not is_escrow_locked or status in ('Assigned', 'Loading', 'InTransit', 'Unloading'))
-    and (is_escrow_locked or status not in ('Loading', 'InTransit', 'Unloading'))`,
+  expression: `(not is_escrow_locked or status in ('Assigned', 'Loading', 'InTransit', 'Unloading', 'Disputed'))
+    and (is_escrow_locked or status not in ('Loading', 'InTransit', 'Unloading', 'Disputed'))`,
 })
 @Check({ name: 'ck_orders_cancel_reason', expression: `cancel_reason is null or status = 'Cancelled'` })
 @Index({ name: 'idx_orders_client_created', columns: [{ name: 'client_id' }, { name: 'created_at', sort: 'desc' }] })
@@ -115,4 +116,7 @@ export class Order {
 
   @OneToMany(() => Review, (r) => r.order)
   reviews = new Collection<Review>(this);
+
+  @OneToMany(() => Dispute, (d) => d.order)
+  disputes = new Collection<Dispute>(this);
 }

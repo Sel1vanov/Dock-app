@@ -23,6 +23,9 @@ erDiagram
   orders ||--o{ reviews : "order_id · CASCADE"
   users ||--o{ notifications : "user_id, related_user_id · CASCADE"
   orders |o--o{ notifications : "order_id · CASCADE"
+  orders ||--o{ disputes : "order_id · CASCADE"
+  users ||--o{ disputes : "opened_by_id · RESTRICT"
+  users |o--o{ disputes : "resolved_by_id · SET NULL"
 
   users {
     uuid id PK
@@ -69,7 +72,7 @@ erDiagram
     varchar origin_address
     varchar destination_address
     numeric price "CHECK > 0"
-    text status
+    text status "Created … Disputed, Completed, Cancelled"
     boolean is_escrow_locked
     varchar cancel_reason
   }
@@ -112,10 +115,21 @@ erDiagram
     uuid related_user_id FK "NULL"
     boolean is_read
   }
+  disputes {
+    uuid id PK
+    uuid order_id FK
+    uuid opened_by_id FK "заказчик или водитель"
+    varchar reason "CHECK ≥ 5 символов"
+    text order_status_at_open "этап рейса"
+    text status "Open | ResolvedClient | ResolvedDriver"
+    varchar resolution_comment
+    uuid resolved_by_id FK "администратор, NULL"
+    timestamptz resolved_at
+  }
 ```
 
-**10 таблиц.** Связи 1:N: пользователь → ТС, заказчик → заявки, заявка → отклики / фото / отзывы, пользователь →
-документы, пользователь → уведомления. Связь **N:M** «ТС ↔ типы грузов» — через промежуточную таблицу `vehicle_cargo_types` с составным
+**11 таблиц.** Связи 1:N: пользователь → ТС, заказчик → заявки, заявка → отклики / фото / отзывы / споры,
+пользователь → документы, пользователь → уведомления. Связь **N:M** «ТС ↔ типы грузов» — через промежуточную таблицу `vehicle_cargo_types` с составным
 первичным ключом. `bids` — тоже связь заявок и водителей «многие ко многим», но с собственными атрибутами
 (цена, встречная цена заказчика, комментарий, статус), поэтому это отдельная сущность с суррогатным ключом.
 
@@ -134,7 +148,7 @@ erDiagram
 | PK (`vehicle_id`, `cargo_type_code`) | vehicle_cargo_types | один тип груза у ТС дважды |
 | `ck_orders_cargo_dimensions`, `ck_orders_price_positive`, `ck_orders_addresses` | orders | груз без габаритов, цена ≤ 0, пустые адреса |
 | `ck_orders_driver_by_status` | orders | заявка «в работе» без водителя или открытая заявка с водителем |
-| `ck_orders_escrow_by_status` | orders | рейс без оплаты; «замороженные» деньги у завершённого заказа |
+| `ck_orders_escrow_by_status` | orders | рейс или спор без оплаты; «замороженные» деньги у завершённого заказа |
 | `ck_orders_cancel_reason` | orders | причина отмены у неотменённой заявки |
 | `uk_bids_order_driver` UNIQUE | bids | второй отклик того же водителя на ту же заявку |
 | `uk_bids_one_accepted` (частичный UNIQUE `where status = 'Accepted'`) | bids | два принятых отклика на одну заявку |
@@ -145,6 +159,9 @@ erDiagram
 | `uk_verification_documents_user_type` | verification_documents | два паспорта у одного водителя |
 | `uk_reviews_order_author` UNIQUE | reviews | второй отзыв от той же стороны по тому же заказу |
 | `ck_reviews_rating_range`, `ck_reviews_not_self` | reviews | оценка вне 1–5, отзыв самому себе |
+| `uk_disputes_order_open` (частичный UNIQUE `where status = 'Open'`) | disputes | второй открытый спор по заказу, пока первый не решён (в том числе при одновременном открытии обеими сторонами) |
+| `ck_disputes_resolution` | disputes | решённый спор без комментария и даты решения или открытый — с решением |
+| `ck_disputes_reason`, `disputes_status_check`, `disputes_order_status_at_open_check` | disputes | пустая причина, статус вне списка, спор до оплаты или после завершения |
 
 Сервисы проверяют те же правила раньше (понятное сообщение и код 403/409/422), а ограничения БД — последний рубеж:
 некорректные данные нельзя записать даже прямым SQL. Тест `01-database.test.ts` пытается сделать это напрямую
@@ -167,6 +184,9 @@ erDiagram
 | `notifications.user_id` → users | **CASCADE** | уведомления — часть аккаунта получателя |
 | `notifications.order_id` → orders | **CASCADE** | уведомление об удалённой заявке теряет смысл (удалить можно только заявку без откликов) |
 | `notifications.related_user_id` → users | **CASCADE** | уведомление администратору о пользователе, которого больше нет, не нужно |
+| `disputes.order_id` → orders | **CASCADE** | спор — часть истории заказа, как отклики и фото (спор возможен только по оплаченному заказу, а его удалить нельзя) |
+| `disputes.opened_by_id` → users | **RESTRICT** | участника спора нельзя удалить незаметно — спор связан с деньгами |
+| `disputes.resolved_by_id` → users | **SET NULL** | если аккаунт администратора удалят, решение по спору сохранится, но без автора |
 
 ## Нормализация
 
@@ -200,6 +220,8 @@ erDiagram
 | `idx_users_verification_pending (updated_at) where verification_status = 'pending'` | очередь модерации администратора |
 | `idx_notifications_user_created (user_id, created_at desc)` | список уведомлений: `where user_id = ? order by created_at desc limit … offset …` |
 | `idx_notifications_user_unread (user_id) where not is_read` | счётчик на колокольчике: `count(*) where user_id = ? and not is_read`; прочитанные строки в индекс не попадают |
+| `idx_disputes_status_created (status, created_at)` | очередь споров администратора: `where status = 'Open' order by created_at` |
+| `idx_disputes_order` | спор в карточке заказа (`where order_id in (…)`) |
 
 Не индексируются: `orders.cargo_type_code` (6 значений, низкая селективность — фильтр применяется поверх индекса
 открытых заявок), `vehicle_cargo_types.cargo_type_code` (обратный поиск «какие ТС возят тип X» не используется),
@@ -213,18 +235,20 @@ erDiagram
 | `Migration20261028110000_verification_and_search.ts` | **Изменение существующей схемы**: флаг `is_verified` заменён статусом `verification_status` (+ `verified_at`, `verified_by_id`) **с переносом данных**, новая таблица `verification_documents`, расширение `pg_trgm` и GIN-индекс поиска |
 | `Migration20261029100000_notifications_and_bargaining.ts` | Таблица `notifications` с индексами, столбец `bids.counter_price` (встречная цена заказчика) с CHECK, столбец `users.password_changed_at` (после смены пароля прежние токены не принимаются) |
 | `Migration20261029120000_phone_format.ts` | **Изменение с переносом данных**: телефоны, сохранённые как ввели (`89161234567`, `9161234567`), приводятся к виду `+79161234567`; `ck_users_phone_format` ужесточён до «+7 и 10 цифр» |
+| `Migration20261103100000_disputes.ts` | Споры (UC-20, UC-21): таблица `disputes` с частичным уникальным индексом, новый статус заказа `Disputed` (CHECK-ограничения `orders` расширены), типы уведомлений `DisputeOpened`, `DisputeResolved`. `down()` возвращает заказы со спором на этап, где спор был открыт |
 
 Команды (в папке `server`): `npm run db:migrate` (≈ `alembic upgrade head`), `npm run db:migrate:down`
 (≈ `alembic downgrade -1`), `npm run db:status` (≈ `alembic current/history`). Применённые миграции хранятся
 в таблице `mikro_orm_migrations`; каждая миграция и весь прогон — в транзакции (при ошибке всё откатывается).
-У всех четырёх миграций есть `down()`: тест откатывает схему до пустой и накатывает снова.
+У всех пяти миграций есть `down()`: тест откатывает схему до пустой и накатывает снова.
 
 ## Начальные данные
 
 `npm run db:seed` (`server/src/database/seed.ts`) создаёт через ORM в одной транзакции: 7 пользователей всех ролей
-и состояний (проверен / на проверке / без проверки / заблокирован), 4 ТС с разными типами грузов, 12 заявок во
+и состояний (проверен / на проверке / без проверки / заблокирован), 4 ТС с разными типами грузов, 13 заявок во
 всех статусах (для фильтров, поиска, сортировки и пагинации), отклики (один — со встречной ценой заказчика), фото,
-взаимные отзывы, документы и 11 уведомлений о событиях из этих же данных (отклики, встречная цена, выбор
-исполнителя, оплата, этапы рейса, приёмка, отзывы, документы на проверку).
+взаимные отзывы, документы, открытый спор (заказ «Мини-погрузчик Bobcat S530») и 13 уведомлений о событиях из этих
+же данных (отклики, встречная цена, выбор исполнителя, оплата, этапы рейса, приёмка, отзывы, документы на проверку,
+спор).
 Этого достаточно для ошибочных сценариев: отклик без проверки (403), чужая заявка (403), повторный отклик (409),
 отмена оплаченного заказа (409), вход заблокированного (403).

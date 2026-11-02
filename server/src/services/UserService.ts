@@ -106,7 +106,7 @@ export class UserService {
       NotificationType.VerificationRequested,
       'Документы на проверку',
       `Водитель ${user.fullName} загрузил паспорт, ВУ и СТС и ждёт проверки.`,
-      user,
+      { relatedUser: user },
     );
     await this.ctx.em.flush();
     return this.getProfile(user);

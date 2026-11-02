@@ -30,12 +30,16 @@ export const NotificationService = {
     if (n.relatedUserId && role === 'Admin') return `/admin/user/${n.relatedUserId}`;
     if (n.type === 'VerificationResult') return '/verification';
     if (!n.orderId) return null;
+    // Администратор решает спор на карточке заявки
+    if (role === 'Admin') return `/order/${n.orderId}`;
     const tripEvents: NotificationDTO['type'][] = [
       'BidAccepted',
       'OrderPaid',
       'TripStatus',
       'OrderCompleted',
       'ReviewReceived',
+      'DisputeOpened',
+      'DisputeResolved',
     ];
     return tripEvents.includes(n.type) ? `/tracking/${n.orderId}` : `/order/${n.orderId}`;
   },

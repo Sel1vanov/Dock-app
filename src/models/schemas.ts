@@ -113,6 +113,11 @@ export const reviewSchema = z.object({
   comment: z.string().trim().max(500),
 });
 
+/** Текст спора (причина) и решения администратора — те же правила, что на сервере. */
+export const disputeTextSchema = z.object({
+  text: z.string().trim().min(5, 'Опишите подробнее — не меньше 5 символов').max(500, 'Не больше 500 символов'),
+});
+
 export type SignInInput = z.output<typeof signInSchema>;
 export type SignUpForm = z.input<typeof signUpSchema>;
 export type SignUpInput = z.output<typeof signUpSchema>;

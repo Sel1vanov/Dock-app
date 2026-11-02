@@ -1,6 +1,8 @@
 import type {
   BidStatus,
   CargoType,
+  DisputeDTO,
+  DisputeStatus,
   NotificationType,
   OrderSort,
   OrderStatus,
@@ -58,6 +60,8 @@ export function orderStatusInfo(
       return { label: 'В пути', tone: 'progress', icon: 'truck-fast' };
     case 'Unloading':
       return { label: 'Прибыл на выгрузку', tone: 'progress', icon: 'package-down' };
+    case 'Disputed':
+      return { label: 'Открыт спор', tone: 'danger', icon: 'scale-balance' };
     case 'Completed':
       return { label: 'Завершён', tone: 'success', icon: 'check-circle' };
     case 'Cancelled':
@@ -142,5 +146,29 @@ export function notificationInfo(type: NotificationType): { icon: string; tone: 
       return { icon: 'card-account-details-outline', tone: 'info' };
     case 'PasswordResetRequested':
       return { icon: 'lock-reset', tone: 'danger' };
+    case 'DisputeOpened':
+      return { icon: 'scale-balance', tone: 'danger' };
+    case 'DisputeResolved':
+      return { icon: 'gavel', tone: 'info' };
   }
 }
+
+/** Статус спора (UC-20, UC-21). */
+export function disputeStatusInfo(status: DisputeStatus): { label: string; tone: StatusTone; icon: string } {
+  switch (status) {
+    case 'Open':
+      return { label: 'Ждёт решения', tone: 'danger', icon: 'scale-balance' };
+    case 'ResolvedClient':
+      return { label: 'В пользу заказчика', tone: 'muted', icon: 'gavel' };
+    case 'ResolvedDriver':
+      return { label: 'В пользу водителя', tone: 'muted', icon: 'gavel' };
+  }
+}
+
+/** Этап рейса, на котором открыт спор. */
+export const TRIP_STAGE_LABELS: Record<DisputeDTO['orderStatusAtOpen'], string> = {
+  Assigned: 'оплачен, до погрузки',
+  Loading: 'погрузка',
+  InTransit: 'в пути',
+  Unloading: 'выгрузка',
+};

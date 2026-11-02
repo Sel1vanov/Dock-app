@@ -6,6 +6,7 @@ import { bidStatusInfo, cargoTypeInfo, vehicleTypeInfo } from '../../models/cata
 import { oversizeReasons } from '../../models/domain';
 import type { BidDTO } from '../../models/dto';
 import { useOrderDetailsViewModel } from '../../viewmodels/OrderDetailsViewModels';
+import { DisputeCard, DisputeControls } from '../components/dispute';
 import {
   CargoTypeIcon,
   ContactButtons,
@@ -31,7 +32,7 @@ import {
 } from '../components/ui';
 import { colors, family, font, formatNumber, formatPrice, formatRelative, radius, spacing } from '../theme';
 
-/** Карточка заявки: торг (UC-10, UC-11), выбор исполнителя (UC-06), отмена (UC-07). */
+/** Карточка заявки: торг (UC-10, UC-11), выбор исполнителя (UC-06), отмена (UC-07), спор (UC-20, UC-21). */
 export function OrderDetailsScreen({ orderId }: { orderId: string }) {
   const vm = useOrderDetailsViewModel(orderId);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -75,6 +76,8 @@ export function OrderDetailsScreen({ orderId }: { orderId: string }) {
           <Text style={styles.meta}>Причина отмены: {order.cancelReason}</Text>
         ) : null}
       </Card>
+
+      {order.dispute ? <DisputeCard dispute={order.dispute} price={order.price} actions={vm.dispute} /> : null}
 
       {vm.canEditOrder ? (
         <View style={styles.editRow}>
@@ -164,6 +167,29 @@ export function OrderDetailsScreen({ orderId }: { orderId: string }) {
           {order.driver.phone ? <ContactButtons phone={order.driver.phone} /> : null}
         </Card>
       ) : null}
+
+      {/* ------------------------------------------- Администратор ------ */}
+      {vm.isAdmin ? (
+        <Card>
+          <Text style={styles.meta}>Заказчик</Text>
+          <PersonRow name={order.client.fullName} rating={order.client.rating} phone={order.client.phone} />
+          {order.client.phone ? <ContactButtons phone={order.client.phone} /> : null}
+          {order.driver ? (
+            <>
+              <Text style={styles.meta}>Исполнитель</Text>
+              <PersonRow
+                name={order.driver.fullName}
+                rating={order.driver.rating}
+                verified={order.driver.isVerified}
+                phone={order.driver.phone}
+              />
+              {order.driver.phone ? <ContactButtons phone={order.driver.phone} /> : null}
+            </>
+          ) : null}
+        </Card>
+      ) : null}
+
+      <DisputeControls actions={vm.dispute} />
 
       {vm.canCancel ? (
         <Button title="Отменить заявку" variant="danger" icon="close-circle" onPress={() => setCancelOpen(true)} />

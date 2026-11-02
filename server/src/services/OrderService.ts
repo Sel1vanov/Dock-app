@@ -20,7 +20,7 @@ import {
 } from '../repositories/index.js';
 import type { FeedQueryT, OrderCreateInput, OrderListQueryT, OrderUpdateInput } from '../schemas/orders.js';
 import type { ServiceContext } from './context.js';
-import { toOrderListItem, toPersonResponse, toPhotoResponse, toVehicleResponse } from './mappers.js';
+import { toDisputeResponse, toOrderListItem, toPersonResponse, toPhotoResponse, toVehicleResponse } from './mappers.js';
 import { NotificationService, orderTitle, rub } from './NotificationService.js';
 
 export const isOpen = (order: Order) => (OPEN_ORDER_STATUSES as readonly OrderStatus[]).includes(order.status);
@@ -134,6 +134,8 @@ export class OrderService {
       photos: isParticipant ? order.photos.getItems().map((p) => toPhotoResponse(p, this.ctx.config)) : [],
       cancelReason: order.cancelReason,
       reviewAuthorIds: order.reviews.getItems().map((r) => r.author.id),
+      // Последний спор (споры загружены от новых к старым); виден только участникам и администратору
+      dispute: isParticipant && order.disputes.length > 0 ? toDisputeResponse(order.disputes[0]) : null,
     };
   }
 

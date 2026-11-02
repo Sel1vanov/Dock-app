@@ -21,6 +21,7 @@ import { AuthService } from './services/AuthService.js';
 import { BidService } from './services/BidService.js';
 import { CatalogService } from './services/CatalogService.js';
 import type { ServiceContext } from './services/context.js';
+import { DisputeService } from './services/DisputeService.js';
 import type { FileStorage } from './services/FileStorage.js';
 import { NotificationService } from './services/NotificationService.js';
 import { OrderService } from './services/OrderService.js';
@@ -103,5 +104,6 @@ export function services(request: FastifyRequest) {
     admin: new AdminService(ctx),
     catalog: new CatalogService(ctx),
     notifications: new NotificationService(ctx),
+    disputes: new DisputeService(ctx),
   };
 }

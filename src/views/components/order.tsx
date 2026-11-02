@@ -305,7 +305,7 @@ export function PhotoViewer({ url, onClose }: { url: string | null; onClose: () 
 
 // ------------------------------------------------------------- Modals ---
 
-/** Диалог с текстовым полем — причина отмены заявки (UC-07) или встречная цена. */
+/** Диалог с текстовым полем — причина отмены (UC-07), встречная цена, причина спора и решение по нему. */
 export function PromptModal({
   visible,
   title,
@@ -329,6 +329,12 @@ export function PromptModal({
   confirmVariant?: 'danger' | 'primary';
 }) {
   const [text, setText] = useState('');
+  // Поле очищается при закрытии окна: если ввод не прошёл проверку, текст остаётся для исправления
+  const [wasVisible, setWasVisible] = useState(visible);
+  if (visible !== wasVisible) {
+    setWasVisible(visible);
+    if (!visible) setText('');
+  }
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={s.modalBackdrop}>
@@ -351,7 +357,6 @@ export function PromptModal({
               variant={confirmVariant}
               onPress={() => {
                 onConfirm(text);
-                setText('');
               }}
               style={{ flex: 1 }}
             />

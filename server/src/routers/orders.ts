@@ -3,6 +3,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { currentUser, services } from '../dependencies.js';
 import { BidCreateRequest } from '../schemas/bids.js';
 import { errorResponses, IdParams, NoContent } from '../schemas/common.js';
+import { DisputeOpenRequest } from '../schemas/disputes.js';
 import {
   CancelOrderRequest,
   FeedPageResponse,
@@ -174,6 +175,23 @@ export const ordersRouter: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request) => services(request).orders.complete(currentUser(request), request.params.id),
+  );
+
+  app.post(
+    '/:id/disputes',
+    {
+      schema: {
+        tags: ['disputes'],
+        summary: 'Открыть спор (UC-20): заказчик или водитель, после оплаты и до приёмки; рейс приостанавливается',
+        params: IdParams,
+        body: DisputeOpenRequest,
+        response: { 201: OrderDetailsResponse, ...errorResponses(401, 403, 404, 409, 422) },
+      },
+    },
+    async (request, reply) =>
+      reply
+        .status(201)
+        .send(await services(request).disputes.open(currentUser(request), request.params.id, request.body)),
   );
 
   app.post(

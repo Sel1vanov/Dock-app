@@ -1,5 +1,5 @@
 import { AppError } from '../core/errors';
-import { canCancel, canConfirmDelivery, canDelete, canEdit, canPay } from '../models/domain';
+import { canCancel, canConfirmDelivery, canDelete, canEdit, canOpenDispute, canPay } from '../models/domain';
 import type {
   FeedPageDTO,
   OrderDetailsDTO,
@@ -83,5 +83,11 @@ export const OrderService = {
       throw new AppError('Подтвердить приёмку можно после фотофиксации выгрузки');
     }
     await OrderRepository.complete(order.id);
+  },
+
+  /** UC-20: открыть спор — рейс приостанавливается до решения администратора. */
+  async openDispute(order: OrderDetailsDTO, reason: string): Promise<void> {
+    if (!canOpenDispute(order)) throw new AppError('Спор можно открыть после оплаты и до приёмки груза');
+    await OrderRepository.openDispute(order.id, reason.trim());
   },
 };

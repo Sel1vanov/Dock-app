@@ -34,8 +34,17 @@ export enum OrderStatus {
   Loading = 'Loading',
   InTransit = 'InTransit',
   Unloading = 'Unloading',
+  /** Открыт спор (UC-20): рейс приостановлен до решения администратора (UC-21). */
+  Disputed = 'Disputed',
   Completed = 'Completed',
   Cancelled = 'Cancelled',
+}
+
+/** Спор по заказу: открыт → решён в пользу заказчика (возврат) или водителя (выплата). */
+export enum DisputeStatus {
+  Open = 'Open',
+  ResolvedClient = 'ResolvedClient',
+  ResolvedDriver = 'ResolvedDriver',
 }
 
 export enum BidStatus {
@@ -71,15 +80,20 @@ export enum NotificationType {
   VerificationResult = 'VerificationResult',
   VerificationRequested = 'VerificationRequested',
   PasswordResetRequested = 'PasswordResetRequested',
+  DisputeOpened = 'DisputeOpened',
+  DisputeResolved = 'DisputeResolved',
 }
 
 export const OPEN_ORDER_STATUSES = [OrderStatus.Created, OrderStatus.Bidding] as const;
+/** Исполнитель выбран, рейс идёт. После оплаты в этих статусах можно открыть спор. */
 export const ACTIVE_TRIP_STATUSES = [
   OrderStatus.Assigned,
   OrderStatus.Loading,
   OrderStatus.InTransit,
   OrderStatus.Unloading,
 ] as const;
+/** «В работе» у заказчика: рейс идёт или приостановлен спором. */
+export const IN_PROGRESS_ORDER_STATUSES = [...ACTIVE_TRIP_STATUSES, OrderStatus.Disputed] as const;
 export const FINISHED_ORDER_STATUSES = [OrderStatus.Completed, OrderStatus.Cancelled] as const;
 
 /** Группы статусов для фильтра списка заявок (GET /orders?status=…). */

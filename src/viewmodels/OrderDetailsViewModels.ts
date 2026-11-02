@@ -12,13 +12,22 @@ import {
   canConfirmDelivery,
   canDelete,
   canEdit,
+  canOpenDispute,
   canPay,
   checkCompatibility,
   driverNextStep,
   isOpenForBids,
 } from '../models/domain';
 import type { OrderDetailsDTO, PhotoStage } from '../models/dto';
-import { type BidForm, type FieldErrors, bidSchema, reviewSchema, validate } from '../models/schemas';
+import {
+  type BidForm,
+  type FieldErrors,
+  bidSchema,
+  disputeTextSchema,
+  reviewSchema,
+  validate,
+} from '../models/schemas';
+import { AdminService } from '../services/AdminService';
 import { BidService } from '../services/BidService';
 import { OrderService } from '../services/OrderService';
 import { ReviewService } from '../services/ReviewService';
@@ -75,6 +84,37 @@ function useOrderBase(orderId: string) {
     return action.run(() => OrderService.cancelOrder(order, reason), 'Заявка отменена');
   };
 
+  /** Проверка текста спора до запроса: ошибка — диалогом, иначе текст без лишних пробелов. */
+  const checkDisputeText = (title: string, text: string): string | null => {
+    const checked = validate(disputeTextSchema, { text });
+    if (checked.ok) return checked.data.text;
+    notify(title, checked.errors.text);
+    return null;
+  };
+
+  /** UC-20: участник заказа открывает спор — окно с причиной. */
+  const [disputeFormOpen, setDisputeFormOpen] = useState(false);
+  const openDispute = async (reason: string) => {
+    const text = checkDisputeText('Спор', reason);
+    if (!order || !text) return;
+    setDisputeFormOpen(false);
+    await action.run(() => OrderService.openDispute(order, text), 'Спор открыт — администратор свяжется с вами');
+  };
+
+  /** UC-21: администратор решает спор — окно с комментарием к решению. */
+  const [resolveFor, setResolveFor] = useState<'client' | 'driver' | null>(null);
+  const resolveDispute = async (comment: string) => {
+    const dispute = order?.dispute;
+    const side = resolveFor;
+    const text = checkDisputeText('Решение', comment);
+    if (!dispute || !side || !text) return;
+    setResolveFor(null);
+    await action.run(
+      () => AdminService.resolveDispute(dispute.id, side, text),
+      side === 'client' ? 'Спор решён: деньги возвращены заказчику' : 'Спор решён: деньги переведены водителю',
+    );
+  };
+
   return {
     user,
     order,
@@ -85,6 +125,18 @@ function useOrderBase(orderId: string) {
     runAction: action.run,
     canCancel: Boolean(order && isClient && canCancel(order)),
     cancelOrder,
+    dispute: {
+      canOpen: Boolean(order && (isClient || isAssignedDriver) && canOpenDispute(order)),
+      formOpen: disputeFormOpen,
+      showForm: () => setDisputeFormOpen(true),
+      hideForm: () => setDisputeFormOpen(false),
+      open: openDispute,
+      canResolve: user.role === 'Admin' && order?.dispute?.status === 'Open',
+      resolveFor,
+      askResolve: setResolveFor,
+      cancelResolve: () => setResolveFor(null),
+      resolve: resolveDispute,
+    },
     review: {
       canReview,
       rating: reviewRating,
@@ -226,6 +278,7 @@ export function useOrderDetailsViewModel(orderId: string) {
     editOrder: () => router.push(`/order/edit/${orderId}`),
     deleteOrder,
     isDriverRole,
+    isAdmin: user.role === 'Admin',
     vehicles,
     compatibility,
     hasVehicles: vehicles.length > 0,

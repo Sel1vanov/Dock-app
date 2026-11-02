@@ -2,7 +2,7 @@
  * Доменные правила (концептуальные операции классов из SAD, раздел 5):
  * Vehicle.checkCompatibility(), статусная модель Order и права участников.
  * Чистые функции без обращений к сети — их используют сервисы и ViewModel.
- * Те же правила продублированы в триггерах БД, чтобы их нельзя было обойти.
+ * Окончательно правила проверяет сервер API (и CHECK-ограничения БД), здесь — чтобы не показывать лишних кнопок.
  */
 import type { CargoDTO, DimensionsDTO, OrderStatus, PhotoDTO, PhotoStage, VehicleDTO } from './dto';
 
@@ -56,7 +56,7 @@ export const ORDER_TIMELINE: { key: string; label: string }[] = [
   { key: 'completed', label: 'Завершён' },
 ];
 
-/** Индекс текущего шага ORDER_TIMELINE (-1 — заказ отменён). */
+/** Индекс текущего шага ORDER_TIMELINE (-1 — заказ отменён или рейс приостановлен спором). */
 export function timelineIndex({ status, isEscrowLocked }: OrderState): number {
   switch (status) {
     case 'Created':
@@ -72,6 +72,7 @@ export function timelineIndex({ status, isEscrowLocked }: OrderState): number {
       return 5;
     case 'Completed':
       return 6;
+    case 'Disputed':
     case 'Cancelled':
       return -1;
   }
@@ -90,6 +91,10 @@ export const canCancel = (s: OrderState) => isOpenForBids(s) || (s.status === 'A
 export const canPay = (s: OrderState) => s.status === 'Assigned' && !s.isEscrowLocked;
 
 export const hasPhoto = (photos: PhotoDTO[], stage: PhotoStage) => photos.some((p) => p.stage === stage);
+
+/** UC-20: спор открывают после оплаты и до приёмки груза; пока он открыт, рейс приостановлен. */
+export const canOpenDispute = (s: OrderState) =>
+  s.isEscrowLocked && ['Assigned', 'Loading', 'InTransit', 'Unloading'].includes(s.status);
 
 /** UC-18: приёмка — после фотофиксации выгрузки. */
 export const canConfirmDelivery = (s: OrderState, photos: PhotoDTO[]) =>

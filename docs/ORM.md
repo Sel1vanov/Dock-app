@@ -22,7 +22,7 @@
 | `session.add(obj)` | `em.create(Order, data)` (сразу помечается к сохранению) | репозитории |
 | `session.delete(obj)` | `em.remove(entity)` | `VehicleRepository.remove` |
 | `session.flush()` | `em.flush()` | сервисы |
-| `session.commit()` / `rollback()` | `em.begin()` → `em.commit()` / `em.rollback()` | `services/BidService.ts → accept` |
+| `session.commit()` / `rollback()` | `em.begin()` → `em.commit()` / `em.rollback()` | `services/BidService.ts → accept`, `services/DisputeService.ts → resolve` |
 | `selectinload(Order.bids)` | `populate: ['bids'], strategy: 'select-in'` | `OrderRepository.findDetails` |
 | `joinedload(Order.client)` | `populate: ['client'], strategy: 'joined'` | `OrderRepository.listByClient` |
 | `with_for_update()` | `lockMode: LockMode.PESSIMISTIC_WRITE` | `OrderRepository.findByIdForUpdate` |
@@ -110,7 +110,14 @@ try {
 `SELECT … FOR UPDATE` блокирует строку заявки: два одновременных «Выбрать» не назначат двух исполнителей
 (а частичный уникальный индекс `uk_bids_one_accepted` подстрахует на уровне БД).
 
-**Как это доказано тестами** (`05-bids-transactions.test.ts`):
+Так же устроено **решение спора администратором** (`DisputeService.resolve`, UC-21): строка спора блокируется
+`SELECT … FOR UPDATE`, затем меняются спор (статус, комментарий, автор и дата решения), заказ (завершён или
+отменён, средства разморожены) и создаются уведомления обеим сторонам — всё одним `commit`. Второй администратор,
+решающий тот же спор одновременно, ждёт блокировку и получает 409 «Спор уже решён». Открытие спора защищено
+частичным уникальным индексом `uk_disputes_order_open`: если заказчик и водитель откроют спор одновременно,
+второй `INSERT` отклонит сама БД (`UniqueConstraintViolationException` → 409).
+
+**Как это доказано тестами** (`05-bids-transactions.test.ts`, `10-disputes.test.ts`):
 1. успешный выбор — в журнале SQL `begin … for update … update "orders" … update "bids" … commit`;
 2. сбой на последнем шаге (имитирован) — `rollback`, заказ и отклики в БД остались прежними, уведомлений о выборе
    исполнителя нет, клиент получил 500 без текста исключения.
@@ -122,7 +129,7 @@ try {
 
 **Ошибки целостности.** Если два запроса одновременно прошли проверку сервиса (например, регистрация с одним
 email), сработает UNIQUE в БД: `UniqueConstraintViolationException` перехватывается и превращается в 409
-(`AuthService.register`, `BidService.place`, `ReviewService.create`). Остальные нарушения ограничений
+(`AuthService.register`, `BidService.place`, `ReviewService.create`, `DisputeService.open`). Остальные нарушения ограничений
 обрабатывает `core/errorHandler.ts` (409/422 без SQL в ответе).
 
 ## Стратегия загрузки связей и N+1
@@ -132,7 +139,7 @@ N+1 — когда список из N записей загружается о�
 | Экран | Как загружается | Запросов |
 |---|---|---|
 | «Мои заявки» (страница до 50 заявок) | заявки + заказчик + тип груза **одним JOIN** (`joined` ≈ `joinedload`); число откликов — **один** `GROUP BY order_id … where order_id in (…)` | 3 (+1 — пользователь из токена) |
-| Карточка заявки | заявка + заказчик + водитель JOIN-ом; отклики, фото, отзывы — по одному запросу `where order_id in (…)` (`select-in` ≈ `selectinload`); водители откликов, их ТС и типы грузов, рейтинги — по одному запросу `in (…)` | 8 (+1) — для 1 и для 50 откликов одинаково |
+| Карточка заявки | заявка + заказчик + водитель JOIN-ом; отклики, фото, отзывы, споры — по одному запросу `where order_id in (…)` (`select-in` ≈ `selectinload`); водители откликов, их ТС и типы грузов, рейтинги — по одному запросу `in (…)` | 9 (+1) — для 1 и для 50 откликов одинаково |
 
 Реальный SQL списка (видно при `DB_DEBUG=true` в `server/.env`):
 

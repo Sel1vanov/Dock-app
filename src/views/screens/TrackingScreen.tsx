@@ -3,6 +3,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { formatPhone } from '../../core/phone';
 import type { PhotoStage } from '../../models/dto';
 import { useTrackingViewModel } from '../../viewmodels/OrderDetailsViewModels';
+import { DisputeCard, DisputeControls } from '../components/dispute';
 import { ContactButtons, OrderStatusBadge, PhotoGrid, RouteView, StarInput, StatusTimeline } from '../components/order';
 import {
   Avatar,
@@ -19,7 +20,7 @@ import { colors, family, font, formatDateTime, formatPrice, radius, spacing } fr
 
 /**
  * TrackingScreen (SAD 5.2): статус рейса (UC-15, UC-16), фотофиксация (UC-17),
- * оплата (UC-12), приёмка груза (UC-18) и отзыв (UC-19).
+ * оплата (UC-12), приёмка груза (UC-18), отзыв (UC-19) и спор (UC-20).
  */
 export function TrackingScreen({ orderId }: { orderId: string }) {
   const vm = useTrackingViewModel(orderId);
@@ -47,13 +48,19 @@ export function TrackingScreen({ orderId }: { orderId: string }) {
           <Text style={styles.meta}>
             {order.status === 'Completed'
               ? 'Средства переведены исполнителю'
-              : order.isEscrowLocked
-                ? 'Средства заморожены до приёмки груза (безопасная сделка)'
-                : 'Ожидается оплата заказчиком'}
+              : order.status === 'Disputed'
+                ? 'Средства заморожены до решения спора'
+                : order.isEscrowLocked
+                  ? 'Средства заморожены до приёмки груза (безопасная сделка)'
+                  : order.status === 'Cancelled'
+                    ? 'Заказ отменён'
+                    : 'Ожидается оплата заказчиком'}
           </Text>
         </View>
         <RouteView origin={order.origin} destination={order.destination} compact />
       </Card>
+
+      {order.dispute ? <DisputeCard dispute={order.dispute} price={order.price} actions={vm.dispute} /> : null}
 
       {/* ----------------------------------------- Действия водителя ---- */}
       {vm.nextStep ? (
@@ -120,6 +127,8 @@ export function TrackingScreen({ orderId }: { orderId: string }) {
         <Text style={font.h3}>Ход рейса</Text>
         {order.status === 'Cancelled' ? (
           <Text style={styles.meta}>Заказ отменён{order.cancelReason ? `: ${order.cancelReason}` : ''}</Text>
+        ) : order.status === 'Disputed' ? (
+          <Text style={styles.meta}>Рейс приостановлен: открыт спор, ждём решения администратора</Text>
         ) : (
           <StatusTimeline status={order.status} isEscrowLocked={order.isEscrowLocked} />
         )}
@@ -173,6 +182,7 @@ export function TrackingScreen({ orderId }: { orderId: string }) {
         </Card>
       ) : null}
 
+      <DisputeControls actions={vm.dispute} />
       <Button title="Детали заявки" variant="ghost" icon="file-document-outline" onPress={vm.openOrder} />
     </ScreenScroll>
   );

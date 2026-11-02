@@ -11,7 +11,7 @@
 import { type EntityManager, type ObjectQuery, LockMode, type QueryOrderMap, raw } from '@mikro-orm/postgresql';
 
 import {
-  ACTIVE_TRIP_STATUSES,
+  IN_PROGRESS_ORDER_STATUSES,
   FINISHED_ORDER_STATUSES,
   OPEN_ORDER_STATUSES,
   Order,
@@ -60,7 +60,7 @@ function statusFilter(status: OrderFilter['status']): ObjectQuery<Order> {
     case 'open':
       return { status: { $in: [...OPEN_ORDER_STATUSES] } };
     case 'inProgress':
-      return { status: { $in: [...ACTIVE_TRIP_STATUSES] } };
+      return { status: { $in: [...IN_PROGRESS_ORDER_STATUSES] } };
     case 'archive':
       return { status: { $in: [...FINISHED_ORDER_STATUSES] } };
     default:
@@ -108,7 +108,7 @@ export class OrderRepository {
       Order,
       { id },
       {
-        populate: ['client', 'driver', 'cargoType', 'bids', 'bids.driver', 'photos', 'reviews'],
+        populate: ['client', 'driver', 'cargoType', 'bids', 'bids.driver', 'photos', 'reviews', 'disputes'],
         strategy: 'select-in',
         populateHints: {
           client: { strategy: 'joined' },
@@ -116,7 +116,7 @@ export class OrderRepository {
           cargoType: { strategy: 'joined' },
           'bids.driver': { strategy: 'joined' },
         },
-        populateOrderBy: { bids: { createdAt: 'asc' }, photos: { uploadedAt: 'asc' } },
+        populateOrderBy: { bids: { createdAt: 'asc' }, photos: { uploadedAt: 'asc' }, disputes: { createdAt: 'desc' } },
       },
     );
   }

@@ -92,6 +92,7 @@ export async function buildApp({ config, orm, storage }: AppDeps): Promise<Fasti
         { name: 'orders', description: 'Заявки' },
         { name: 'bids', description: 'Отклики и выбор исполнителя' },
         { name: 'tracking', description: 'Исполнение рейса' },
+        { name: 'disputes', description: 'Споры по заказам (UC-20, UC-21)' },
         { name: 'admin', description: 'Модерация (роль Admin)' },
         { name: 'notifications', description: 'Уведомления' },
         { name: 'catalog', description: 'Справочники' },

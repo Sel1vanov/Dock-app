@@ -4,9 +4,18 @@
  */
 import type { Config } from '../core/config.js';
 import { signFileUrl } from '../core/security.js';
-import { type Bid, type Order, type OrderPhoto, type User, type Vehicle, VerificationStatus } from '../models/index.js';
+import {
+  type Bid,
+  type Dispute,
+  type Order,
+  type OrderPhoto,
+  type User,
+  type Vehicle,
+  VerificationStatus,
+} from '../models/index.js';
 import type { VerificationDocument } from '../models/VerificationDocument.js';
 import type { RatingAggregate } from '../repositories/index.js';
+import type { AdminDisputeResponseT, DisputeResponseT } from '../schemas/disputes.js';
 import type { OrderListItemResponseT, PersonResponseT } from '../schemas/orders.js';
 import type { DocumentResponseT, UserResponseT } from '../schemas/users.js';
 import type { VehicleResponseT } from '../schemas/vehicles.js';
@@ -99,4 +108,33 @@ export function toPhotoResponse(photo: OrderPhoto, config: Config) {
 
 export function toDocumentResponse(doc: VerificationDocument, config: Config): DocumentResponseT {
   return { docType: doc.docType, uploadedAt: iso(doc.uploadedAt), url: signFileUrl(config, doc.fileKey) };
+}
+
+export function toDisputeResponse(dispute: Dispute): DisputeResponseT {
+  return {
+    id: dispute.id,
+    status: dispute.status,
+    reason: dispute.reason,
+    orderStatusAtOpen: dispute.orderStatusAtOpen as DisputeResponseT['orderStatusAtOpen'],
+    openedBy: { id: dispute.openedBy.id, fullName: dispute.openedBy.fullName, role: dispute.openedBy.role },
+    resolutionComment: dispute.resolutionComment,
+    resolvedAt: dispute.resolvedAt ? iso(dispute.resolvedAt) : null,
+    createdAt: iso(dispute.createdAt),
+  };
+}
+
+/** Спор для очереди администратора: с кратким описанием заказа и его участниками. */
+export function toAdminDisputeResponse(dispute: Dispute): AdminDisputeResponseT {
+  const { order } = dispute;
+  return {
+    ...toDisputeResponse(dispute),
+    order: {
+      id: order.id,
+      title: order.description || order.cargoType.name,
+      price: order.price,
+      status: order.status,
+      clientName: order.client.fullName,
+      driverName: order.driver?.fullName ?? null,
+    },
+  };
 }

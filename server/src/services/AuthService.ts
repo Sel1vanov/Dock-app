@@ -84,7 +84,7 @@ export class AuthService {
         NotificationType.PasswordResetRequested,
         'Просьба сбросить пароль',
         `${user.fullName} (${user.email}, ${user.phone}) не может войти. Выдайте временный пароль и сообщите его по телефону.`,
-        user,
+        { relatedUser: user },
       );
       await this.ctx.em.flush();
     }

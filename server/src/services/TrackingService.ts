@@ -35,6 +35,7 @@ export class TrackingService {
 
   async changeStatus(user: User, orderId: string, status: OrderStatus) {
     const order = await this.getAssigned(user, orderId);
+    if (order.status === OrderStatus.Disputed) throw tripPaused();
     if (DRIVER_TRANSITIONS[order.status as OrderStatus] !== status) {
       throw new ConflictError(`Недопустимая смена статуса рейса: ${order.status} → ${status}`);
     }
@@ -59,6 +60,7 @@ export class TrackingService {
   /** Фото погрузки — на статусе «Прибыл на погрузку», выгрузки — на «Прибыл на выгрузку». */
   async uploadPhoto(user: User, orderId: string, input: PhotoUploadInput) {
     const order = await this.getAssigned(user, orderId);
+    if (order.status === OrderStatus.Disputed) throw tripPaused();
     const requiredStatus = input.stage === PhotoStage.Loading ? OrderStatus.Loading : OrderStatus.Unloading;
     if (order.status !== requiredStatus) {
       throw new ConflictError(
@@ -95,4 +97,8 @@ export class TrackingService {
     if (!order.driver || order.driver.id !== user.id) throw new ForbiddenError('Рейс назначен другому водителю');
     return order;
   }
+}
+
+function tripPaused() {
+  return new ConflictError('Рейс приостановлен: открыт спор. Дождитесь решения администратора');
 }

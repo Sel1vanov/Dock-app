@@ -20,6 +20,7 @@
 | Отклик | `BidCreateRequest` | `BidUpdateRequest`, `BidCounterRequest` (встречная цена заказчика) | `BidResponse`, `DriverBidResponse` |
 | Отзыв | `ReviewCreateRequest` | — | `ReviewResponse`, `ReceivedReviewPageResponse` |
 | Уведомление | — (создаёт сервер) | — | `NotificationResponse`, `NotificationPageResponse`, `UnreadCountResponse` |
+| Спор | `DisputeOpenRequest` | `DisputeResolveRequest` (решение администратора) | `DisputeResponse` (в карточке заказа), `AdminDisputeResponse`, `AdminDisputePageResponse` |
 | Админ | — | `AdminUserUpdateRequest` | `AdminUserDetailsResponse`, `AdminUserPageResponse`, `TemporaryPasswordResponse` |
 
 Проверяются **типы** (`price: "дорого"` → 422), **обязательные поля**, **допустимые значения** (enum статусов
@@ -111,6 +112,7 @@
 | POST | `/orders/{id}/complete` | автор | 200; 409 нет фото выгрузки |
 | POST | `/orders/{id}/bids` | проверенный водитель | 201; 403 не проверен; 409 повтор / ТС не подходит |
 | POST | `/orders/{id}/reviews` | участник | 201; 409 повтор; 403 посторонний |
+| POST | `/orders/{id}/disputes` | заказчик / назначенный водитель | 201 — спор открыт, заказ `Disputed`, рейс приостановлен (UC-20); 409 до оплаты, после приёмки или спор уже открыт; 403 посторонний |
 
 Параметры списков: `sort` — `-createdAt` (по умолчанию), `createdAt`, `-price`, `price`; `limit` 1–50
 (по умолчанию 20); `offset` ≥ 0; `status` — группа (`active` — все незавершённые, `open` — поиск исполнителя, `inProgress` — исполнитель выбран, `archive` — завершённые и отменённые) или конкретный статус. Ответ:
@@ -136,6 +138,8 @@
 | GET | `/admin/users/{id}` | пользователь с документами и ТС |
 | PATCH | `/admin/users/{id}` | `{"verificationStatus":"verified"\|"rejected"}`, `{"isBlocked":true}` |
 | POST | `/admin/users/{id}/temporary-password` | `{"temporaryPassword":"…"}` — по просьбе «Забыли пароль?»; сессии пользователя завершаются |
+| GET | `/admin/disputes?status=&limit=&offset=` | очередь споров (`status=Open`) или все, старые сверху |
+| PATCH | `/admin/disputes/{id}` | UC-21: `{"status":"ResolvedClient"\|"ResolvedDriver","resolutionComment":"…"}` — в пользу заказчика (отмена, возврат средств) или водителя (завершение, выплата); одна транзакция с `SELECT … FOR UPDATE`; 409 спор уже решён |
 
 ### Уведомления
 
@@ -148,7 +152,8 @@
 
 Уведомления создаёт сервер в той же транзакции, что и событие: новый отклик, изменение цены, встречная цена
 и согласие на неё, выбор исполнителя и отказ, оплата, этапы рейса и фото выгрузки, приёмка, отмена, отзыв,
-решение по документам; администраторам — документы на проверку и просьбы о сбросе пароля.
+решение по документам, открытие и решение спора; администраторам — документы на проверку, просьбы о сбросе пароля
+и новые споры.
 
 ### Служебные
 
@@ -157,7 +162,7 @@
 | GET | `/health` 🔓 | `{"status":"ok"}` |
 | GET | `/files/{key}?expires=&signature=` 🔓 | файл по **подписанной** ссылке (выдаётся в ответах API только тем, кому файл доступен; подделанная или устаревшая ссылка → 403) |
 
-Итого 46 эндпоинтов. Все, кроме служебного `/health` (для мониторинга), вызываются мобильным приложением —
+Итого 49 эндпоинтов. Все, кроме служебного `/health` (для мониторинга), вызываются мобильным приложением —
 см. `src/repositories/*.ts`.
 
 ## Пример

@@ -10,8 +10,14 @@ import {
   TemporaryPasswordResponse,
 } from '../schemas/admin.js';
 import { errorResponses, IdParams } from '../schemas/common.js';
+import {
+  AdminDisputePageResponse,
+  AdminDisputeResponse,
+  AdminDisputesQuery,
+  DisputeResolveRequest,
+} from '../schemas/disputes.js';
 
-/** Модерация (только роль Admin): проверка документов водителей, блокировка, временный пароль. */
+/** Модерация (только роль Admin): проверка документов водителей, блокировка, временный пароль, споры. */
 export const adminRouter: FastifyPluginAsyncZod = async (app) => {
   app.addHook('preHandler', requireRole(UserRole.Admin));
 
@@ -66,5 +72,32 @@ export const adminRouter: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request) => services(request).admin.issueTemporaryPassword(request.params.id),
+  );
+
+  app.get(
+    '/disputes',
+    {
+      schema: {
+        tags: ['disputes'],
+        summary: 'Споры: очередь на решение (status=Open) или все, пагинация',
+        querystring: AdminDisputesQuery,
+        response: { 200: AdminDisputePageResponse, ...errorResponses(401, 403, 422) },
+      },
+    },
+    async (request) => services(request).disputes.list(request.query),
+  );
+
+  app.patch(
+    '/disputes/:id',
+    {
+      schema: {
+        tags: ['disputes'],
+        summary: 'Разрешить спор (UC-21): в пользу заказчика (возврат, отмена) или водителя (выплата, завершение)',
+        params: IdParams,
+        body: DisputeResolveRequest,
+        response: { 200: AdminDisputeResponse, ...errorResponses(401, 403, 404, 409, 422) },
+      },
+    },
+    async (request) => services(request).disputes.resolve(currentUser(request), request.params.id, request.body),
   );
 };

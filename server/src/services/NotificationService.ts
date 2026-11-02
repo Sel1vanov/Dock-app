@@ -38,9 +38,15 @@ export class NotificationService {
     });
   }
 
-  async notifyAdmins(type: NotificationType, title: string, body: string, relatedUser: User): Promise<void> {
+  /** Всем активным администраторам: о пользователе (документы, сброс пароля) или о заказе (спор). */
+  async notifyAdmins(
+    type: NotificationType,
+    title: string,
+    body: string,
+    links: { order?: Order; relatedUser?: User },
+  ): Promise<void> {
     for (const admin of await this.notifications.listActiveAdmins()) {
-      this.notify(admin, type, title, body, { relatedUser });
+      this.notify(admin, type, title, body, links);
     }
   }
 

@@ -1,7 +1,15 @@
 import { apiRequest } from '../core/api';
-import type { ApiAdminUser, ApiPage, ApiUser, ApiUserRole, ApiVerificationStatus } from '../models/api';
+import type {
+  ApiAdminDispute,
+  ApiAdminUser,
+  ApiDisputeStatus,
+  ApiPage,
+  ApiUser,
+  ApiUserRole,
+  ApiVerificationStatus,
+} from '../models/api';
 
-/** Модерация (роль Admin): /admin/users… */
+/** Модерация (роль Admin): /admin/users…, /admin/disputes… */
 export const AdminRepository = {
   listUsers(query: {
     verificationStatus?: ApiVerificationStatus;
@@ -27,5 +35,18 @@ export const AdminRepository = {
     patch: { verificationStatus?: 'verified' | 'rejected'; isBlocked?: boolean },
   ): Promise<ApiAdminUser> {
     return apiRequest('PATCH', `/admin/users/${id}`, { body: patch });
+  },
+
+  /** Споры: очередь (status=Open) или все. */
+  listDisputes(query: { status?: ApiDisputeStatus; limit: number; offset: number }): Promise<ApiPage<ApiAdminDispute>> {
+    return apiRequest('GET', '/admin/disputes', { query: { ...query } });
+  },
+
+  /** UC-21: решение по спору. */
+  resolveDispute(
+    id: string,
+    body: { status: 'ResolvedClient' | 'ResolvedDriver'; resolutionComment: string },
+  ): Promise<ApiAdminDispute> {
+    return apiRequest('PATCH', `/admin/disputes/${id}`, { body });
   },
 };

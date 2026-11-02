@@ -1,4 +1,4 @@
-/** Модерация (роль Admin): очередь проверки документов водителей и блокировка пользователей. */
+/** Модерация (роль Admin): проверка документов водителей, блокировка пользователей, споры. */
 import { router } from 'expo-router';
 import { useState } from 'react';
 
@@ -33,6 +33,24 @@ export function useModerationViewModel() {
     search,
     setSearch,
     openUser: (id: string) => router.push(`/admin/user/${id}`),
+  };
+}
+
+/** Очередь споров (UC-21): «Ждут решения» или все; карточка спора — экран заявки. */
+export function useDisputeQueueViewModel() {
+  const [onlyOpen, setOnlyOpen] = useState(true);
+  const list = usePagedQuery((offset) => AdminService.listDisputes(onlyOpen ? 'Open' : undefined, offset), [onlyOpen]);
+  // Счётчик на вкладке «Споры» — сколько ждут решения, при любом выбранном фильтре
+  const openTotal = useQuery(onlyOpen ? null : () => AdminService.listDisputes('Open', 0).then((p) => p.total), [
+    onlyOpen,
+    list.total,
+  ]);
+  return {
+    ...list,
+    onlyOpen,
+    setOnlyOpen,
+    openCount: onlyOpen ? list.total : (openTotal.data ?? 0),
+    openOrder: (orderId: string) => router.push(`/order/${orderId}`),
   };
 }
 

@@ -6,7 +6,8 @@
 export type ApiUserRole = 'Client' | 'Driver' | 'Admin';
 export type ApiVerificationStatus = 'none' | 'pending' | 'verified' | 'rejected';
 export type ApiOrderStatus =
-  'Created' | 'Bidding' | 'Assigned' | 'Loading' | 'InTransit' | 'Unloading' | 'Completed' | 'Cancelled';
+  'Created' | 'Bidding' | 'Assigned' | 'Loading' | 'InTransit' | 'Unloading' | 'Disputed' | 'Completed' | 'Cancelled';
+export type ApiDisputeStatus = 'Open' | 'ResolvedClient' | 'ResolvedDriver';
 export type ApiBidStatus = 'Pending' | 'Accepted' | 'Rejected';
 export type ApiPhotoStage = 'Loading' | 'Unloading';
 export type ApiVehicleType = 'Trawl' | 'Manipulator' | 'TowTruck' | 'Flatbed' | 'Other';
@@ -25,7 +26,9 @@ export type ApiNotificationType =
   | 'ReviewReceived'
   | 'VerificationResult'
   | 'VerificationRequested'
-  | 'PasswordResetRequested';
+  | 'PasswordResetRequested'
+  | 'DisputeOpened'
+  | 'DisputeResolved';
 
 export interface ApiPage<T> {
   items: T[];
@@ -134,6 +137,29 @@ export interface ApiOrderDetails extends ApiOrderListItem {
   photos: ApiPhoto[];
   cancelReason: string | null;
   reviewAuthorIds: string[];
+  dispute: ApiDispute | null;
+}
+
+export interface ApiDispute {
+  id: string;
+  status: ApiDisputeStatus;
+  reason: string;
+  orderStatusAtOpen: 'Assigned' | 'Loading' | 'InTransit' | 'Unloading';
+  openedBy: { id: string; fullName: string; role: ApiUserRole };
+  resolutionComment: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+}
+
+export interface ApiAdminDispute extends ApiDispute {
+  order: {
+    id: string;
+    title: string;
+    price: number;
+    status: ApiOrderStatus;
+    clientName: string;
+    driverName: string | null;
+  };
 }
 
 export interface ApiFeedPage extends ApiPage<ApiOrderListItem> {

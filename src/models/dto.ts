@@ -7,7 +7,9 @@
  *  - независимость — при изменении формата API меняется только маппер, экраны остаются прежними.
  */
 import type {
+  ApiAdminDispute,
   ApiBidStatus,
+  ApiDispute,
   ApiDocumentType,
   ApiNotificationType,
   ApiOrderStatus,
@@ -145,7 +147,15 @@ export interface OrderDetailsDTO extends OrderListItemDTO {
   cancelReason: string | null;
   /** id авторов уже оставленных отзывов по заказу. */
   reviewAuthorIds: string[];
+  /** Последний спор по заказу (UC-20, UC-21). */
+  dispute: DisputeDTO | null;
 }
+
+/** Спор по заказу. Формат API совпадает с нужным интерфейсу — DTO его повторяет. */
+export type DisputeDTO = ApiDispute;
+export type DisputeStatus = DisputeDTO['status'];
+/** Спор в очереди администратора — с кратким описанием заказа. */
+export type AdminDisputeDTO = ApiAdminDispute;
 
 export interface FeedPageDTO extends Page<OrderListItemDTO> {
   /** Сколько открытых заявок скрыто фильтром по ТС. */

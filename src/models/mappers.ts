@@ -119,6 +119,7 @@ export function toOrderDetailsDTO(o: ApiOrderDetails): OrderDetailsDTO {
     photos: o.photos.map(toPhotoDTO),
     cancelReason: o.cancelReason,
     reviewAuthorIds: o.reviewAuthorIds,
+    dispute: o.dispute,
   };
 }
 

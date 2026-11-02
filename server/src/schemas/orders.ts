@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { BidStatus, ORDER_STATUS_GROUPS, OrderStatus, PhotoStage } from '../models/enums.js';
 import { ImageBase64, PaginationQuery, RatingResponse, SearchQuery, pageOf, positive } from './common.js';
+import { DisputeResponse } from './disputes.js';
 import { VehicleResponse } from './vehicles.js';
 
 // ------------------------------------------------------------------ запросы ---
@@ -168,6 +169,7 @@ export const OrderDetailsResponse = OrderListItemResponse.extend({
   photos: z.array(PhotoResponse),
   cancelReason: z.string().nullable(),
   reviewAuthorIds: z.array(z.uuid()),
+  dispute: DisputeResponse.nullable().describe('Последний спор по заказу (видят участники и администратор)'),
 }).meta({ id: 'OrderDetailsResponse' });
 
 export type OrderCreateInput = z.output<typeof OrderCreateRequest>;

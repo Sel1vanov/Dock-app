@@ -74,6 +74,11 @@ export const OrderRepository = {
     return apiRequest('POST', `/orders/${id}/complete`);
   },
 
+  /** UC-20: открыть спор по заказу. */
+  openDispute(id: string, reason: string): Promise<ApiOrderDetails> {
+    return apiRequest('POST', `/orders/${id}/disputes`, { body: { reason } });
+  },
+
   review(id: string, rating: number, comment: string): Promise<unknown> {
     return apiRequest('POST', `/orders/${id}/reviews`, { body: comment ? { rating, comment } : { rating } });
   },
