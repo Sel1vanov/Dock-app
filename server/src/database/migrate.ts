@@ -8,8 +8,21 @@ import { loadConfig, loadEnvFile } from '../core/config.js';
 import { initOrm } from './orm.js';
 
 loadEnvFile();
-const orm = await initOrm(loadConfig());
+const config = loadConfig();
 const command = process.argv[2] ?? 'up';
+
+// Какая база используется — видно сразу (без пароля). Не localhost — значит, это не PostgreSQL из Docker.
+const db = new URL(config.DATABASE_URL);
+const target = `${db.hostname}:${db.port || 5432}${db.pathname}`;
+console.log(`База данных: ${target}`);
+if (!['localhost', '127.0.0.1', '::1', '[::1]'].includes(db.hostname)) {
+  console.warn(
+    `⚠ Это не локальная база из Docker. Если так и задумано — всё в порядке; иначе исправьте DATABASE_URL в server/.env ` +
+      `на postgres://postgres:postgres@localhost:5432/dock`,
+  );
+}
+
+const orm = await initOrm(config);
 
 try {
   if (command === 'up') {

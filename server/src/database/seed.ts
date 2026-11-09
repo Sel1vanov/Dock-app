@@ -16,7 +16,7 @@ import { resolve } from 'node:path';
 import type { EntityManager } from '@mikro-orm/postgresql';
 
 import { loadConfig, loadEnvFile } from '../core/config.js';
-import { hashPassword } from '../core/security.js';
+import { hashPassword, verifyPassword } from '../core/security.js';
 import {
   Bid,
   BidStatus,
@@ -41,6 +41,41 @@ import { LocalFileStorage } from '../services/FileStorage.js';
 import { initOrm } from './orm.js';
 
 export const DEMO_PASSWORD = 'Dock12345';
+
+/** Демо-учётки из README. Все с паролем DEMO_PASSWORD; последняя заблокирована. */
+export const DEMO_ACCOUNTS = [
+  'admin@dock.ru',
+  'client@dock.ru',
+  'stroytech@dock.ru',
+  'driver@dock.ru',
+  'driver2@dock.ru',
+  'driver3@dock.ru',
+] as const;
+export const DEMO_BLOCKED_ACCOUNT = 'blocked@dock.ru';
+
+/**
+ * Проверяет, что демо-учётки в базе такие, как в README: есть, пароль не менялся, блокировка не трогалась.
+ * Возвращает список расхождений (пустой — всё в порядке).
+ */
+export async function checkDemoAccounts(em: EntityManager): Promise<string[]> {
+  const emails = [...DEMO_ACCOUNTS, DEMO_BLOCKED_ACCOUNT];
+  const users = await em.find(User, { email: { $in: emails } }, { populate: ['passwordHash'] });
+  const byEmail = new Map(users.map((u) => [u.email, u]));
+  const problems: string[] = [];
+  for (const email of emails) {
+    const user = byEmail.get(email);
+    if (!user) {
+      problems.push(`${email} — нет в базе`);
+      continue;
+    }
+    if (!(await verifyPassword(DEMO_PASSWORD, user.passwordHash))) problems.push(`${email} — пароль изменён`);
+    const shouldBeBlocked = email === DEMO_BLOCKED_ACCOUNT;
+    if (user.isBlocked !== shouldBeBlocked) {
+      problems.push(`${email} — ${user.isBlocked ? 'заблокирован' : 'разблокирован'} администратором`);
+    }
+  }
+  return problems;
+}
 
 const DAY = 24 * 60 * 60 * 1000;
 const ago = (days: number, hours = 0) => new Date(Date.now() - days * DAY - hours * 60 * 60 * 1000);
@@ -597,14 +632,25 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename
       await truncateData(em);
       console.log('Таблицы очищены');
     } else if ((await em.count(User, {})) > 0) {
-      console.log('В базе уже есть пользователи — пропускаю. Для пересоздания: npm run db:seed -- --fresh');
+      const problems = await checkDemoAccounts(em);
+      if (problems.length === 0) {
+        console.log(`Демо-данные уже в базе. Пароль всех демо-пользователей: ${DEMO_PASSWORD}`);
+      } else {
+        console.warn(
+          [
+            '',
+            '⚠ Демо-учётки в базе не совпадают с README — по данным из README войти не получится:',
+            ...problems.map((p) => `    ${p}`),
+            '  Вернуть демо-данные (всё содержимое базы заменится): npm run db:reset в корне проекта',
+            '',
+          ].join('\n'),
+        );
+      }
       process.exit(0);
     }
     await seed(em, new LocalFileStorage(config.FILES_DIR));
-    console.log(`Демо-данные созданы. Пароль всех пользователей: ${DEMO_PASSWORD}`);
-    console.log(
-      '  admin@dock.ru · client@dock.ru · stroytech@dock.ru · driver@dock.ru · driver2@dock.ru · driver3@dock.ru',
-    );
+    console.log(`Демо-данные созданы. Пароль всех демо-пользователей: ${DEMO_PASSWORD}`);
+    console.log(`  ${DEMO_ACCOUNTS.join(' · ')} · ${DEMO_BLOCKED_ACCOUNT} (заблокирован)`);
   } catch (e) {
     console.error('Не удалось заполнить базу:', e instanceof Error ? e.message : e);
     process.exitCode = 1;
