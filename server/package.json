@@ -15,9 +15,7 @@
     "db:migrate:down": "tsx src/database/migrate.ts down",
     "db:status": "tsx src/database/migrate.ts status",
     "db:seed": "tsx src/database/seed.ts",
-    "db:schema-diff": "tsx scripts/schema-sql.ts",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test --test-concurrency=1 --test-reporter=spec \"tests/*.test.ts\"",
     "prepare:db": "tsx src/database/migrate.ts up && tsx src/database/seed.ts"
   },
   "dependencies": {

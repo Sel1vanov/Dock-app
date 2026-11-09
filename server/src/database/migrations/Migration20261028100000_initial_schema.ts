@@ -4,7 +4,7 @@ import { Migration } from '@mikro-orm/migrations';
  * Миграция 1 — начальная схема Dock: 8 таблиц, связи 1:N, связь N:M через vehicle_cargo_types,
  * ограничения целостности и индексы под запросы API. Применяется к пустой базе.
  *
- * Сгенерирована по ORM-моделям (scripts/schema-sql.ts) и дополнена строками справочника cargo_types
+ * Сгенерирована по ORM-моделям и дополнена строками справочника cargo_types
  * (без них нельзя создать ни одной заявки).
  */
 export class Migration20261028100000_initial_schema extends Migration {

@@ -18,19 +18,8 @@
 | Клиент | `src/` | TypeScript, React Native 0.88, Expo SDK 58, Expo Router, MVVM; шрифт Onest (`@expo-google-fonts/onest`) |
 | Сервер API | `server/src/` | TypeScript, Fastify 5, MikroORM 7 (ORM), zod (схемы), bcrypt, JWT, Swagger |
 | База данных | `server/src/database/migrations/`, `docker-compose.yml` | PostgreSQL 17 в Docker: 11 таблиц, 5 миграций |
-| Тесты | `server/tests/` | `node:test`, 48 автотестов API на реальном PostgreSQL |
 
-Документация для защиты:
-
-| Документ | О чём |
-|---|---|
-| [docs/DEFENSE.md](docs/DEFENSE.md) | **Шпаргалка**: каждое требование кейсов 1–6 → где реализовано и как показать |
-| [docs/DATABASE.md](docs/DATABASE.md) | Кейс 3: ER-диаграмма, ограничения, правила удаления, нормализация, индексы, миграции |
-| [docs/ORM.md](docs/ORM.md) | Кейс 4: ORM-модели, Session, транзакции (flush/commit/rollback), стратегии загрузки, N+1 |
-| [docs/API.md](docs/API.md) | Кейс 2: версии, эндпоинты, схемы, коды ответов, формат ошибок |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Кейс 5: слои сервера и клиента, путь запроса, тесты |
-| [docs/SECURITY.md](docs/SECURITY.md) | Кейс 6: регистрация, хеширование, JWT, права, секреты |
-| [docs/SAD-changes.md](docs/SAD-changes.md) | Что изменилось относительно SAD и Vision и почему |
+Документация API (Swagger) открывается на работающем сервере: <http://localhost:8000/docs>.
 
 ---
 
@@ -67,7 +56,7 @@ npm run dev
 | `admin@dock.ru` | Администратор | модерация: подтверждение документов, блокировка, временный пароль, решение споров |
 | `blocked@dock.ru` | Заблокирован | вход → 403 |
 
-## Команды по отдельности (для защиты)
+## Команды по отдельности
 
 В папке `server`:
 
@@ -76,7 +65,6 @@ npm run dev
 | `npm run db:migrate` / `npm run db:migrate:down` / `npm run db:status` | применить / откатить / показать миграции |
 | `npm run db:seed -- --fresh` | пересоздать демо-данные |
 | `npm run dev` | только сервер, журнал запросов в консоли (`DB_DEBUG=true` в `.env` — ещё и SQL) |
-| `npm test` | 48 автотестов API (нужен запущенный PostgreSQL из Docker: отдельная база `dock_test` пересоздаётся миграциями) |
 
 В корне: `npm start` — только приложение, `npm run typecheck`, `npm run lint`.
 
@@ -87,6 +75,17 @@ npm run dev
 
 Приложение само находит сервер на порту 8000 того же компьютера, где запущен Expo. Другой адрес задаётся в `.env`
 в корне: `EXPO_PUBLIC_API_URL=http://192.168.1.10:8000`.
+
+## Если что-то не запускается
+
+| Сообщение / симптом | Что сделать |
+|---|---|
+| «PostgreSQL не запустился» | Открыть Docker Desktop, дождаться статуса *Running* и повторить `npm run dev` |
+| Порт 5432 уже занят | Остановить локально установленный PostgreSQL или поменять порт в `docker-compose.yml` (`"5433:5432"`) и в `DATABASE_URL` в `server/.env` |
+| Порт 8000 уже занят | Закрыть программу на этом порту (часто — предыдущий запуск сервера) |
+| Телефон не видит сервер | Телефон и компьютер в одной Wi-Fi сети; брандмауэр разрешает входящие на порт 8000; при необходимости задать `EXPO_PUBLIC_API_URL` (см. выше) |
+| Нет файла `server/.env` | `npm --prefix server run env:init` |
+| Нужно начать с чистыми демо-данными | `docker compose down -v`, затем `npm run dev` |
 
 ## Структура репозитория
 
@@ -112,8 +111,7 @@ Dock-app/
 │   │   ├── dependencies.ts Session на запрос, текущий пользователь, роли
 │   │   ├── app.ts          сборка приложения (Swagger, CORS, обработка ошибок)
 │   │   └── main.ts         запуск
-│   └── tests/              автотесты API
-├── docs/                   документация для защиты
+├── scripts/dev.mjs         запуск всего проекта одной командой (npm run dev)
 └── docker-compose.yml      PostgreSQL 17 в Docker
 ```
 
