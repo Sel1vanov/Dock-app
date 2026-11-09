@@ -85,7 +85,7 @@ npm run dev
 | `npm run dev` | только сервер, журнал запросов в консоли (`DB_DEBUG=true` в `.env` — ещё и SQL) |
 | `npm test` | 48 автотестов API (нужен запущенный PostgreSQL из Docker; отдельная база `dock_test` создаётся и пересоздаётся миграциями сама) |
 
-В корне: `npm start` — только приложение, `npm run test:server` — автотесты API, `npm run db:reset` — вернуть демо-данные,
+В корне: `npm start` — только приложение, `npm run test:server` — автотесты API (сам поднимет PostgreSQL в Docker), `npm run db:reset` — вернуть демо-данные,
 `npm run typecheck`, `npm run lint`.
 
 База в Docker: `docker compose up -d` / `docker compose stop` — запустить / остановить; `docker compose down -v` —
@@ -109,6 +109,7 @@ npm run dev
 | Expo Go: «project is incompatible with this version of Expo Go» | Обновить Expo Go из App Store / Google Play (проект на Expo SDK 58) |
 | QR-код открывается, но приложение не видит сервер | Телефон и компьютер в одной Wi-Fi сети (не гостевой); брандмауэр разрешает входящие на порты 8081 и 8000; при необходимости задать `EXPO_PUBLIC_API_URL` (см. выше) |
 | Нет файла `server/.env` | `npm --prefix server run env:init` |
+| Тесты: «Нет подключения к PostgreSQL» | База не запущена: открыть Docker Desktop и запускать тесты из корня — `npm run test:server` (поднимает базу сама) |
 | Нужна полностью чистая база | `docker compose down -v`, затем `npm run dev` |
 
 ## Структура репозитория

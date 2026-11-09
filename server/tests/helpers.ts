@@ -49,15 +49,25 @@ export async function setupTestApp(): Promise<TestContext> {
   });
 
   const queries: string[] = [];
-  const orm = await initOrm(config, {
-    debug: ['query'],
-    colors: false,
-    logger: (message) => {
-      const plain = message.replace(/\x1b\[[0-9;]*m/g, '');
-      if (plain.includes('[query]')) queries.push(plain);
-    },
-  });
-  await orm.schema.ensureDatabase();
+  let orm: MikroORM;
+  try {
+    orm = await initOrm(config, {
+      debug: ['query'],
+      colors: false,
+      logger: (message) => {
+        const plain = message.replace(/\x1b\[[0-9;]*m/g, '');
+        if (plain.includes('[query]')) queries.push(plain);
+      },
+    });
+    await orm.schema.ensureDatabase();
+  } catch (e) {
+    // Вместо длинного стека — понятная причина: чаще всего PostgreSQL просто не запущен.
+    const db = new URL(TEST_DATABASE_URL);
+    throw new Error(
+      `Нет подключения к PostgreSQL (${db.hostname}:${db.port || 5432}): ${e instanceof Error ? e.message : e}. ` +
+        'Запустите Docker Desktop и выполните в корне проекта: docker compose up -d --wait',
+    );
+  }
   await orm.em.fork().execute('drop schema if exists public cascade; create schema public;');
   await orm.migrator.up(); // схема создаётся ТОЛЬКО миграциями
   queries.length = 0;
