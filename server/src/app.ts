@@ -15,12 +15,17 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod';
+import { z } from 'zod';
 
 import type { Config } from './core/config.js';
 import { registerErrorHandler } from './core/errorHandler.js';
 import { registerDependencies } from './dependencies.js';
 import { apiV1 } from './routers/index.js';
 import { type FileStorage, LocalFileStorage } from './services/FileStorage.js';
+
+// Стандартные сообщения проверки zod — на русском («Нераспознанный ключ», «Неверный вариант…»).
+// Для большинства полей в схемах заданы свои сообщения; это — для остальных случаев.
+z.config(z.locales.ru());
 
 export interface AppDeps {
   config: Config;

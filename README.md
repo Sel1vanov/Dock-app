@@ -18,8 +18,21 @@
 | Клиент | `src/` | TypeScript, React Native 0.88, Expo SDK 58, Expo Router, MVVM; шрифт Onest (`@expo-google-fonts/onest`) |
 | Сервер API | `server/src/` | TypeScript, Fastify 5, MikroORM 7 (ORM), zod (схемы), bcrypt, JWT, Swagger |
 | База данных | `server/src/database/migrations/`, `docker-compose.yml` | PostgreSQL 17 в Docker: 11 таблиц, 5 миграций |
+| Тесты | `server/tests/` | `node:test`, 48 автотестов API на реальном PostgreSQL |
 
 Документация API (Swagger) открывается на работающем сервере: <http://localhost:8000/docs>.
+
+Подробности для защиты — в папке `docs/`:
+
+| Документ | О чём |
+|---|---|
+| [docs/DEFENSE.md](docs/DEFENSE.md) | **Шпаргалка**: каждое требование кейсов 1–6 → где реализовано и как показать |
+| [docs/DATABASE.md](docs/DATABASE.md) | Кейс 3: ER-диаграмма, ограничения, правила удаления, нормализация, индексы, миграции |
+| [docs/ORM.md](docs/ORM.md) | Кейс 4: ORM-модели, Session, транзакции (flush/commit/rollback), стратегии загрузки, N+1 |
+| [docs/API.md](docs/API.md) | Кейс 2: версии, эндпоинты, схемы, коды ответов, формат ошибок |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Кейс 5: слои сервера и клиента, путь запроса, тесты |
+| [docs/SECURITY.md](docs/SECURITY.md) | Кейс 6: регистрация, хеширование, JWT, права, секреты |
+| [docs/SAD-changes.md](docs/SAD-changes.md) | Что изменилось относительно SAD и Vision и почему |
 
 ---
 
@@ -70,8 +83,10 @@ npm run dev
 | `npm run db:migrate` / `npm run db:migrate:down` / `npm run db:status` | применить / откатить / показать миграции |
 | `npm run db:seed -- --fresh` | пересоздать демо-данные |
 | `npm run dev` | только сервер, журнал запросов в консоли (`DB_DEBUG=true` в `.env` — ещё и SQL) |
+| `npm test` | 48 автотестов API (нужен запущенный PostgreSQL из Docker; отдельная база `dock_test` создаётся и пересоздаётся миграциями сама) |
 
-В корне: `npm start` — только приложение, `npm run db:reset` — вернуть демо-данные, `npm run typecheck`, `npm run lint`.
+В корне: `npm start` — только приложение, `npm run test:server` — автотесты API, `npm run db:reset` — вернуть демо-данные,
+`npm run typecheck`, `npm run lint`.
 
 База в Docker: `docker compose up -d` / `docker compose stop` — запустить / остановить; `docker compose down -v` —
 удалить вместе с данными (следующий `npm run dev` развернёт её заново миграциями и демо-данными).
@@ -119,6 +134,8 @@ Dock-app/
 │   │   ├── dependencies.ts Session на запрос, текущий пользователь, роли
 │   │   ├── app.ts          сборка приложения (Swagger, CORS, обработка ошибок)
 │   │   └── main.ts         запуск
+│   └── tests/              автотесты API
+├── docs/                   документация для защиты
 ├── scripts/dev.mjs         запуск всего проекта одной командой (npm run dev)
 └── docker-compose.yml      PostgreSQL 17 в Docker
 ```

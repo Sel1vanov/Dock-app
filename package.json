@@ -35,6 +35,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "server": "npm --prefix server run dev",
+    "test:server": "npm --prefix server test",
     "dev": "node scripts/dev.mjs",
     "db:reset": "npm --prefix server run db:seed -- --fresh",
     "db:dump": "docker compose exec -T postgres pg_dump -U postgres --no-owner --clean --if-exists dock > dock_dump.sql",

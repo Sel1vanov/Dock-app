@@ -298,6 +298,88 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
       createdAt: ago(4),
     });
 
+    // Ещё открытые заявки — чтобы списки были длиннее одной страницы (по 10) и была видна подгрузка частями:
+    // «Мои заявки → Поиск» у client@dock.ru — 14 заявок, «Поиск грузов» у driver@dock.ru (трал) — 17.
+    // Все помещаются в трал Ивана по габаритам, массе и типу груза.
+    const moreOpenOrders = [
+      {
+        client: anna, cargoType: machinery, description: 'Фронтальный погрузчик SDLG L956F',
+        weightKg: 17000, size: [8.2, 3, 3.4], price: 72000, daysAgo: 5,
+        from: 'Москва, Дмитровское ш., 157', to: 'Владимир, ул. Растопчина, 1',
+      },
+      {
+        client: stroy, cargoType: machinery, description: 'Гусеничный экскаватор Hyundai R220',
+        weightKg: 22000, size: [9.5, 3, 3.1], price: 95000, daysAgo: 5.2,
+        from: 'Москва, Волгоградский пр-т, 42', to: 'Тверь, Петербургское ш., 101',
+      },
+      {
+        client: anna, cargoType: agricultural, description: 'Комбайн John Deere W540, жатка отдельно',
+        weightKg: 13500, size: [8.9, 3.2, 3.5], price: 85000, daysAgo: 5.4,
+        from: 'Коломна, ул. Октябрьской Революции, 410', to: 'Рязань, Окское ш., 2',
+      },
+      {
+        client: anna, cargoType: equipment, description: 'Дизель-генератор АД-500 в шумозащитном кожухе',
+        weightKg: 7800, size: [6, 2.4, 2.6], price: 26000, daysAgo: 6,
+        from: 'Москва, Варшавское ш., 170', to: 'Обнинск, Киевское ш., 59',
+      },
+      {
+        client: anna, cargoType: machinery, description: 'Автогрейдер ДЗ-98',
+        weightKg: 19500, size: [10.5, 3.2, 3.5], price: 115000, daysAgo: 6.4,
+        from: 'Балашиха, ш. Энтузиастов, 7', to: 'Нижний Новгород, Московское ш., 52',
+      },
+      {
+        client: anna, cargoType: other, description: 'Металлоконструкции фермы, 12 м',
+        weightKg: 6000, size: [12, 2.5, 1.5], price: 21000, daysAgo: 7,
+        from: 'Электросталь, ул. Строительная, 4', to: 'Орехово-Зуево, ул. Ленина, 90',
+      },
+      {
+        client: stroy, cargoType: equipment, description: 'Бетоносмеситель СБР-500 и строительные леса',
+        weightKg: 4200, size: [4, 2.2, 2.4], price: 16000, daysAgo: 7.3,
+        from: 'Видное, Белокаменное ш., 10', to: 'Чехов, Симферопольское ш., 1',
+      },
+      {
+        client: anna, cargoType: machinery, description: 'Мини-погрузчик Case SR175',
+        weightKg: 2900, size: [3.4, 1.8, 2], price: 15000, daysAgo: 8,
+        from: 'Мытищи, Олимпийский пр-т, 29', to: 'Сергиев Посад, ул. Кирова, 85',
+      },
+      {
+        client: anna, cargoType: agricultural, description: 'Трактор МТЗ-82.1',
+        weightKg: 3800, size: [4, 2, 2.8], price: 14000, daysAgo: 9,
+        from: 'Ступино, ул. Андропова, 51', to: 'Кашира, ул. Советская, 1',
+      },
+      {
+        client: stroy, cargoType: other, description: 'Блок-контейнер КПП 6 м',
+        weightKg: 5000, size: [6, 2.5, 2.8], price: 19000, daysAgo: 9.2,
+        from: 'Одинцово, Можайское ш., 120', to: 'Звенигород, ул. Московская, 7',
+      },
+      {
+        client: anna, cargoType: equipment, description: 'Токарный станок 16К20 на поддоне',
+        weightKg: 3000, size: [2.8, 1.2, 1.5], price: 24000, daysAgo: 10,
+        from: 'Королёв, ул. Пионерская, 4', to: 'Иваново, ул. Ташкентская, 90',
+      },
+      {
+        client: anna, cargoType: machinery, description: 'Вилочный погрузчик Toyota 8FD30',
+        weightKg: 4700, size: [3.8, 1.3, 2.2], price: 12000, daysAgo: 11,
+        from: 'Люберцы, Октябрьский пр-т, 112', to: 'Москва, ул. Подольских Курсантов, 3',
+      },
+    ];
+    for (const o of moreOpenOrders) {
+      const [lengthM, widthM, heightM] = o.size;
+      order({
+        client: o.client,
+        cargoType: o.cargoType,
+        description: o.description,
+        cargoWeightKg: o.weightKg,
+        cargoLengthM: lengthM,
+        cargoWidthM: widthM,
+        cargoHeightM: heightM,
+        originAddress: o.from,
+        destinationAddress: o.to,
+        price: o.price,
+        createdAt: ago(o.daysAgo),
+      });
+    }
+
     // Идёт торг: два отклика
     const bidding = order({
       client: anna,
