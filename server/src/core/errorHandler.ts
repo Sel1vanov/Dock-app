@@ -4,6 +4,7 @@
  */
 import {
   CheckConstraintViolationException,
+  DriverException,
   ForeignKeyConstraintViolationException,
   NotNullConstraintViolationException,
   UniqueConstraintViolationException,
@@ -15,6 +16,18 @@ import { AppError, type ErrorCode, type FieldError } from './errors.js';
 
 function send(reply: FastifyReply, status: number, code: ErrorCode, message: string, details?: FieldError[]) {
   return reply.status(status).send({ error: { code, message, ...(details?.length ? { details } : {}) } });
+}
+
+/**
+ * Нарушение внешнего ключа. PostgreSQL сообщает о нём двумя кодами: 23503 (foreign_key_violation) и, в новых
+ * версиях для правила ON DELETE RESTRICT, 23001 (restrict_violation: «violates RESTRICT setting of foreign key
+ * constraint»). MikroORM распознаёт только 23503, поэтому 23001 проверяем по коду сами.
+ */
+export function isForeignKeyViolation(error: unknown): boolean {
+  return (
+    error instanceof ForeignKeyConstraintViolationException ||
+    (error instanceof DriverException && error.code === '23001')
+  );
 }
 
 /** '/cargoTypeCodes/0' → 'cargoTypeCodes' — имя поля формы, к которому относится ошибка. */
@@ -47,7 +60,7 @@ export function registerErrorHandler(app: FastifyInstance) {
       request.log.warn({ err: error }, 'unique constraint violation');
       return send(reply, 409, 'CONFLICT', 'Запись с такими данными уже существует');
     }
-    if (error instanceof ForeignKeyConstraintViolationException) {
+    if (isForeignKeyViolation(error)) {
       request.log.warn({ err: error }, 'foreign key violation');
       return send(reply, 409, 'CONFLICT', 'Операция нарушает связи между данными');
     }

@@ -102,6 +102,7 @@ npm run dev
 |---|---|
 | «PostgreSQL не запустился» | Открыть Docker Desktop, дождаться статуса *Running* и повторить `npm run dev` |
 | Порт 5432 уже занят | Остановить локально установленный PostgreSQL или поменять порт в `docker-compose.yml` (`"5433:5432"`) и в `DATABASE_URL` в `server/.env` |
+| При запуске «⚠ Это не PostgreSQL из Docker» | Порт 5432 занят PostgreSQL, установленным на компьютере, и проект работает с ним. На Mac: Postgres.app — *Stop*; Homebrew — `brew services list`, затем `brew services stop postgresql@…`. Потом `npm run dev` заново |
 | Порт 8000 уже занят | Закрыть программу на этом порту (часто — предыдущий запуск сервера) |
 | «Неверный email или пароль» у демо-пользователя | Данные в базе изменились (см. предупреждение при `npm run dev`) — `npm run db:reset` |
 | При запуске «⚠ Это не локальная база из Docker» | В `server/.env` осталась строка от старой версии: `DATABASE_URL=postgres://postgres:postgres@localhost:5432/dock` |

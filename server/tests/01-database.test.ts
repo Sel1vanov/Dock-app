@@ -5,12 +5,9 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 
-import {
-  CheckConstraintViolationException,
-  ForeignKeyConstraintViolationException,
-  UniqueConstraintViolationException,
-} from '@mikro-orm/core';
+import { CheckConstraintViolationException, UniqueConstraintViolationException } from '@mikro-orm/core';
 
+import { isForeignKeyViolation } from '../src/core/errorHandler.js';
 import { type TestContext, createOrder, registerUser, setupTestApp } from './helpers.js';
 
 let ctx: TestContext;
@@ -77,9 +74,11 @@ describe('Миграции и ограничения PostgreSQL', () => {
       ),
       UniqueConstraintViolationException,
     );
+    // Код ошибки зависит от версии PostgreSQL (23503 или 23001 — см. isForeignKeyViolation), поэтому
+    // проверяем сам факт нарушения внешнего ключа и что сработало именно ограничение orders → users.
     await assert.rejects(
       em.execute(`delete from users where id = ?`, [client.id]),
-      ForeignKeyConstraintViolationException,
+      (e: Error) => isForeignKeyViolation(e) && e.message.includes('orders_client_id_foreign'),
       'заказчика с заявками удалить нельзя (RESTRICT)',
     );
   });

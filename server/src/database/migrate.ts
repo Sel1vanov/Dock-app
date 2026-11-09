@@ -24,6 +24,19 @@ if (!['localhost', '127.0.0.1', '::1', '[::1]'].includes(db.hostname)) {
 
 const orm = await initOrm(config);
 
+// Версия сервера: в docker-compose.yml — PostgreSQL 17. Другая версия на localhost значит, что порт 5432 занят
+// PostgreSQL, установленным на самом компьютере, и проект работает с ним, а не с базой из Docker.
+const [{ server_version: version }] = await orm.em.getConnection().execute<{ server_version: string }[]>(
+  'show server_version',
+);
+console.log(`PostgreSQL ${version.split(' ')[0]}`);
+if (/^(localhost|127\.0\.0\.1):5432\//.test(target) && !version.startsWith('17.')) {
+  console.warn(
+    '⚠ Это не PostgreSQL из Docker (там версия 17): похоже, порт 5432 занят PostgreSQL, установленным на компьютере. ' +
+      'Если так и задумано — всё в порядке; иначе остановите его (см. README, «Если что-то не запускается»).',
+  );
+}
+
 try {
   if (command === 'up') {
     const applied = await orm.migrator.up();
