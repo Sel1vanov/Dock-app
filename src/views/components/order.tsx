@@ -339,35 +339,37 @@ export function PromptModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       {/* Окно занимает весь экран, поэтому отступ на высоту клавиатуры поднимает карточку над ней. */}
       <KeyboardAvoidingView behavior="padding" style={s.modalBackdrop}>
-        <View style={s.modalCard}>
-          <Text style={font.h2}>{title}</Text>
-          {/* На небольшом экране при открытой клавиатуре текст и поле прокручиваются, кнопки остаются на виду. */}
-          <ScrollView
-            style={s.modalBody}
-            contentContainerStyle={{ gap: spacing.lg }}
-            keyboardShouldPersistTaps="handled"
-          >
-            {message ? <Text style={s.cardMeta}>{message}</Text> : null}
-            <TextField
-              value={text}
-              onChangeText={setText}
-              placeholder={placeholder}
-              multiline={!numeric}
-              keyboardType={numeric ? 'number-pad' : 'default'}
-              suffix={numeric ? '₽' : undefined}
-              accessibilityLabel={title}
-            />
-          </ScrollView>
-          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <Button title="Назад" variant="secondary" onPress={onCancel} style={{ flex: 1 }} />
-            <Button
-              title={confirmText}
-              variant={confirmVariant}
-              onPress={() => {
-                onConfirm(text);
-              }}
-              style={{ flex: 1 }}
-            />
+        <View style={s.modalCenter}>
+          <View style={s.modalCard}>
+            <Text style={font.h2}>{title}</Text>
+            {/* На небольшом экране при открытой клавиатуре текст и поле прокручиваются, кнопки остаются на виду. */}
+            <ScrollView
+              style={s.modalBody}
+              contentContainerStyle={{ gap: spacing.lg }}
+              keyboardShouldPersistTaps="handled"
+            >
+              {message ? <Text style={s.cardMeta}>{message}</Text> : null}
+              <TextField
+                value={text}
+                onChangeText={setText}
+                placeholder={placeholder}
+                multiline={!numeric}
+                keyboardType={numeric ? 'number-pad' : 'default'}
+                suffix={numeric ? '₽' : undefined}
+                accessibilityLabel={title}
+              />
+            </ScrollView>
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <Button title="Назад" variant="secondary" onPress={onCancel} style={{ flex: 1 }} />
+              <Button
+                title={confirmText}
+                variant={confirmVariant}
+                onPress={() => {
+                  onConfirm(text);
+                }}
+                style={{ flex: 1 }}
+              />
+            </View>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -465,13 +467,8 @@ const s = StyleSheet.create({
   photo: { width: 96, height: 96, borderRadius: radius.md, backgroundColor: colors.surfaceAlt },
   viewer: { flex: 1, backgroundColor: 'rgba(17,17,17,0.92)', alignItems: 'center', justifyContent: 'center' },
   viewerImage: { width: '92%', height: '80%' },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(17,17,17,0.45)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.xl,
-  },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(17,17,17,0.45)' },
+  modalCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   modalCard: {
     width: '100%',
     maxWidth: 420,
