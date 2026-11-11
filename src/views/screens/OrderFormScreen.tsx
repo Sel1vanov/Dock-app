@@ -1,4 +1,4 @@
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useOrderFormViewModel } from '../../viewmodels/OrderViewModels';
 import { useCargoTypes } from '../../viewmodels/useCargoTypes';
@@ -29,10 +29,7 @@ export function OrderFormScreen({ orderId }: { orderId?: string }) {
   if (vm.loadError) return <EmptyState icon="alert-circle" title="Заявка недоступна" text={vm.loadError} />;
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: colors.bg }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       {vm.isEdit ? null : <ScreenHeader title="Что перевозим?" subtitle="Новая заявка" />}
       <ScreenScroll>
         <SectionTitle title="Тип груза" />
@@ -167,7 +164,7 @@ export function OrderFormScreen({ orderId }: { orderId?: string }) {
           loading={vm.isSubmitting}
         />
       </ScreenScroll>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

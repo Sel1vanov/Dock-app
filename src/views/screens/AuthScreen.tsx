@@ -1,10 +1,10 @@
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { formatPhoneInput } from '../../core/phone';
 import { useAuthFormViewModel } from '../../viewmodels/AuthViewModel';
 import { BrandMark } from '../components/order';
-import { Banner, Button, Icon, Segmented, TextField } from '../components/ui';
+import { Banner, Button, Icon, KeyboardAvoider, Segmented, TextField, keyboardScrollProps } from '../components/ui';
 import { colors, family, font, radius, spacing } from '../theme';
 
 const ROLES = [
@@ -20,13 +20,10 @@ export function AuthScreen() {
   const isReset = vm.mode === 'reset';
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: colors.bg }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoider>
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + spacing.xl }]}
-        keyboardShouldPersistTaps="handled"
+        {...keyboardScrollProps}
       >
         <View style={styles.hero}>
           <BrandMark size={40} />
@@ -175,7 +172,7 @@ export function AuthScreen() {
           ) : null}
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardAvoider>
   );
 }
 

@@ -1,9 +1,11 @@
 /** Базовые UI-компоненты Dock. */
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import type { ReactNode } from 'react';
+import { type ComponentRef, type ReactNode, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   type ColorValue,
+  Keyboard,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -287,6 +289,51 @@ export function LoadingView() {
   );
 }
 
+// ------------------------------------------------------------ Клавиатура ---
+
+/**
+ * Не даёт экранной клавиатуре закрыть поля ввода на Android.
+ * В режиме «от края до края» Android не сжимает окно под клавиатуру, поэтому обёртка сама получает нижний
+ * отступ на высоту перекрытия: список внутри становится ниже и прокручивается к полю, в которое вводят.
+ * Перекрытие считается по реальному положению обёртки на экране, так что шапка и нижние вкладки учитываются
+ * сами, а если система всё же сжала окно, отступ получается нулевым.
+ * На iOS то же делает сам ScrollView — см. keyboardScrollProps.
+ */
+export function KeyboardAvoider({ children, style }: { children: ReactNode; style?: ViewStyle }) {
+  const ref = useRef<ComponentRef<typeof View>>(null);
+  const [inset, setInset] = useState(0);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const subscriptions = [
+      Keyboard.addListener('keyboardDidShow', (event) => {
+        const keyboardTop = event.endCoordinates.screenY;
+        ref.current?.measureInWindow((_x, y, _width, height) => {
+          setInset(Math.max(0, Math.round(y + height - keyboardTop)));
+        });
+      }),
+      Keyboard.addListener('keyboardDidHide', () => setInset(0)),
+    ];
+    return () => subscriptions.forEach((s) => s.remove());
+  }, []);
+
+  return (
+    <View ref={ref} collapsable={false} style={[styles.keyboardAvoider, style, { paddingBottom: inset }]}>
+      {children}
+    </View>
+  );
+}
+
+/**
+ * Свойства ScrollView для экранов с полями ввода. На iOS список сам добавляет отступ под клавиатуру
+ * и прокручивается к активному полю, а клавиатуру можно убрать, потянув список вниз.
+ */
+export const keyboardScrollProps = {
+  keyboardShouldPersistTaps: 'handled',
+  automaticallyAdjustKeyboardInsets: Platform.OS === 'ios',
+  keyboardDismissMode: Platform.OS === 'ios' ? 'interactive' : 'none',
+} as const;
+
 export function ScreenScroll({
   children,
   refreshing,
@@ -299,18 +346,20 @@ export function ScreenScroll({
   contentStyle?: ViewStyle;
 }) {
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: colors.bg }}
-      contentContainerStyle={[styles.scrollContent, contentStyle]}
-      keyboardShouldPersistTaps="handled"
-      refreshControl={
-        onRefresh ? (
-          <RefreshControl refreshing={Boolean(refreshing)} onRefresh={onRefresh} tintColor={colors.accent} />
-        ) : undefined
-      }
-    >
-      {children}
-    </ScrollView>
+    <KeyboardAvoider>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: colors.bg }}
+        contentContainerStyle={[styles.scrollContent, contentStyle]}
+        {...keyboardScrollProps}
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl refreshing={Boolean(refreshing)} onRefresh={onRefresh} tintColor={colors.accent} />
+          ) : undefined
+        }
+      >
+        {children}
+      </ScrollView>
+    </KeyboardAvoider>
   );
 }
 
@@ -449,6 +498,7 @@ export const styles = StyleSheet.create({
   emptyTitle: { ...font.h3, color: colors.text, textAlign: 'center' },
   emptyText: { ...font.small, color: colors.textSecondary, textAlign: 'center', lineHeight: 19 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg, padding: 40 },
+  keyboardAvoider: { flex: 1, backgroundColor: colors.bg },
   scrollContent: { padding: spacing.lg, gap: spacing.md, paddingBottom: 40 },
   kv: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   kvLabel: { ...font.small, color: colors.textSecondary, flex: 1 },

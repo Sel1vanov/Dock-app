@@ -199,6 +199,8 @@ export function PagedList<T extends { id: string }>({
       onEndReached={hasMore ? onEndReached : undefined}
       onEndReachedThreshold={0.4}
       keyboardShouldPersistTaps="handled"
+      // Поиск открывает клавиатуру над списком: при прокрутке результатов она убирается
+      keyboardDismissMode="on-drag"
       refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
     />
   );

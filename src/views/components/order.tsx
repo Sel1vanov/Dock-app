@@ -1,6 +1,6 @@
 /** Компоненты предметной области: шапка, маршрут, габариты, карточка заказа, прогресс рейса, фото, связь. */
 import type { ReactNode } from 'react';
-import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState } from 'react';
 
@@ -337,19 +337,27 @@ export function PromptModal({
   }
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View style={s.modalBackdrop}>
+      {/* Окно занимает весь экран, поэтому отступ на высоту клавиатуры поднимает карточку над ней. */}
+      <KeyboardAvoidingView behavior="padding" style={s.modalBackdrop}>
         <View style={s.modalCard}>
           <Text style={font.h2}>{title}</Text>
-          {message ? <Text style={s.cardMeta}>{message}</Text> : null}
-          <TextField
-            value={text}
-            onChangeText={setText}
-            placeholder={placeholder}
-            multiline={!numeric}
-            keyboardType={numeric ? 'number-pad' : 'default'}
-            suffix={numeric ? '₽' : undefined}
-            accessibilityLabel={title}
-          />
+          {/* На небольшом экране при открытой клавиатуре текст и поле прокручиваются, кнопки остаются на виду. */}
+          <ScrollView
+            style={s.modalBody}
+            contentContainerStyle={{ gap: spacing.lg }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {message ? <Text style={s.cardMeta}>{message}</Text> : null}
+            <TextField
+              value={text}
+              onChangeText={setText}
+              placeholder={placeholder}
+              multiline={!numeric}
+              keyboardType={numeric ? 'number-pad' : 'default'}
+              suffix={numeric ? '₽' : undefined}
+              accessibilityLabel={title}
+            />
+          </ScrollView>
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
             <Button title="Назад" variant="secondary" onPress={onCancel} style={{ flex: 1 }} />
             <Button
@@ -362,7 +370,7 @@ export function PromptModal({
             />
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -467,9 +475,11 @@ const s = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 420,
+    maxHeight: '100%',
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
     padding: spacing.xl,
     gap: spacing.lg,
   },
+  modalBody: { flexGrow: 0, flexShrink: 1 },
 });
