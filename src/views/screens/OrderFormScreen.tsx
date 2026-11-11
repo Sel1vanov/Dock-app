@@ -8,6 +8,7 @@ import {
   Button,
   Card,
   EmptyState,
+  FormErrors,
   Icon,
   LoadingView,
   ScreenScroll,
@@ -31,7 +32,8 @@ export function OrderFormScreen({ orderId }: { orderId?: string }) {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       {vm.isEdit ? null : <ScreenHeader title="Что перевозим?" subtitle="Новая заявка" />}
-      <ScreenScroll>
+      {/* После публикации форма создаётся заново — пустая и прокрученная к началу. */}
+      <ScreenScroll key={vm.formKey}>
         <SectionTitle title="Тип груза" />
         <View style={styles.types}>
           {cargoTypes.map((t) => {
@@ -156,7 +158,9 @@ export function OrderFormScreen({ orderId }: { orderId?: string }) {
             title={vm.isEdit ? 'Не удалось сохранить' : 'Не удалось опубликовать'}
             text={vm.submitError}
           />
-        ) : null}
+        ) : (
+          <FormErrors errors={errors} />
+        )}
         <Button
           title={vm.isEdit ? 'Сохранить изменения' : 'Опубликовать заявку'}
           icon="check-circle"

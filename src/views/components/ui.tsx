@@ -112,24 +112,61 @@ export function SectionTitle({ title, action }: { title: string; action?: ReactN
 
 // ------------------------------------------------------------- TextField ---
 
+/** Поле ввода с подписью и ошибкой. У поля пароля (secureTextEntry) справа кнопка «показать / скрыть». */
 export function TextField({
   label,
   error,
   icon,
   suffix,
   style,
+  secureTextEntry,
   ...props
 }: TextInputProps & { label?: string; error?: string; icon?: string; suffix?: string; style?: ViewStyle }) {
+  const [isHidden, setIsHidden] = useState(true);
   return (
     <View style={[{ gap: 6 }, style]}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <View style={[styles.inputWrap, error ? { borderColor: colors.danger } : null]}>
         {icon ? <Icon name={icon} size={18} color={colors.textMuted} /> : null}
-        <TextInput placeholderTextColor={colors.textMuted} style={styles.input} {...props} />
+        <TextInput
+          placeholderTextColor={colors.textMuted}
+          style={styles.input}
+          secureTextEntry={secureTextEntry ? isHidden : undefined}
+          {...props}
+        />
         {suffix ? <Text style={styles.suffix}>{suffix}</Text> : null}
+        {secureTextEntry ? (
+          <Pressable
+            onPress={() => setIsHidden((hidden) => !hidden)}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={isHidden ? 'Показать пароль' : 'Скрыть пароль'}
+          >
+            <Icon name={isHidden ? 'eye-outline' : 'eye-off-outline'} size={20} color={colors.textMuted} />
+          </Pressable>
+        ) : null}
       </View>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
+  );
+}
+
+/**
+ * Сводка ошибок формы рядом с кнопкой отправки: на длинной форме поле с ошибкой может оказаться
+ * выше видимой части экрана, и без сводки кажется, что кнопка не сработала.
+ */
+export function FormErrors({ errors }: { errors: Record<string, string | undefined> }) {
+  const messages = [...new Set(Object.values(errors).filter((message) => message !== undefined))];
+  if (messages.length === 0) return null;
+  const shown = messages.slice(0, 3).join(' · ');
+  const rest = messages.length - 3;
+  return (
+    <Banner
+      tone="danger"
+      icon="alert-circle"
+      title="Проверьте поля формы"
+      text={rest > 0 ? `${shown} · и ещё ${rest}` : shown}
+    />
   );
 }
 

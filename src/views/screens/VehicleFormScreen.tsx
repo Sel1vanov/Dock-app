@@ -9,6 +9,7 @@ import {
   Card,
   Chip,
   EmptyState,
+  FormErrors,
   LoadingView,
   ScreenScroll,
   SectionTitle,
@@ -112,7 +113,9 @@ export function VehicleFormScreen({ vehicleId }: { vehicleId?: string }) {
 
       {vm.submitError ? (
         <Banner tone="danger" icon="alert-circle" title="Не удалось сохранить" text={vm.submitError} />
-      ) : null}
+      ) : (
+        <FormErrors errors={errors} />
+      )}
       <Button
         title={vm.isEdit ? 'Сохранить изменения' : 'Сохранить ТС'}
         icon="check-circle"

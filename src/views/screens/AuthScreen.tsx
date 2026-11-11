@@ -4,7 +4,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatPhoneInput } from '../../core/phone';
 import { useAuthFormViewModel } from '../../viewmodels/AuthViewModel';
 import { BrandMark } from '../components/order';
-import { Banner, Button, Icon, KeyboardAvoider, Segmented, TextField, keyboardScrollProps } from '../components/ui';
+import {
+  Banner,
+  Button,
+  FormErrors,
+  Icon,
+  KeyboardAvoider,
+  Segmented,
+  TextField,
+  keyboardScrollProps,
+} from '../components/ui';
 import { colors, family, font, radius, spacing } from '../theme';
 
 const ROLES = [
@@ -147,6 +156,9 @@ export function AuthScreen() {
               maxLength={72}
             />
           )}
+
+          {/* Форма регистрации длиннее экрана: ошибки верхних полей повторяем у кнопки. */}
+          {isSignUp && !vm.errorMessage ? <FormErrors errors={vm.fieldErrors} /> : null}
 
           {isReset ? (
             <>

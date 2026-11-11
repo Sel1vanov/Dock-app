@@ -82,6 +82,8 @@ export function useOrderFormViewModel(orderId?: string) {
   const isEdit = Boolean(orderId);
   const [values, setValues] = useState<CreateOrderForm>(EMPTY_ORDER);
   const [errors, setErrors] = useState<FieldErrors<CreateOrderForm>>({});
+  /** Меняется после публикации: экран по этому ключу пересоздаёт форму (пустую, с начала). */
+  const [formKey, setFormKey] = useState(0);
   const existing = useQuery(orderId ? () => OrderService.getOrderDetails(orderId) : null, [orderId]);
 
   // Форма изменения заполняется данными заявки один раз, когда они загрузились.
@@ -111,6 +113,7 @@ export function useOrderFormViewModel(orderId?: string) {
       } else {
         await OrderService.createOrder(data);
         setValues(EMPTY_ORDER);
+        setFormKey((key) => key + 1);
         showToast('Заявка опубликована — водители увидят её в ленте');
         router.navigate('/orders');
       }
@@ -152,6 +155,7 @@ export function useOrderFormViewModel(orderId?: string) {
     isEdit,
     isLoading: existing.isLoading,
     loadError: existing.error,
+    formKey,
     values,
     errors,
     preview,
