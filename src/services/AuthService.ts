@@ -1,3 +1,4 @@
+import { saveToken } from '../core/api';
 import { tokenStorage } from '../core/tokenStorage';
 import type { UserDTO } from '../models/dto';
 import { toUserDTO } from '../models/mappers';
@@ -9,13 +10,13 @@ import { UserRepository } from '../repositories/UserRepository';
 export const AuthService = {
   async signIn({ email, password }: SignInInput): Promise<UserDTO> {
     const result = await AuthRepository.login(email, password);
-    await tokenStorage.set(result.accessToken);
+    await saveToken(result);
     return toUserDTO(result.user);
   },
 
   async signUp(input: SignUpInput): Promise<UserDTO> {
     const result = await AuthRepository.register(input);
-    await tokenStorage.set(result.accessToken);
+    await saveToken(result);
     return toUserDTO(result.user);
   },
 
@@ -27,7 +28,7 @@ export const AuthService = {
   /** Смена пароля: прежние токены сервер отзывает, сохраняем выданный новый. */
   async changePassword(input: PasswordChangeInput): Promise<UserDTO> {
     const result = await UserRepository.changePassword(input);
-    await tokenStorage.set(result.accessToken);
+    await saveToken(result);
     return toUserDTO(result.user);
   },
 

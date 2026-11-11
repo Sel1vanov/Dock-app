@@ -47,6 +47,8 @@ export class User {
   @Property({ type: 'string', length: 100 })
   fullName!: string;
 
+  /** Один номер — один аккаунт: заблокированный пользователь не заведёт второй аккаунт на тот же телефон. */
+  @Unique({ name: 'uk_users_phone' })
   @Property({ type: 'string', length: 20 })
   phone!: string;
 

@@ -1,6 +1,7 @@
 import { UniqueConstraintViolationException } from '@mikro-orm/core';
 
 import { ConflictError, ForbiddenError, UnauthorizedError, ValidationError } from '../core/errors.js';
+import { RESERVED_NAME_MESSAGE, isReservedName } from '../core/reservedNames.js';
 import { createAccessToken, hashPassword, passwordVersion, verifyPassword } from '../core/security.js';
 import { NotificationType, type User, UserRole } from '../models/index.js';
 import { NotificationRepository, UserRepository } from '../repositories/index.js';
@@ -10,6 +11,22 @@ import { toUserResponse } from './mappers.js';
 import { NotificationService } from './NotificationService.js';
 
 const DUPLICATE_EMAIL = 'Пользователь с таким email уже зарегистрирован';
+export const DUPLICATE_PHONE = 'Этот номер телефона уже привязан к другому аккаунту';
+
+/** Какое уникальное ограничение таблицы users нарушено — в 409 с указанием поля формы. */
+export function duplicateUserError(e: UniqueConstraintViolationException): ConflictError {
+  const constraint = (e as { constraint?: string }).constraint ?? e.message;
+  return constraint.includes('uk_users_phone')
+    ? new ConflictError(DUPLICATE_PHONE, [{ field: 'phone', message: DUPLICATE_PHONE }])
+    : new ConflictError(DUPLICATE_EMAIL, [{ field: 'email', message: DUPLICATE_EMAIL }]);
+}
+
+/** Имя не должно выдавать пользователя за сотрудника сервиса («Администратор», «Поддержка»). */
+export function assertNameAllowed(fullName: string): void {
+  if (isReservedName(fullName)) {
+    throw new ValidationError(RESERVED_NAME_MESSAGE, [{ field: 'fullName', message: RESERVED_NAME_MESSAGE }]);
+  }
+}
 
 /** Регистрация, вход, смена пароля и просьба о его сбросе. */
 export class AuthService {
@@ -20,8 +37,15 @@ export class AuthService {
   }
 
   async register(input: RegisterInput) {
+    assertNameAllowed(input.fullName);
+    // Один email и один телефон — один аккаунт (в том числе заблокированный: завести второй нельзя).
     // Проверка приложением — понятная ошибка до попытки записи…
-    if (await this.users.existsByEmail(input.email)) throw new ConflictError(DUPLICATE_EMAIL);
+    if (await this.users.existsByEmail(input.email)) {
+      throw new ConflictError(DUPLICATE_EMAIL, [{ field: 'email', message: DUPLICATE_EMAIL }]);
+    }
+    if (await this.users.existsByPhone(input.phone)) {
+      throw new ConflictError(DUPLICATE_PHONE, [{ field: 'phone', message: DUPLICATE_PHONE }]);
+    }
 
     const user = this.users.create({
       email: input.email,
@@ -33,8 +57,8 @@ export class AuthService {
     try {
       await this.ctx.em.flush();
     } catch (e) {
-      // …и уникальное ограничение uk_users_email в БД — на случай одновременных регистраций.
-      if (e instanceof UniqueConstraintViolationException) throw new ConflictError(DUPLICATE_EMAIL);
+      // …и уникальные ограничения uk_users_email, uk_users_phone в БД — на случай одновременных регистраций.
+      if (e instanceof UniqueConstraintViolationException) throw duplicateUserError(e);
       throw e;
     }
     return { ...this.issueToken(user), user: toUserResponse(user, null) };
@@ -94,11 +118,25 @@ export class AuthService {
     };
   }
 
-  private issueToken(user: User) {
-    return createAccessToken(this.ctx.config, {
-      sub: user.id,
-      role: user.role,
-      pwv: passwordVersion(user.passwordChangedAt),
-    });
+  /**
+   * Тихое продление сессии: по действующему токену выдаётся новый на тот же срок. Приложение делает это само,
+   * пока им пользуются, поэтому срок жизни токена остаётся коротким, а пароль каждый час вводить не нужно.
+   * Блокировка и смена пароля уже проверены в authenticate; дольше SESSION_MAX_AGE после ввода пароля
+   * сессия не продлевается.
+   */
+  async refresh(user: User, sessionStartedAt: number) {
+    if (Date.now() / 1000 - sessionStartedAt > this.ctx.config.SESSION_MAX_AGE) {
+      throw new UnauthorizedError('Сессия длится слишком долго. Войдите снова', 'TOKEN_EXPIRED');
+    }
+    const rating = (await this.users.getRatings([user.id])).get(user.id) ?? null;
+    return { ...this.issueToken(user, sessionStartedAt), user: toUserResponse(user, rating) };
+  }
+
+  private issueToken(user: User, sessionStartedAt?: number) {
+    return createAccessToken(
+      this.ctx.config,
+      { sub: user.id, role: user.role, pwv: passwordVersion(user.passwordChangedAt) },
+      sessionStartedAt,
+    );
   }
 }

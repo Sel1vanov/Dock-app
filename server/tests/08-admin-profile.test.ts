@@ -88,7 +88,7 @@ describe('Верификация водителя и модерация', () => 
     assert.equal((await api(ctx, 'GET', '/users/me', { token: client.token })).statusCode, 403);
   });
 
-  test('профиль: изменение имени и телефона, лишние поля запрещены', async () => {
+  test('профиль: изменение имени и телефона, занятый телефон и служебное имя, лишние поля запрещены', async () => {
     const user = await registerUser(ctx, 'Client');
     const res = await api(ctx, 'PATCH', '/users/me', {
       token: user.token,
@@ -96,6 +96,23 @@ describe('Верификация водителя и модерация', () => 
     });
     assert.equal(res.statusCode, 200);
     assert.equal(res.data.phone, '+79160001122');
+    const other = await registerUser(ctx, 'Driver');
+    const taken = await api(ctx, 'PATCH', '/users/me', { token: other.token, body: { phone: '8 916 000 11 22' } });
+    assert.equal(taken.statusCode, 409, 'чужой телефон занять нельзя');
+    assert.equal(taken.data.error.details[0].field, 'phone');
+    const same = await api(ctx, 'PATCH', '/users/me', { token: user.token, body: { phone: '+79160001122' } });
+    assert.equal(same.statusCode, 200, 'свой же номер сохраняется без ошибки');
+
+    const reserved = await api(ctx, 'PATCH', '/users/me', { token: user.token, body: { fullName: 'Поддержка Dock' } });
+    assert.equal(reserved.statusCode, 422, 'служебное имя нельзя взять и после регистрации');
+    assert.equal(reserved.data.error.details[0].field, 'fullName');
+    const admin = await createAdmin(ctx);
+    const adminEdit = await api(ctx, 'PATCH', '/users/me', {
+      token: admin.token,
+      body: { fullName: 'Администратор', phone: '+79160009988' },
+    });
+    assert.equal(adminEdit.statusCode, 200, 'администратор сохраняет профиль со своим служебным именем');
+
     const escalation = await api(ctx, 'PATCH', '/users/me', { token: user.token, body: { role: 'Admin' } });
     assert.equal(escalation.statusCode, 422, 'роль через профиль не меняется');
     assert.equal((await api(ctx, 'GET', '/users/me', { token: user.token })).data.role, 'Client');

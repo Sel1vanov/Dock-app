@@ -38,6 +38,11 @@ export interface AccessTokenPayload {
   role: UserRole;
   /** Версия пароля (время его последней смены, мс; 0 — не меняли). Смена пароля отзывает старые токены. */
   pwv: number;
+  /**
+   * Начало сессии — когда пользователь ввёл пароль (секунды Unix). При продлении токена переносится
+   * в новый токен без изменений, поэтому продлевать сессию бесконечно нельзя (SESSION_MAX_AGE).
+   */
+  sst: number;
 }
 
 export interface IssuedToken {
@@ -47,11 +52,14 @@ export interface IssuedToken {
   expiresIn: number;
 }
 
+/** sessionStartedAt не задан — новая сессия (вход, регистрация, смена пароля); задан — продление прежней. */
 export function createAccessToken(
   config: Pick<Config, 'JWT_SECRET' | 'JWT_EXPIRES_IN'>,
-  payload: AccessTokenPayload,
+  payload: Omit<AccessTokenPayload, 'sst'>,
+  sessionStartedAt = Math.floor(Date.now() / 1000),
 ): IssuedToken {
-  const accessToken = jwt.sign({ role: payload.role, pwv: payload.pwv }, config.JWT_SECRET, {
+  const claims = { role: payload.role, pwv: payload.pwv, sst: sessionStartedAt };
+  const accessToken = jwt.sign(claims, config.JWT_SECRET, {
     algorithm: 'HS256',
     subject: payload.sub,
     expiresIn: config.JWT_EXPIRES_IN,
@@ -72,7 +80,12 @@ export function verifyAccessToken(config: Pick<Config, 'JWT_SECRET'>, token: str
     if (typeof decoded !== 'object' || typeof decoded.sub !== 'string' || typeof decoded.role !== 'string') {
       throw new UnauthorizedError('Недействительный токен');
     }
-    return { sub: decoded.sub, role: decoded.role as UserRole, pwv: typeof decoded.pwv === 'number' ? decoded.pwv : 0 };
+    return {
+      sub: decoded.sub,
+      role: decoded.role as UserRole,
+      pwv: typeof decoded.pwv === 'number' ? decoded.pwv : 0,
+      sst: typeof decoded.sst === 'number' ? decoded.sst : (decoded.iat ?? 0),
+    };
   } catch (e) {
     if (e instanceof jwt.TokenExpiredError) {
       throw new UnauthorizedError('Срок действия сессии истёк. Войдите снова', 'TOKEN_EXPIRED');

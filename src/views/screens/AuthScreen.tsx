@@ -27,6 +27,7 @@ export function AuthScreen() {
   const insets = useSafeAreaInsets();
   const isSignUp = vm.mode === 'signUp';
   const isReset = vm.mode === 'reset';
+  const errorBanner = vm.errorMessage ? <Banner tone="danger" icon="alert-circle" title={vm.errorMessage} /> : null;
 
   return (
     <KeyboardAvoider>
@@ -65,7 +66,7 @@ export function AuthScreen() {
             />
           )}
 
-          {vm.errorMessage ? <Banner tone="danger" icon="alert-circle" title={vm.errorMessage} /> : null}
+          {isSignUp ? null : errorBanner}
           {isReset && vm.resetMessage ? (
             <Banner tone="success" icon="check-circle" title="Просьба отправлена" text={vm.resetMessage} />
           ) : null}
@@ -157,8 +158,8 @@ export function AuthScreen() {
             />
           )}
 
-          {/* Форма регистрации длиннее экрана: ошибки верхних полей повторяем у кнопки. */}
-          {isSignUp && !vm.errorMessage ? <FormErrors errors={vm.fieldErrors} /> : null}
+          {/* Форма регистрации длиннее экрана: ошибку сервера и ошибки верхних полей показываем у кнопки. */}
+          {isSignUp ? (errorBanner ?? <FormErrors errors={vm.fieldErrors} />) : null}
 
           {isReset ? (
             <>

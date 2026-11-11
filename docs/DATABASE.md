@@ -33,7 +33,7 @@ erDiagram
     varchar password_hash "NOT NULL, bcrypt"
     text role "Client | Driver | Admin"
     varchar full_name "NOT NULL"
-    varchar phone "NOT NULL, +7…"
+    varchar phone UK "NOT NULL, +7…"
     text verification_status "none | pending | verified | rejected"
     timestamptz verified_at
     uuid verified_by_id FK
@@ -140,7 +140,7 @@ erDiagram
 
 | Ограничение | Таблица | Что запрещает |
 |---|---|---|
-| `uk_users_email` UNIQUE | users | два аккаунта на один email (проверяется ещё и сервисом → 409) |
+| `uk_users_email`, `uk_users_phone` UNIQUE | users | два аккаунта на один email или один телефон — в том числе новый аккаунт заблокированного пользователя (проверяется ещё и сервисом → 409) |
 | `ck_users_email_format`, `ck_users_phone_format`, `ck_users_full_name` | users | email не в нижнем регистре / без «@», телефон не в виде «+7» и 10 цифр, пустое имя |
 | `users_role_check`, `users_verification_status_check` | users | роли и статусы вне списка |
 | `ck_users_verification_driver_only` | users | статус проверки документов у заказчика или администратора |
@@ -236,11 +236,12 @@ erDiagram
 | `Migration20261029100000_notifications_and_bargaining.ts` | Таблица `notifications` с индексами, столбец `bids.counter_price` (встречная цена заказчика) с CHECK, столбец `users.password_changed_at` (после смены пароля прежние токены не принимаются) |
 | `Migration20261029120000_phone_format.ts` | **Изменение с переносом данных**: телефоны, сохранённые как ввели (`89161234567`, `9161234567`), приводятся к виду `+79161234567`; `ck_users_phone_format` ужесточён до «+7 и 10 цифр» |
 | `Migration20261103100000_disputes.ts` | Споры (UC-20, UC-21): таблица `disputes` с частичным уникальным индексом, новый статус заказа `Disputed` (CHECK-ограничения `orders` расширены), типы уведомлений `DisputeOpened`, `DisputeResolved`. `down()` возвращает заказы со спором на этап, где спор был открыт |
+| `Migration20261111100000_unique_phone.ts` | Один телефон — один аккаунт: уникальное ограничение `uk_users_phone`. Если в базе уже есть аккаунты с одинаковым номером, миграция останавливается с их списком и ничего не меняет |
 
 Команды (в папке `server`): `npm run db:migrate` (≈ `alembic upgrade head`), `npm run db:migrate:down`
 (≈ `alembic downgrade -1`), `npm run db:status` (≈ `alembic current/history`). Применённые миграции хранятся
 в таблице `mikro_orm_migrations`; каждая миграция и весь прогон — в транзакции (при ошибке всё откатывается).
-У всех пяти миграций есть `down()`: тест откатывает схему до пустой и накатывает снова.
+У всех шести миграций есть `down()`: тест откатывает схему до пустой и накатывает снова.
 
 ## Начальные данные
 

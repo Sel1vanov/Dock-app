@@ -156,7 +156,7 @@ export async function createAdmin(ctx: TestContext): Promise<TestUser> {
     passwordHash: await hashPassword('Secret123'),
     role: UserRole.Admin,
     fullName: 'Администратор',
-    phone: '+79990000000',
+    phone: `+7998000${String(counter).padStart(4, '0')}`, // один телефон — один аккаунт
   });
   await em.flush();
   const login = await api(ctx, 'POST', '/auth/login', { body: { email, password: 'Secret123' } });

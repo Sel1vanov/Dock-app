@@ -18,6 +18,11 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET: не короче 32 символов'),
   /** Время жизни access-токена в секундах. */
   JWT_EXPIRES_IN: z.coerce.number().int().min(60).max(86_400).default(3600),
+  /**
+   * Сколько секунд сессию можно продлевать без повторного ввода пароля (по умолчанию 30 дней).
+   * Пока приложением пользуются, токен тихо обновляется; после этого срока нужен новый вход.
+   */
+  SESSION_MAX_AGE: z.coerce.number().int().min(3600).max(31_536_000).default(2_592_000),
   FILE_URL_SECRET: z.string().min(32, 'FILE_URL_SECRET: не короче 32 символов'),
   /** Время жизни подписанной ссылки на файл в секундах. */
   FILE_URL_TTL: z.coerce.number().int().min(60).max(86_400).default(3600),

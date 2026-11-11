@@ -38,6 +38,8 @@ declare module 'fastify' {
   interface FastifyRequest {
     em: EntityManager;
     currentUser: User | null;
+    /** Когда пользователь ввёл пароль (секунды Unix) — из токена; нужно для продления сессии. */
+    sessionStartedAt: number;
   }
 }
 
@@ -49,6 +51,7 @@ export function registerDependencies(
   app.decorate('storage', deps.storage);
   app.decorateRequest('em', null as unknown as EntityManager);
   app.decorateRequest('currentUser', null);
+  app.decorateRequest('sessionStartedAt', 0);
   // Новая Session на каждый запрос.
   app.addHook('onRequest', async (request) => {
     request.em = deps.orm.em.fork();
@@ -72,6 +75,7 @@ export async function authenticate(request: FastifyRequest, _reply: FastifyReply
     throw new UnauthorizedError('Пароль был изменён. Войдите снова', 'TOKEN_EXPIRED');
   }
   request.currentUser = user;
+  request.sessionStartedAt = payload.sst;
 }
 
 export function requireRole(...roles: UserRole[]) {

@@ -17,8 +17,8 @@
 |---|---|---|
 | Клиент | `src/` | TypeScript, React Native 0.88, Expo SDK 58, Expo Router, MVVM; шрифт Onest (`@expo-google-fonts/onest`) |
 | Сервер API | `server/src/` | TypeScript, Fastify 5, MikroORM 7 (ORM), zod (схемы), bcrypt, JWT, Swagger |
-| База данных | `server/src/database/migrations/`, `docker-compose.yml` | PostgreSQL 17 в Docker: 11 таблиц, 5 миграций |
-| Тесты | `server/tests/` | `node:test`, 48 автотестов API на реальном PostgreSQL |
+| База данных | `server/src/database/migrations/`, `docker-compose.yml` | PostgreSQL 17 в Docker: 11 таблиц, 6 миграций |
+| Тесты | `server/tests/` | `node:test`, 53 автотеста API на реальном PostgreSQL |
 
 Документация API (Swagger) открывается на работающем сервере: <http://localhost:8000/docs>.
 
@@ -83,7 +83,7 @@ npm run dev
 | `npm run db:migrate` / `npm run db:migrate:down` / `npm run db:status` | применить / откатить / показать миграции |
 | `npm run db:seed -- --fresh` | пересоздать демо-данные |
 | `npm run dev` | только сервер, журнал запросов в консоли (`DB_DEBUG=true` в `.env` — ещё и SQL) |
-| `npm test` | 48 автотестов API (нужен запущенный PostgreSQL из Docker; отдельная база `dock_test` создаётся и пересоздаётся миграциями сама) |
+| `npm test` | 53 автотеста API (нужен запущенный PostgreSQL из Docker; отдельная база `dock_test` создаётся и пересоздаётся миграциями сама) |
 
 В корне: `npm start` — только приложение, `npm run test:server` — автотесты API (сам поднимет PostgreSQL в Docker), `npm run db:reset` — вернуть демо-данные,
 `npm run typecheck`, `npm run lint`.
@@ -104,6 +104,7 @@ npm run dev
 | Порт 5432 уже занят | Остановить локально установленный PostgreSQL или поменять порт в `docker-compose.yml` (`"5433:5432"`) и в `DATABASE_URL` в `server/.env` |
 | При запуске «⚠ Это не PostgreSQL из Docker» | Порт 5432 занят PostgreSQL, установленным на компьютере, и проект работает с ним. На Mac: Postgres.app — *Stop*; Homebrew — `brew services list`, затем `brew services stop postgresql@…`. Потом `npm run dev` заново |
 | Порт 8000 уже занят | Закрыть программу на этом порту (часто — предыдущий запуск сервера) |
+| «Ошибка миграции: На один телефон зарегистрировано несколько аккаунтов…» | Теперь один телефон — один аккаунт, а в базе остались аккаунты с одинаковым номером (они перечислены в сообщении). Вернуть демо-данные — `npm run db:reset`; либо оставить у каждого номера один аккаунт. Потом `npm run dev` заново |
 | «Неверный email или пароль» у демо-пользователя | Данные в базе изменились (см. предупреждение при `npm run dev`) — `npm run db:reset` |
 | При запуске «⚠ Это не локальная база из Docker» | В `server/.env` осталась строка от старой версии: `DATABASE_URL=postgres://postgres:postgres@localhost:5432/dock` |
 | Expo Go: «project is incompatible with this version of Expo Go» | Обновить Expo Go из App Store / Google Play (проект на Expo SDK 58) |
@@ -165,6 +166,8 @@ Dock-app/
 | — | Уведомления | Колокольчик в шапке (счётчик непрочитанных) → экран уведомлений → переход к заявке или рейсу |
 | — | Связь с контрагентом | После выбора исполнителя: «Позвонить», WhatsApp, Telegram — на карточке заявки и экране рейса |
 | — | Смена и сброс пароля | Профиль → «Сменить пароль»; вход → «Забыли пароль?» → администратор выдаёт временный пароль |
+| — | Защита регистрации | Один email и один телефон — один аккаунт (заблокированный не заведёт второй); служебные имена («Администратор», «Поддержка» и т. п.) запрещены |
+| — | Продление сессии | Пока приложением пользуются, токен обновляется сам; повторный вход нужен после часа без запросов |
 
 Не реализовано: карта и GPS (UC-05, UC-16 — местоположение; статус рейса показывается), платёжный шлюз (UC-12–14
 работают в демо-режиме), спецразрешения (UC-23), push-уведомления на телефон (уведомления

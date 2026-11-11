@@ -54,8 +54,8 @@ export class NotFoundError extends AppError {
 
 /** 409 — запрос корректен, но противоречит текущему состоянию данных (дубликат, статус заказа). */
 export class ConflictError extends AppError {
-  constructor(message: string) {
-    super(409, 'CONFLICT', message);
+  constructor(message: string, details?: FieldError[]) {
+    super(409, 'CONFLICT', message, details);
   }
 }
 

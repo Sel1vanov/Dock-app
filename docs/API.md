@@ -73,11 +73,12 @@
 
 | Метод | Путь | Роль | Ответ |
 |---|---|---|---|
-| POST | `/auth/register` 🔓 | — | 201 `TokenResponse`; 409 email занят; 422 |
+| POST | `/auth/register` 🔓 | — | 201 `TokenResponse`; 409 email или телефон уже заняты (в `details` — поле); 422, в т. ч. служебное имя («Администратор», «Поддержка») |
 | POST | `/auth/login` 🔓 | — | 200 `TokenResponse`; 401 неверные данные; 403 заблокирован |
+| POST | `/auth/refresh` | любая | 200 `TokenResponse` — новый токен по действующему (продление сессии); 401 токен истёк или пароль вводили больше `SESSION_MAX_AGE` назад |
 | POST | `/auth/password-reset-request` 🔓 | — | 202 `MessageResponse` — просьба уходит администраторам уведомлением |
 | GET | `/users/me` | любая | 200 `UserResponse` (с рейтингом) |
-| PATCH | `/users/me` | любая | 200 — имя, телефон |
+| PATCH | `/users/me` | любая | 200 — имя, телефон; 409 телефон занят другим аккаунтом; 422 служебное имя |
 | POST | `/users/me/password` | любая | 200 `TokenResponse` — новый токен, прежние отозваны; 422 неверный текущий пароль |
 | GET | `/users/me/reviews?limit=&offset=` | любая | страница отзывов обо мне, новые сверху |
 | GET | `/users/me/documents` | Driver | 200 документы с временными ссылками |

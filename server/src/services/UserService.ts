@@ -1,9 +1,12 @@
 import { randomUUID } from 'node:crypto';
 
+import { UniqueConstraintViolationException } from '@mikro-orm/core';
+
 import { ConflictError, ForbiddenError } from '../core/errors.js';
 import { DocumentType, NotificationType, type User, UserRole, VerificationStatus } from '../models/index.js';
 import { DocumentRepository, ReviewRepository, UserRepository } from '../repositories/index.js';
 import type { UserUpdateInput } from '../schemas/users.js';
+import { DUPLICATE_PHONE, assertNameAllowed, duplicateUserError } from './AuthService.js';
 import type { ServiceContext } from './context.js';
 import { decodeImage } from './FileStorage.js';
 import { toDocumentResponse, toUserResponse } from './mappers.js';
@@ -31,8 +34,21 @@ export class UserService {
   }
 
   async updateProfile(user: User, input: UserUpdateInput) {
+    // Служебное имя нельзя взять и после регистрации; у администратора оно таким и должно быть
+    if (input.fullName && input.fullName !== user.fullName && user.role !== UserRole.Admin) {
+      assertNameAllowed(input.fullName);
+    }
+    if (input.phone && input.phone !== user.phone && (await this.users.existsByPhone(input.phone, user.id))) {
+      throw new ConflictError(DUPLICATE_PHONE, [{ field: 'phone', message: DUPLICATE_PHONE }]);
+    }
     this.ctx.em.assign(user, input);
-    await this.ctx.em.flush();
+    try {
+      await this.ctx.em.flush();
+    } catch (e) {
+      // uk_users_phone — на случай, если тот же номер одновременно занял другой аккаунт
+      if (e instanceof UniqueConstraintViolationException) throw duplicateUserError(e);
+      throw e;
+    }
     return this.getProfile(user);
   }
 

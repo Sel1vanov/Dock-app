@@ -1,6 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 
-import { services } from '../dependencies.js';
+import { authenticate, currentUser, services } from '../dependencies.js';
 import {
   LoginRequest,
   MessageResponse,
@@ -10,7 +10,10 @@ import {
 } from '../schemas/auth.js';
 import { errorResponses } from '../schemas/common.js';
 
-/** Публичные эндпоинты: регистрация, вход и просьба о сбросе пароля. Ограничены по частоте — защита от перебора паролей. */
+/**
+ * Регистрация, вход и просьба о сбросе пароля — публичные, ограничены по частоте (защита от перебора паролей).
+ * Продление сессии (/refresh) требует действующий токен.
+ */
 export const authRouter: FastifyPluginAsyncZod = async (app) => {
   const rateLimit = { max: 10, timeWindow: '1 minute' };
 
@@ -40,6 +43,20 @@ export const authRouter: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request) => services(request).auth.login(request.body),
+  );
+
+  app.post(
+    '/refresh',
+    {
+      onRequest: authenticate,
+      config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+      schema: {
+        tags: ['auth'],
+        summary: 'Продлить сессию: новый токен по действующему (приложение вызывает само, пока им пользуются)',
+        response: { 200: TokenResponse, ...errorResponses(401, 403, 429) },
+      },
+    },
+    async (request) => services(request).auth.refresh(currentUser(request), request.sessionStartedAt),
   );
 
   app.post(

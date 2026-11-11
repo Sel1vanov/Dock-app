@@ -17,7 +17,7 @@ before(async () => {
 after(() => ctx.close());
 
 describe('Миграции и ограничения PostgreSQL', () => {
-  test('на пустой базе применены все пять миграций, схема совпадает с моделями ORM', async () => {
+  test('на пустой базе применены все шесть миграций, схема совпадает с моделями ORM', async () => {
     const executed = await ctx.orm.migrator.getExecuted();
     assert.deepEqual(
       executed.map((m) => m.name),
@@ -27,6 +27,7 @@ describe('Миграции и ограничения PostgreSQL', () => {
         'Migration20261029100000_notifications_and_bargaining',
         'Migration20261029120000_phone_format',
         'Migration20261103100000_disputes',
+        'Migration20261111100000_unique_phone',
       ],
     );
     const tables = await ctx.orm.em
@@ -42,7 +43,7 @@ describe('Миграции и ограничения PostgreSQL', () => {
     await ctx.orm.migrator.down({ to: 0 });
     assert.equal((await ctx.orm.migrator.getExecuted()).length, 0);
     await ctx.orm.migrator.up();
-    assert.equal((await ctx.orm.migrator.getExecuted()).length, 5);
+    assert.equal((await ctx.orm.migrator.getExecuted()).length, 6);
     const cargoTypes = await ctx.orm.em.fork().execute<any[]>('select code from cargo_types');
     assert.equal(cargoTypes.length, 6, 'справочник типов груза заполнен миграцией');
   });
@@ -73,6 +74,15 @@ describe('Миграции и ограничения PostgreSQL', () => {
         [client.email],
       ),
       UniqueConstraintViolationException,
+    );
+    await assert.rejects(
+      em.execute(
+        `insert into users (email, password_hash, full_name, phone)
+         select 'second@test.ru', 'x', 'Второй аккаунт', phone from users where id = ?`,
+        [client.id],
+      ),
+      (e: Error) => e instanceof UniqueConstraintViolationException && e.message.includes('uk_users_phone'),
+      'второй аккаунт на тот же телефон база не примет',
     );
     // Код ошибки зависит от версии PostgreSQL (23503 или 23001 — см. isForeignKeyViolation), поэтому
     // проверяем сам факт нарушения внешнего ключа и что сработало именно ограничение orders → users.

@@ -37,6 +37,11 @@ export class UserRepository {
     return (await this.em.count(User, { email })) > 0;
   }
 
+  /** Занят ли телефон другим аккаунтом (exceptUserId — сам пользователь при изменении профиля). */
+  async existsByPhone(phone: string, exceptUserId?: string): Promise<boolean> {
+    return (await this.em.count(User, { phone, ...(exceptUserId ? { id: { $ne: exceptUserId } } : {}) })) > 0;
+  }
+
   create(data: Pick<User, 'email' | 'passwordHash' | 'role' | 'fullName' | 'phone'>): User {
     return this.em.create(User, data);
   }
