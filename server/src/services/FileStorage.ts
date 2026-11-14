@@ -1,8 +1,6 @@
-/**
- * Хранилище файлов (фото груза, сканы документов). Файлы приватные: API отдаёт их только
- * по подписанной ссылке с ограниченным сроком действия (core/security.ts → signFileUrl).
- * Реализация — локальная папка FILES_DIR; интерфейс позволяет заменить её на S3-хранилище.
- */
+// хранилище файлов (фото груза, сканы документов). файлы приватные: отдаются только
+// по подписанной ссылке со сроком (core/security.ts -> signFileUrl)
+// сейчас это просто папка FILES_DIR, но через интерфейс можно заменить на s3
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
 
@@ -62,7 +60,7 @@ export class LocalFileStorage implements FileStorage {
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
-/** Проверяет, что в base64 действительно JPEG или PNG (по сигнатуре файла), и размер ≤ 5 МБ. */
+// проверяет, что в base64 реально JPEG или PNG (по сигнатуре файла) и размер <= 5 МБ
 export function decodeImage(base64: string): { data: Buffer; ext: 'jpg' | 'png' } {
   const clean = base64.replace(/^data:image\/[a-z]+;base64,/, '').replace(/\s/g, '');
   if (!/^[A-Za-z0-9+/]+=*$/.test(clean)) throw new ValidationError('Файл повреждён: ожидается base64');

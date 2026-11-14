@@ -1,8 +1,5 @@
-/**
- * Конфигурация сервера. Все параметры подключения и секреты берутся только из переменных окружения
- * (файл server/.env не попадает в git, образец — server/.env.example). Бизнес-логика к process.env
- * не обращается — она получает готовый объект Config.
- */
+// весь конфиг сервера берется из env (server/.env, в git его нет, пример в .env.example)
+// в остальном коде process.env не дергаю, везде передается готовый Config
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -16,21 +13,18 @@ const envSchema = z.object({
     .string({ error: 'Не задан DATABASE_URL — вставьте строку подключения к базе в server/.env' })
     .url('DATABASE_URL должен быть строкой подключения postgres://… (проверьте server/.env)'),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET: не короче 32 символов'),
-  /** Время жизни access-токена в секундах. */
+  // сколько живет access токен, сек
   JWT_EXPIRES_IN: z.coerce.number().int().min(60).max(86_400).default(3600),
-  /**
-   * Сколько секунд сессию можно продлевать без повторного ввода пароля (по умолчанию 30 дней).
-   * Пока приложением пользуются, токен тихо обновляется; после этого срока нужен новый вход.
-   */
+  // сколько можно продлевать сессию без ввода пароля (30 дней), потом логин заново
   SESSION_MAX_AGE: z.coerce.number().int().min(3600).max(31_536_000).default(2_592_000),
   FILE_URL_SECRET: z.string().min(32, 'FILE_URL_SECRET: не короче 32 символов'),
-  /** Время жизни подписанной ссылки на файл в секундах. */
+  // сколько живет подписанная ссылка на файл, сек
   FILE_URL_TTL: z.coerce.number().int().min(60).max(86_400).default(3600),
   FILES_DIR: z.string().default('./storage'),
-  /** Разрешённые origin для веб-клиента через запятую; "*" — любой (только для разработки). */
+  // origin'ы для веба через запятую, * - любой (только для разработки)
   CORS_ORIGIN: z.string().default('*'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
-  /** Логировать SQL-запросы ORM (для демонстрации загрузки связей без N+1). */
+  // печатать sql от orm в консоль (чтобы показать, что нет N+1)
   DB_DEBUG: z
     .enum(['true', 'false'])
     .default('false')
@@ -39,7 +33,7 @@ const envSchema = z.object({
 
 export type Config = z.infer<typeof envSchema>;
 
-/** Подхватывает server/.env, если он есть (переменные окружения процесса имеют приоритет). */
+// читает server/.env если он есть. то, что уже задано в окружении, главнее
 export function loadEnvFile(path = resolve(import.meta.dirname, '../../.env')): void {
   if (existsSync(path)) process.loadEnvFile(path);
 }

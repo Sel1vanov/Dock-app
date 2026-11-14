@@ -1,7 +1,5 @@
-/**
- * Преобразование ORM-моделей в ответы API (схемы из src/schemas). Только эти функции решают,
- * какие поля уходят клиенту: пароль, служебные поля и чужие телефоны в ответ не попадают.
- */
+// превращает модели orm в ответы api (схемы из src/schemas). только тут решается,
+// какие поля уходят клиенту: пароль, служебные поля и чужие телефоны в ответ не попадают
 import type { Config } from '../core/config.js';
 import { signFileUrl } from '../core/security.js';
 import {
@@ -123,7 +121,7 @@ export function toDisputeResponse(dispute: Dispute): DisputeResponseT {
   };
 }
 
-/** Спор для очереди администратора: с кратким описанием заказа и его участниками. */
+// спор для очереди админа: с кратким описанием заказа и участниками
 export function toAdminDisputeResponse(dispute: Dispute): AdminDisputeResponseT {
   const { order } = dispute;
   return {

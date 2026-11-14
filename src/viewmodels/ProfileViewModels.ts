@@ -29,7 +29,7 @@ export function useProfileViewModel() {
   const isDriver = user.role === 'Driver';
   const isAdmin = user.role === 'Admin';
   const vehicles = useQuery(isDriver ? () => VehicleService.getMyVehicles() : null, [user.id, isDriver]);
-  /** Последний отзыв обо мне — карточка в профиле; все отзывы — на отдельном экране. */
+  // последний отзыв обо мне - карточка в профиле. все отзывы на отдельном экране
   const latestReview = useQuery(isAdmin ? null : () => ProfileService.getReviews(0, 1), [user.id, isAdmin]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -67,14 +67,14 @@ export function useProfileViewModel() {
     changePassword: () => router.push('/password'),
     openReviews: () => router.push('/reviews'),
     openVerification: () => router.push('/verification'),
-    /** Выход: токен удаляется с устройства, открывается экран входа. */
+    // выход: токен удаляется с устройства, открывается экран входа
     signOut: async () => {
       if (await confirmAction('Выйти из аккаунта?', 'Для входа понадобятся email и пароль', 'Выйти')) await signOut();
     },
   };
 }
 
-/** Редактирование имени и телефона. */
+// редактирование имени и телефона
 export function useProfileEditViewModel() {
   const { setCurrentUser } = useAuth();
   const user = useCurrentUser();
@@ -116,7 +116,7 @@ export function useProfileEditViewModel() {
 
 const EMPTY_PASSWORD: PasswordChangeForm = { currentPassword: '', newPassword: '', newPasswordConfirm: '' };
 
-/** Смена пароля: после неё сервер отзывает прежние сессии, приложение сохраняет новый токен. */
+// смена пароля: после нее сервер отзывает старые сессии, приложение сохраняет новый токен
 export function usePasswordChangeViewModel() {
   const { setCurrentUser } = useAuth();
   const [values, setValues] = useState<PasswordChangeForm>(EMPTY_PASSWORD);
@@ -152,7 +152,7 @@ export function usePasswordChangeViewModel() {
   };
 }
 
-/** Отзывы обо мне (UC-19) — список страницами. */
+// отзывы обо мне (UC-19), список страницами
 export function useReviewsViewModel() {
   const user = useCurrentUser();
   const list = usePagedQuery((offset) => ProfileService.getReviews(offset), [user.id]);
@@ -171,13 +171,13 @@ const EMPTY_VEHICLE: VehicleForm = {
 
 const num = (n: number) => String(Number(n.toFixed(3))).replace('.', ',');
 
-/** Добавление (vehicleId не задан) и изменение ТС с типами перевозимых грузов (N:M). */
+// добавление (vehicleId не задан) и изменение ТС с типами грузов, которые оно возит (N:M)
 export function useVehicleFormViewModel(vehicleId?: string) {
   const [values, setValues] = useState<VehicleForm>(EMPTY_VEHICLE);
   const [errors, setErrors] = useState<FieldErrors<VehicleForm>>({});
   const existing = useQuery(vehicleId ? () => VehicleService.getVehicle(vehicleId) : null, [vehicleId]);
 
-  // Форма изменения заполняется данными ТС один раз, когда они загрузились.
+  // форма изменения заполняется данными ТС один раз, когда они загрузились
   const [filledFrom, setFilledFrom] = useState<string | null>(null);
   const v = existing.data;
   if (v && filledFrom !== v.id) {
@@ -220,7 +220,7 @@ export function useVehicleFormViewModel(vehicleId?: string) {
     values,
     errors,
     setField,
-    /** При смене типа ТС подставляем типичные для него грузы (пока пользователь их не менял). */
+    // при смене типа ТС подставляю типичные для него грузы (пока юзер их сам не менял)
     setType: (type: VehicleType) =>
       setValues((v) => ({
         ...v,
@@ -247,7 +247,7 @@ export function useVehicleFormViewModel(vehicleId?: string) {
   };
 }
 
-/** UC-01: загрузка документов водителя и отправка на проверку. */
+// UC-01: загрузка документов водителя и отправка на проверку
 export function useVerificationViewModel() {
   const { setCurrentUser } = useAuth();
   const user = useCurrentUser();

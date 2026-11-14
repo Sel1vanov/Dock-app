@@ -1,8 +1,6 @@
-/**
- * Типы ответов сервера Dock API v1 (см. Swagger: http://<сервер>:8000/docs).
- * Это «сырой» формат транспорта: единицы БД (кг, м) и относительные ссылки на файлы.
- * В интерфейс попадают не они, а DTO из dto.ts (преобразование — в mappers.ts).
- */
+// типы ответов сервера Dock API v1 (см. swagger: http://<сервер>:8000/docs)
+// это сырой формат: единицы как в базе (кг, м) и относительные ссылки на файлы
+// в интерфейс идут не они, а DTO из dto.ts (преобразование в mappers.ts)
 export type ApiUserRole = 'Client' | 'Driver' | 'Admin';
 export type ApiVerificationStatus = 'none' | 'pending' | 'verified' | 'rejected';
 export type ApiOrderStatus =

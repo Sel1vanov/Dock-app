@@ -1,9 +1,9 @@
-// Запуск всего проекта одной командой (npm run dev):
-//   1) поднимает PostgreSQL в Docker (docker-compose.yml) и ждёт его готовности;
-//   2) применяет миграции, при пустой базе заливает демо-данные;
-//   3) запускает сервер API в фоне (журнал — server/logs/dev.log);
-//   4) запускает Expo (QR-код для телефона, «w» — браузер).
-// Ctrl+C останавливает и Expo, и сервер.
+// npm run dev - поднимает все разом:
+//   1) postgres в докере (docker-compose.yml), ждем пока оживет
+//   2) миграции + демо-данные, если база пустая
+//   3) сервер api в фоне, лог пишется в server/logs/dev.log
+//   4) expo (qr для телефона, w - открыть в браузере)
+// ctrl+c гасит и expo, и сервер
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdirSync, openSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -33,7 +33,7 @@ if (prepare.status !== 0) {
 mkdirSync(resolve(server, 'logs'), { recursive: true });
 const log = openSync(resolve(server, 'logs', 'dev.log'), 'w');
 console.log('▶ Запуск сервера API…');
-// Сервер — один процесс node (без npm-обёртки), чтобы его можно было надёжно остановить.
+// сервер запускаю напрямую через node, без npm - иначе его потом нормально не убить
 const api = spawn(process.execPath, ['--import', 'tsx', 'src/main.ts'], {
   cwd: server,
   stdio: ['ignore', log, log],
@@ -55,7 +55,7 @@ async function waitForApi() {
       const res = await fetch('http://localhost:8000/api/v1/health');
       if (res.ok) return true;
     } catch {
-      // ещё запускается
+      // еще не поднялся, ждем
     }
     if (api.exitCode !== null) return false;
     await new Promise((r) => setTimeout(r, 500));

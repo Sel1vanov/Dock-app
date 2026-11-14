@@ -1,7 +1,5 @@
-/**
- * OrderViewModel (SAD 5.2): создание и изменение заявок, списки заказов, лента водителя.
- * Поиск, фильтры и сортировка выполняются на сервере; списки грузятся страницами.
- */
+// OrderViewModel (SAD 5.2): создание и изменение заявок, списки заказов, лента водителя
+// поиск, фильтры и сортировка делаются на сервере, списки грузятся страницами
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 
@@ -16,7 +14,7 @@ import { VehicleService } from '../services/VehicleService';
 import { useCurrentUser } from './AuthViewModel';
 import { useAction, useDebouncedValue, usePagedQuery, useQuery } from './useAsync';
 
-/** Общие для списков параметры поиска, фильтра и сортировки. */
+// общие для списков параметры поиска, фильтра и сортировки
 function useListFilters() {
   const [search, setSearch] = useState('');
   const [cargoType, setCargoType] = useState<CargoType | null>(null);
@@ -38,7 +36,7 @@ function useListFilters() {
   };
 }
 
-// --------------------------------------------------------- Заказчик ---
+// --- заказчик ---
 
 export function useClientOrdersViewModel() {
   const user = useCurrentUser();
@@ -74,19 +72,17 @@ const EMPTY_ORDER: CreateOrderForm = {
 
 const num = (n: number) => String(Number(n.toFixed(3))).replace('.', ',');
 
-/**
- * Форма заявки: создание (UC-03, UC-04, UC-05 адресами) и изменение (пока нет откликов).
- * orderId передаётся только при изменении.
- */
+// форма заявки: создание (UC-03, UC-04, UC-05 с адресами) и изменение (пока нет откликов)
+// orderId передается только при изменении
 export function useOrderFormViewModel(orderId?: string) {
   const isEdit = Boolean(orderId);
   const [values, setValues] = useState<CreateOrderForm>(EMPTY_ORDER);
   const [errors, setErrors] = useState<FieldErrors<CreateOrderForm>>({});
-  /** Меняется после публикации: экран по этому ключу пересоздаёт форму (пустую, с начала). */
+  // меняется после публикации: по этому ключу экран пересоздает форму (пустую, с начала)
   const [formKey, setFormKey] = useState(0);
   const existing = useQuery(orderId ? () => OrderService.getOrderDetails(orderId) : null, [orderId]);
 
-  // Форма изменения заполняется данными заявки один раз, когда они загрузились.
+  // форма изменения заполняется данными заявки один раз, когда они загрузились
   const [filledFrom, setFilledFrom] = useState<string | null>(null);
   const o = existing.data;
   if (o && filledFrom !== o.id) {
@@ -128,7 +124,7 @@ export function useOrderFormViewModel(orderId?: string) {
     setErrors((e) => ({ ...e, [key]: undefined }));
   };
 
-  /** Предпросмотр габаритов, пока форма заполняется: подсказка про негабарит. */
+  // предпросмотр габаритов, пока форма заполняется: подсказка про негабарит
   const preview = useMemo(() => {
     const n = (s: string) => Number(s.replace(',', '.'));
     const dims: DimensionsDTO = {
@@ -142,7 +138,7 @@ export function useOrderFormViewModel(orderId?: string) {
   }, [values.lengthM, values.widthM, values.heightM, values.weightT]);
 
   const submit = async () => {
-    // Обязательные поля и диапазоны проверяются до отправки запроса.
+    // обязательные поля и диапазоны проверяю до отправки запроса
     const checked = validate(createOrderSchema, values);
     if (!checked.ok) {
       setErrors(checked.errors);
@@ -167,7 +163,7 @@ export function useOrderFormViewModel(orderId?: string) {
   };
 }
 
-/** Имена полей API → имена полей формы, чтобы ошибка сервера подсветила нужное поле. */
+// имена полей api -> имена полей формы, чтобы ошибка сервера подсветила нужное поле
 function mapServerFields(fields: Record<string, string>): FieldErrors<CreateOrderForm> {
   const map: Record<string, keyof CreateOrderForm> = {
     cargoTypeCode: 'type',
@@ -178,9 +174,9 @@ function mapServerFields(fields: Record<string, string>): FieldErrors<CreateOrde
   return Object.fromEntries(Object.entries(fields).map(([k, v]) => [map[k] ?? k, v]));
 }
 
-// ---------------------------------------------------------- Водитель ---
+// --- водитель ---
 
-/** OrderFeedScreen: UC-08 + UC-09 — лента под выбранное ТС с поиском и сортировкой. */
+// OrderFeedScreen: UC-08 + UC-09 - лента под выбранное ТС с поиском и сортировкой
 export function useOrderFeedViewModel() {
   const user = useCurrentUser();
   const vehiclesQuery = useQuery(() => VehicleService.getMyVehicles(), [user.id]);
@@ -215,7 +211,7 @@ export function useOrderFeedViewModel() {
   };
 }
 
-/** Вкладка «Мои рейсы»: назначенные рейсы (постранично) и отправленные отклики. */
+// вкладка "мои рейсы": назначенные рейсы (страницами) и отправленные отклики
 export function useDriverTripsViewModel() {
   const [tab, setTab] = useState<'trips' | 'bids'>('trips');
   const [status, setStatus] = useState<'active' | 'archive'>('active');

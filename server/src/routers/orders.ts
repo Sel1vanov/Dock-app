@@ -19,7 +19,7 @@ import {
   StatusChangeRequest,
 } from '../schemas/orders.js';
 
-/** Заявки: CRUD, лента, торг, исполнение рейса, отзывы. */
+// заявки: CRUD, лента, торг, выполнение рейса, отзывы
 export const ordersRouter: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/',

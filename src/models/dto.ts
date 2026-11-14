@@ -1,11 +1,9 @@
-/**
- * DTO (Data Transfer Objects) — то, что видит слой представления.
- *
- * Ответы API (килограммы, относительные ссылки на файлы) не попадают в UI напрямую:
- * сервисы преобразуют их в эти объекты (см. mappers.ts). Это даёт:
- *  - контроль — явно перечислены поля, нужные интерфейсу;
- *  - независимость — при изменении формата API меняется только маппер, экраны остаются прежними.
- */
+// DTO - то, с чем работает интерфейс
+//
+// ответы api (килограммы, относительные ссылки на файлы) напрямую в UI не идут:
+// сервисы превращают их в эти объекты (см. mappers.ts). зачем:
+//  - явно видно, какие поля нужны интерфейсу
+//  - поменялся формат api - правлю только маппер, экраны не трогаю
 import type {
   ApiAdminDispute,
   ApiBidStatus,
@@ -25,15 +23,13 @@ export type BidStatus = ApiBidStatus;
 export type VehicleType = ApiVehicleType;
 export type PhotoStage = ApiPhotoStage;
 export type DocumentType = ApiDocumentType;
-/** Статус верификации водителя (UC-01/UC-02): нет документов → на проверке → подтверждён/отклонён. */
+// статус верификации водителя (UC-01/UC-02): нет документов -> на проверке -> подтвержден/отклонен
 export type VerificationStatus = ApiVerificationStatus;
-/** Код типа груза из справочника cargo_types. */
+// код типа груза из справочника cargo_types
 export type CargoType = 'Car' | 'Container' | 'Machinery' | 'Agricultural' | 'Equipment' | 'Other';
 
-/**
- * Группы статусов для списка заявок (параметр status в GET /orders):
- * active — все незавершённые, open — поиск исполнителя, inProgress — исполнитель выбран, archive — завершённые.
- */
+// группы статусов для списка заявок (параметр status в GET /orders):
+// active - все незавершенные, open - ищем исполнителя, inProgress - исполнитель выбран, archive - завершенные
 export type OrderStatusGroup = 'active' | 'open' | 'inProgress' | 'archive';
 
 export interface Page<T> {
@@ -57,17 +53,17 @@ export interface UserDTO {
   rating: RatingDTO | null;
 }
 
-/** Контрагент по заказу: заказчик или водитель. */
+// вторая сторона по заказу: заказчик или водитель
 export interface PersonDTO {
   id: string;
   fullName: string;
-  /** Виден только контрагенту по назначенному заказу. */
+  // виден только второй стороне по назначенному заказу
   phone: string | null;
   isVerified: boolean;
   rating: RatingDTO | null;
 }
 
-/** Габариты в метрах, масса в тоннах (в БД и API масса — в килограммах). */
+// габариты в метрах, вес в тоннах (в базе и api вес в кг)
 export interface DimensionsDTO {
   lengthM: number;
   widthM: number;
@@ -96,7 +92,7 @@ export interface VehicleDTO extends DimensionsDTO {
 export interface MyBidDTO {
   id: string;
   price: number;
-  /** Встречная цена заказчика; null — заказчик свою цену не предлагал. */
+  // встречная цена заказчика, null - заказчик свою цену не предлагал
   counterPrice: number | null;
   status: BidStatus;
 }
@@ -113,14 +109,14 @@ export interface OrderListItemDTO {
   updatedAt: string;
   bidsCount: number;
   clientName: string;
-  /** Отклик текущего водителя (для ленты водителя). */
+  // отклик текущего водителя (для ленты водителя)
   myBid: MyBidDTO | null;
 }
 
 export interface BidDTO {
   id: string;
   price: number;
-  /** Встречная цена, которую заказчик предложил водителю. */
+  // встречная цена, которую заказчик предложил водителю
   counterPrice: number | null;
   comment: string | null;
   status: BidStatus;
@@ -132,7 +128,7 @@ export interface BidDTO {
 export interface PhotoDTO {
   id: string;
   stage: PhotoStage;
-  /** Подписанная ссылка для показа (действует ограниченное время). */
+  // подписанная ссылка для показа (живет ограниченное время)
   url: string;
   uploadedAt: string;
 }
@@ -145,24 +141,24 @@ export interface OrderDetailsDTO extends OrderListItemDTO {
   bids: BidDTO[];
   photos: PhotoDTO[];
   cancelReason: string | null;
-  /** id авторов уже оставленных отзывов по заказу. */
+  // id авторов уже оставленных отзывов по заказу
   reviewAuthorIds: string[];
-  /** Последний спор по заказу (UC-20, UC-21). */
+  // последний спор по заказу (UC-20, UC-21)
   dispute: DisputeDTO | null;
 }
 
-/** Спор по заказу. Формат API совпадает с нужным интерфейсу — DTO его повторяет. */
+// спор по заказу. формат api уже такой, как нужен интерфейсу, поэтому DTO просто его повторяет
 export type DisputeDTO = ApiDispute;
 export type DisputeStatus = DisputeDTO['status'];
-/** Спор в очереди администратора — с кратким описанием заказа. */
+// спор в очереди админа - с кратким описанием заказа
 export type AdminDisputeDTO = ApiAdminDispute;
 
 export interface FeedPageDTO extends Page<OrderListItemDTO> {
-  /** Сколько открытых заявок скрыто фильтром по ТС. */
+  // сколько открытых заявок скрыл фильтр по ТС
   hiddenCount: number;
 }
 
-/** Отклик водителя вместе с заказом — вкладка «Мои отклики». */
+// отклик водителя вместе с заказом - для вкладки "мои отклики"
 export interface DriverBidDTO extends MyBidDTO {
   comment: string | null;
   createdAt: string;
@@ -198,7 +194,7 @@ export interface NotificationPageDTO extends Page<NotificationDTO> {
   unreadCount: number;
 }
 
-/** Отзыв о текущем пользователе (UC-19). */
+// отзыв о текущем юзере (UC-19)
 export interface ReviewDTO {
   id: string;
   rating: number;
@@ -209,7 +205,7 @@ export interface ReviewDTO {
   createdAt: string;
 }
 
-/** Параметры серверного поиска, фильтрации и сортировки списков. */
+// параметры поиска, фильтрации и сортировки списков (все делается на сервере)
 export type OrderSort = '-createdAt' | 'createdAt' | '-price' | 'price';
 
 export interface OrderListParams {

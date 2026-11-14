@@ -9,7 +9,7 @@ import { NotificationService, orderTitle } from './NotificationService.js';
 
 const DUPLICATE = 'Вы уже оставили отзыв по этому заказу';
 
-/** UC-19: отзыв и оценка контрагенту после завершения заказа. */
+// UC-19: отзыв и оценка второй стороне после завершения заказа
 export class ReviewService {
   private readonly orders: OrderRepository;
   private readonly reviews: ReviewRepository;

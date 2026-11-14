@@ -9,17 +9,15 @@ export interface QueryState<T> {
   isLoading: boolean;
   isRefreshing: boolean;
   error: string | null;
-  /** Перезагрузка (pull-to-refresh). */
+  // перезагрузка (pull-to-refresh)
   refresh: () => Promise<void>;
-  /** Тихая перезагрузка без индикатора — после действий пользователя. */
+  // тихая перезагрузка без индикатора - после действий юзера
   reload: () => Promise<void>;
 }
 
-/**
- * Загрузка данных для экрана. Перезапрашивает данные при каждом возвращении на экран,
- * чтобы статусы заказов и отклики были актуальными. С pollMs, пока экран открыт и приложение
- * активно, данные тихо обновляются с этим интервалом — изменения другой стороны появляются сами.
- */
+// загрузка данных для экрана. перезапрашивает каждый раз при возврате на экран,
+// чтобы статусы заказов и отклики были свежие. если задан pollMs - пока экран открыт и приложение
+// активно, данные тихо обновляются с этим интервалом, и изменения второй стороны появляются сами
 export function useQuery<T>(
   loader: (() => Promise<T>) | null,
   deps: unknown[],
@@ -30,13 +28,13 @@ export function useQuery<T>(
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const loaderRef = useRef(loader);
-  // Последняя версия загрузчика (замыкание с актуальными параметрами) — до запуска эффектов.
+  // последняя версия загрузчика (замыкание с актуальными параметрами), обновляю до запуска эффектов
   useLayoutEffect(() => {
     loaderRef.current = loader;
   });
   const requestId = useRef(0);
 
-  // Параметры загрузки изменились → сразу показываем индикатор (корректировка состояния при рендере).
+  // параметры загрузки поменялись -> сразу показываем индикатор (состояние правится прямо при рендере)
   const depsKey = JSON.stringify(deps);
   const [loadedKey, setLoadedKey] = useState(depsKey);
   if (loadedKey !== depsKey) {
@@ -44,7 +42,7 @@ export function useQuery<T>(
     setIsLoading(Boolean(loader));
   }
 
-  /** Запрос к серверу; состояние меняется только после ответа (await). */
+  // запрос к серверу, состояние меняется только после ответа (await)
   const fetchData = useCallback(async () => {
     const load = loaderRef.current;
     if (!load) return;
@@ -100,7 +98,7 @@ export interface ActionState<A extends unknown[]> {
   clearError: () => void;
 }
 
-/** Действие пользователя (мутация) с индикатором выполнения и текстом ошибки. */
+// действие юзера (мутация) с индикатором выполнения и текстом ошибки
 export function useAction<A extends unknown[]>(action: (...args: A) => Promise<unknown>): ActionState<A> {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -134,16 +132,14 @@ export interface PagedQueryState<T> {
   isLoadingMore: boolean;
   hasMore: boolean;
   error: string | null;
-  /** Догрузить следующую страницу (бесконечная прокрутка). */
+  // догрузить следующую страницу (бесконечная прокрутка)
   loadMore: () => void;
   refresh: () => Promise<void>;
   reload: () => Promise<void>;
 }
 
-/**
- * Постраничная загрузка с сервера (LIMIT/OFFSET): первая страница загружается при открытии
- * и при каждом изменении фильтров (deps), следующие — по мере прокрутки списка.
- */
+// загрузка страницами с сервера (LIMIT/OFFSET): первая страница грузится при открытии
+// и при каждом изменении фильтров (deps), следующие - по мере прокрутки списка
 export function usePagedQuery<P extends { items: { id: string }[]; total: number }>(
   loader: ((offset: number) => Promise<P>) | null,
   deps: unknown[],
@@ -170,7 +166,7 @@ export function usePagedQuery<P extends { items: { id: string }[]; total: number
     setIsLoading(Boolean(loader));
   }
 
-  /** Первая страница; состояние меняется только после ответа сервера. */
+  // первая страница, состояние меняется только после ответа сервера
   const fetchFirst = useCallback(async () => {
     const load = loaderRef.current;
     if (!load) return;
@@ -203,7 +199,7 @@ export function usePagedQuery<P extends { items: { id: string }[]; total: number
       .then((page) => {
         if (id !== requestId.current) return;
         setItems((prev) => {
-          // Пока листали, могли появиться новые записи: убираем повторы по id.
+          // пока листали, могли появиться новые записи - убираю повторы по id
           const known = new Set(prev.map((x) => x.id));
           return [...prev, ...page.items.filter((x) => !known.has(x.id))];
         });
@@ -219,7 +215,7 @@ export function usePagedQuery<P extends { items: { id: string }[]; total: number
       });
   }, [loadedCount, total]);
 
-  // Новые фильтры → первая страница заново (пока грузится, экран показывает индикатор).
+  // новые фильтры -> первая страница заново (пока грузится, на экране индикатор)
   useEffect(() => {
     void fetchFirst();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -257,7 +253,7 @@ export function usePagedQuery<P extends { items: { id: string }[]; total: number
   };
 }
 
-/** Значение, которое обновляется с задержкой — чтобы не отправлять запрос на каждую букву поиска. */
+// значение, которое обновляется с задержкой - чтобы не слать запрос на каждую букву поиска
 export function useDebouncedValue<T>(value: T, delayMs = 400): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {

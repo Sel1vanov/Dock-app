@@ -1,14 +1,12 @@
-/**
- * Начальные данные для демонстрации и ручной проверки (npm run db:seed).
- * Покрывают все статусы заказа, связи (отклики, встречную цену, фото, отзывы, спор, ТС с типами грузов,
- * уведомления о событиях), фильтры и поиск, а также ошибочные сценарии: неверифицированный водитель,
- * водитель на проверке, заблокированный пользователь, закрытые заявки.
- *
- *   npm run db:seed            — заполнить пустую базу
- *   npm run db:seed -- --fresh — очистить все таблицы (кроме справочника) и заполнить заново
- *
- * Пароль у всех демо-пользователей: Dock12345
- */
+// демо-данные для показа и ручной проверки (npm run db:seed)
+// есть заказы во всех статусах, отклики, встречная цена, фото, отзывы, спор, ТС с типами грузов,
+// уведомления, данные под фильтры и поиск. плюс "плохие" случаи: водитель без верификации,
+// водитель на проверке, заблокированный юзер, закрытые заявки
+//
+//   npm run db:seed            - заполнить пустую базу
+//   npm run db:seed -- --fresh - снести все таблицы (кроме справочника) и заполнить заново
+//
+// пароль у всех демо-юзеров: Dock12345
 import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
@@ -42,7 +40,7 @@ import { initOrm } from './orm.js';
 
 export const DEMO_PASSWORD = 'Dock12345';
 
-/** Демо-учётки из README. Все с паролем DEMO_PASSWORD; последняя заблокирована. */
+// демо-учетки из README, у всех пароль DEMO_PASSWORD. заблокированная лежит отдельно ниже
 export const DEMO_ACCOUNTS = [
   'admin@dock.ru',
   'client@dock.ru',
@@ -53,10 +51,8 @@ export const DEMO_ACCOUNTS = [
 ] as const;
 export const DEMO_BLOCKED_ACCOUNT = 'blocked@dock.ru';
 
-/**
- * Проверяет, что демо-учётки в базе такие, как в README: есть, пароль не менялся, блокировка не трогалась.
- * Возвращает список расхождений (пустой — всё в порядке).
- */
+// проверяет, что демо-учетки в базе такие же, как в README: существуют, пароль не меняли, блокировку не трогали
+// возвращает список расхождений, пустой - все ок
 export async function checkDemoAccounts(em: EntityManager): Promise<string[]> {
   const emails = [...DEMO_ACCOUNTS, DEMO_BLOCKED_ACCOUNT];
   const users = await em.find(User, { email: { $in: emails } }, { populate: ['passwordHash'] });
@@ -91,7 +87,7 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
   };
 
   await em.transactional(async (tx) => {
-    // ------------------------------------------------------------ пользователи
+    // --- пользователи
     const user = (data: Partial<User> & Pick<User, 'email' | 'fullName' | 'phone' | 'role'>) =>
       tx.create(User, { passwordHash, ...data });
 
@@ -143,7 +139,7 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
       isBlocked: true,
     });
 
-    // ------------------------------------------------------------- транспорт
+    // --- транспорт
     const [machinery, agricultural, equipment, car, container, other] = await Promise.all(
       ['Machinery', 'Agricultural', 'Equipment', 'Car', 'Container', 'Other'].map(cargo),
     );
@@ -188,7 +184,7 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
     });
     flatbed.cargoTypes.set([equipment, container, other]);
 
-    // ---------------------------------------------------------------- заявки
+    // --- заявки
     const order = (
       data: Partial<Order> &
         Pick<
@@ -205,7 +201,7 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
         >,
     ) => tx.create(Order, data);
 
-    // Открытые заявки без откликов — разные типы, цены и даты (поиск, фильтр, сортировка, пагинация)
+    // открытые заявки без откликов - разные типы, цены и даты (для поиска, фильтра, сортировки, пагинации)
     order({
       client: anna,
       cargoType: machinery,
@@ -298,9 +294,9 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
       createdAt: ago(4),
     });
 
-    // Ещё открытые заявки — чтобы списки были длиннее одной страницы (по 10) и была видна подгрузка частями:
-    // «Мои заявки → Поиск» у client@dock.ru — 14 заявок, «Поиск грузов» у driver@dock.ru (трал) — 17.
-    // Все помещаются в трал Ивана по габаритам, массе и типу груза.
+    // еще открытые заявки, чтобы списки были длиннее одной страницы (по 10) и было видно подгрузку:
+    // мои заявки -> поиск у client@dock.ru - 14 штук, поиск грузов у driver@dock.ru (трал) - 17
+    // все влезают в трал Ивана по габаритам, весу и типу груза
     const moreOpenOrders = [
       {
         client: anna, cargoType: machinery, description: 'Фронтальный погрузчик SDLG L956F',
@@ -380,7 +376,7 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
       });
     }
 
-    // Идёт торг: два отклика
+    // идет торг: два отклика
     const bidding = order({
       client: anna,
       cargoType: machinery,
@@ -395,7 +391,7 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
       status: OrderStatus.Bidding,
       createdAt: ago(0, 20),
     });
-    // На отклик Ивана заказчица ответила встречной ценой
+    // на отклик Ивана заказчица ответила встречной ценой
     tx.create(Bid, {
       order: bidding,
       driver: ivan,
@@ -406,7 +402,7 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
     });
     tx.create(Bid, { order: bidding, driver: oleg, offeredPrice: 33000, comment: null, createdAt: ago(0, 10) });
 
-    // Исполнитель выбран, ожидает оплаты
+    // исполнитель выбран, ждет оплаты
     const assigned = order({
       client: stroy,
       cargoType: equipment,
@@ -430,7 +426,7 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
       createdAt: ago(2, 2),
     });
 
-    // В пути: оплачено, есть фото погрузки
+    // в пути: оплачено, есть фото погрузки
     const inTransit = order({
       client: anna,
       cargoType: agricultural,
@@ -455,7 +451,7 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
       createdAt: ago(4, 20),
     });
 
-    // Завершён: фото погрузки и выгрузки, отзывы обеих сторон
+    // завершен: фото погрузки и выгрузки, отзывы с обеих сторон
     const completed = order({
       client: anna,
       cargoType: machinery,
@@ -495,7 +491,7 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
       createdAt: ago(9),
     });
 
-    // Отменён с причиной
+    // отменен с причиной
     order({
       client: stroy,
       cargoType: car,
@@ -512,7 +508,7 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
       createdAt: ago(7),
     });
 
-    // Спор: груз повреждён при погрузке, заказчик открыл спор — ждёт решения администратора
+    // спор: груз повредили при погрузке, заказчик открыл спор, ждет решения админа
     const disputed = order({
       client: stroy,
       cargoType: machinery,
@@ -545,9 +541,9 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
       createdAt: ago(0, 3),
     });
 
-    // ---------------------------------------------------------- уведомления
-    // О событиях, которые уже есть в демо-данных выше: отклики, встречная цена, выбор исполнителя,
-    // оплата, этапы рейса, приёмка, отзывы, проверка документов.
+    // --- уведомления
+    // про события, которые уже есть в данных выше: отклики, встречная цена, выбор исполнителя,
+    // оплата, этапы рейса, приемка, отзывы, проверка документов
     const notice = (
       user: User,
       type: NotificationType,
@@ -667,7 +663,7 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
       { relatedUser: sergey },
     );
 
-    await tx.flush(); // id заказов известны — сохраняем файлы с правильными ключами
+    await tx.flush(); // теперь id заказов известны, можно сохранять файлы с правильными ключами
 
     for (const [o, stage, name, at] of [
       [inTransit, PhotoStage.Loading, 'loading.jpg', ago(1)],
@@ -683,7 +679,7 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
       });
     }
 
-    // Документы водителей (Иван — подтверждён, Сергей — на проверке)
+    // документы водителей (Иван подтвержден, Сергей на проверке)
     for (const driver of [ivan, sergey]) {
       for (const docType of Object.values(DocumentType)) {
         tx.create(VerificationDocument, {
@@ -696,14 +692,14 @@ export async function seed(em: EntityManager, storage: LocalFileStorage): Promis
   });
 }
 
-/** Удаляет данные всех таблиц, кроме справочника типов груза. */
+// чистит все таблицы, кроме справочника типов груза
 export async function truncateData(em: EntityManager): Promise<void> {
   await em.execute(
     'truncate table "disputes", "notifications", "reviews", "order_photos", "bids", "orders", "vehicle_cargo_types", "vehicles", "verification_documents", "users" restart identity cascade',
   );
 }
 
-// Запуск из командной строки
+// если запустили файл напрямую из консоли
 if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename)) {
   loadEnvFile();
   const config = loadConfig();

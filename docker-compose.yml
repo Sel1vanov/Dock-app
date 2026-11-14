@@ -1,4 +1,4 @@
-# Локальный PostgreSQL для разработки и автотестов: docker compose up -d
+# локальный postgres для разработки и тестов: docker compose up -d
 services:
   postgres:
     image: postgres:17

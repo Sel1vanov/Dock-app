@@ -1,6 +1,4 @@
-/**
- * Платформенные функции (диалоги, камера), одинаково работающие на iOS, Android и в вебе.
- */
+// штуки, зависящие от платформы (диалоги, камера), чтобы одинаково работало на ios, android и в вебе
 import * as ImagePicker from 'expo-image-picker';
 import { Alert, Platform } from 'react-native';
 
@@ -28,7 +26,7 @@ export function notify(title: string, message?: string): void {
 
 export type ImageSource = 'camera' | 'library';
 
-/** Снимок с камеры или из галереи в base64 (JPEG). null — пользователь отменил выбор. */
+// фото с камеры или из галереи в base64 (JPEG). null - юзер отменил выбор
 export async function pickImage(source: ImageSource): Promise<string | null> {
   const options: ImagePicker.ImagePickerOptions = {
     mediaTypes: ['images'],
@@ -50,7 +48,7 @@ export async function pickImage(source: ImageSource): Promise<string | null> {
   return asset.base64;
 }
 
-/** Выбор источника фото: камера или галерея (в вебе — сразу выбор файла). */
+// выбор, откуда брать фото: камера или галерея (в вебе сразу выбор файла)
 export function chooseImageSource(): Promise<ImageSource | null> {
   if (Platform.OS === 'web') return Promise.resolve('library');
   return new Promise((resolve) => {

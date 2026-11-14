@@ -4,17 +4,15 @@ import { Entity, Enum, Index, ManyToOne, PrimaryKey, Property, Unique } from '@m
 import { PhotoStage } from './enums.js';
 import { Order } from './Order.js';
 
-/**
- * Фотофиксация груза при погрузке и выгрузке (SAD 5, класс OrderPhoto; UC-17).
- * Хранится ключ файла в хранилище, а не публичная ссылка: ссылку для показа API подписывает
- * на ограниченное время. Кто загрузил — не хранится: это всегда назначенный водитель заказа.
- */
+// фото груза при погрузке и выгрузке (SAD 5, класс OrderPhoto, UC-17)
+// храню ключ файла в хранилище, а не публичную ссылку: ссылку api подписывает на время
+// кто загрузил не храню - это всегда назначенный водитель заказа
 @Entity({ tableName: 'order_photos' })
 export class OrderPhoto {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
   id!: string;
 
-  /** Фото — часть заказа (композиция в SAD): удаляются вместе с ним (CASCADE). */
+  // фото - часть заказа (в SAD композиция), удаляются вместе с ним (CASCADE)
   @Index({ name: 'idx_order_photos_order' })
   @ManyToOne(() => Order, { deleteRule: 'cascade' })
   order!: Order;

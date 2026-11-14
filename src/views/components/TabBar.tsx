@@ -3,10 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, family, spacing } from '../theme';
 
-/**
- * Нижняя навигация — тёмная «капсула»: активная вкладка подсвечена оранжевым и подписана,
- * остальные — только иконкой (подпись озвучивается программой экранного доступа).
- */
+// нижняя навигация в виде темной капсулы: активная вкладка оранжевая и с подписью,
+// остальные только иконкой (подпись читает скринридер)
 export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: BottomTabBarProps) {
   return (
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>

@@ -1,9 +1,7 @@
-/**
- * CLI миграций (аналог `alembic upgrade/downgrade/current`):
- *   npm run db:migrate            — применить все новые миграции
- *   npm run db:migrate -- down    — откатить последнюю миграцию
- *   npm run db:migrate -- status  — какие миграции применены, какие ждут
- */
+// миграции из консоли (как alembic upgrade/downgrade/current):
+//   npm run db:migrate            - накатить все новые
+//   npm run db:migrate -- down    - откатить последнюю
+//   npm run db:migrate -- status  - что применено и что ждет
 import { loadConfig, loadEnvFile } from '../core/config.js';
 import { initOrm } from './orm.js';
 
@@ -11,7 +9,7 @@ loadEnvFile();
 const config = loadConfig();
 const command = process.argv[2] ?? 'up';
 
-// Какая база используется — видно сразу (без пароля). Не localhost — значит, это не PostgreSQL из Docker.
+// сразу печатаю, в какую базу идем (без пароля). если не localhost - это не докеровский postgres
 const db = new URL(config.DATABASE_URL);
 const target = `${db.hostname}:${db.port || 5432}${db.pathname}`;
 console.log(`База данных: ${target}`);
@@ -24,8 +22,8 @@ if (!['localhost', '127.0.0.1', '::1', '[::1]'].includes(db.hostname)) {
 
 const orm = await initOrm(config);
 
-// Версия сервера: в docker-compose.yml — PostgreSQL 17. Другая версия на localhost значит, что порт 5432 занят
-// PostgreSQL, установленным на самом компьютере, и проект работает с ним, а не с базой из Docker.
+// в docker-compose стоит postgres 17. если на localhost другая версия - значит порт 5432 занят
+// постгресом, установленным на самом компе, и работаем с ним, а не с докером
 const [{ server_version: version }] = await orm.em.getConnection().execute<{ server_version: string }[]>(
   'show server_version',
 );

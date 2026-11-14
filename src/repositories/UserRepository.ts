@@ -1,7 +1,7 @@
 import { apiRequest } from '../core/api';
 import type { ApiDocument, ApiDocumentType, ApiPage, ApiReceivedReview, ApiToken, ApiUser } from '../models/api';
 
-/** Профиль текущего пользователя и документы для верификации (/users/me…). */
+// профиль текущего юзера и документы для верификации (/users/me...)
 export const UserRepository = {
   getMe(): Promise<ApiUser> {
     return apiRequest('GET', '/users/me');
@@ -11,7 +11,7 @@ export const UserRepository = {
     return apiRequest('PATCH', '/users/me', { body: patch });
   },
 
-  /** Смена пароля: сервер отзывает прежние токены и возвращает новый. */
+  // смена пароля: сервер отзывает старые токены и возвращает новый
   changePassword(payload: {
     currentPassword: string;
     newPassword: string;

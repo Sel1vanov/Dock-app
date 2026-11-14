@@ -28,9 +28,9 @@ const toPayload = (input: CreateOrderInput): OrderPayload => ({
   price: input.price,
 });
 
-/** Жизненный цикл заявки: создание, списки, карточка, изменение, удаление, отмена, оплата, приёмка. */
+// жизненный цикл заявки: создание, списки, карточка, изменение, удаление, отмена, оплата, приемка
 export const OrderService = {
-  /** UC-03 + UC-04: публикация заявки с габаритами и весом. */
+  // UC-03 + UC-04: публикация заявки с габаритами и весом
   async createOrder(input: CreateOrderInput): Promise<OrderDetailsDTO> {
     return toOrderDetailsDTO(await OrderRepository.create(toPayload(input)));
   },
@@ -45,7 +45,7 @@ export const OrderService = {
     await OrderRepository.remove(order.id);
   },
 
-  /** «Мои заявки» заказчика / «Мои рейсы» водителя — страница с сервера. */
+  // мои заявки заказчика / мои рейсы водителя - страница с сервера
   async getMyOrders(
     status: OrderStatusGroup | OrderStatus | undefined,
     params: OrderListParams,
@@ -55,7 +55,7 @@ export const OrderService = {
     return { items: page.items.map(toOrderListItemDTO), total: page.total };
   },
 
-  /** UC-08 + UC-09: лента заявок, подходящих под выбранное ТС. */
+  // UC-08 + UC-09: лента заявок под выбранное ТС
   async getFeed(vehicle: VehicleDTO, params: OrderListParams, offset: number): Promise<FeedPageDTO> {
     const page = await OrderRepository.feed(vehicle.id, { ...params, limit: PAGE_SIZE, offset });
     return { items: page.items.map(toOrderListItemDTO), total: page.total, hiddenCount: page.hiddenCount };
@@ -65,19 +65,19 @@ export const OrderService = {
     return toOrderDetailsDTO(await OrderRepository.get(orderId));
   },
 
-  /** UC-07 */
+  // UC-07
   async cancelOrder(order: OrderDetailsDTO, reason: string): Promise<void> {
     if (!canCancel(order)) throw new AppError('Заказ уже нельзя отменить');
     await OrderRepository.cancel(order.id, reason.trim());
   },
 
-  /** UC-12 + UC-13: оплата с заморозкой средств (демо без платёжного шлюза). */
+  // UC-12 + UC-13: оплата с заморозкой денег (демо, платежного шлюза нет)
   async payOrder(order: OrderDetailsDTO): Promise<void> {
     if (!canPay(order)) throw new AppError('Оплата сейчас недоступна');
     await OrderRepository.pay(order.id);
   },
 
-  /** UC-18 (+ UC-14: средства переводятся исполнителю). */
+  // UC-18 (+ UC-14: деньги уходят исполнителю)
   async confirmDelivery(order: OrderDetailsDTO): Promise<void> {
     if (!canConfirmDelivery(order, order.photos)) {
       throw new AppError('Подтвердить приёмку можно после фотофиксации выгрузки');
@@ -85,7 +85,7 @@ export const OrderService = {
     await OrderRepository.complete(order.id);
   },
 
-  /** UC-20: открыть спор — рейс приостанавливается до решения администратора. */
+  // UC-20: открыть спор - рейс встает на паузу, пока админ не решит
   async openDispute(order: OrderDetailsDTO, reason: string): Promise<void> {
     if (!canOpenDispute(order)) throw new AppError('Спор можно открыть после оплаты и до приёмки груза');
     await OrderRepository.openDispute(order.id, reason.trim());

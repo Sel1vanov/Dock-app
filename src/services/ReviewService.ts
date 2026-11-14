@@ -3,7 +3,7 @@ import type { OrderDetailsDTO } from '../models/dto';
 import type { ReviewInput } from '../models/schemas';
 import { OrderRepository } from '../repositories/OrderRepository';
 
-/** UC-19: отзыв и оценка контрагенту после завершения заказа. */
+// UC-19: отзыв и оценка второй стороне после завершения заказа
 export const ReviewService = {
   canReview(order: OrderDetailsDTO, userId: string): boolean {
     const isParticipant = userId === order.clientId || userId === order.driverId;

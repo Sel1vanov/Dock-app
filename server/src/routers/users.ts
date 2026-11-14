@@ -14,7 +14,7 @@ import {
   UserUpdateRequest,
 } from '../schemas/users.js';
 
-/** Профиль текущего пользователя и документы водителя. Все данные — только свои (по токену). */
+// профиль текущего юзера и документы водителя. все только свое (по токену)
 export const usersRouter: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/me',

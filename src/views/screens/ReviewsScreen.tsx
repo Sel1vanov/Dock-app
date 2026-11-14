@@ -7,7 +7,7 @@ import { ReviewCard } from '../components/order';
 import { Banner, EmptyState, LoadingView, RatingLabel } from '../components/ui';
 import { colors, font, spacing } from '../theme';
 
-/** Отзывы обо мне (UC-19): оценки и комментарии контрагентов, новые сверху. */
+// отзывы обо мне (UC-19): оценки и комментарии второй стороны, новые сверху
 export function ReviewsScreen() {
   const vm = useReviewsViewModel();
   if (vm.isLoading) return <LoadingView />;

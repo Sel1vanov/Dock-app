@@ -3,9 +3,9 @@ import { driverNextStep } from '../models/domain';
 import type { OrderDetailsDTO, PhotoStage } from '../models/dto';
 import { OrderRepository } from '../repositories/OrderRepository';
 
-/** Исполнение рейса: смена статусов и фотофиксация (UC-15, UC-17). */
+// выполнение рейса: смена статусов и фото груза (UC-15, UC-17)
 export const TrackingService = {
-  /** Перевод рейса на следующий этап по статусной модели. */
+  // переводит рейс на следующий этап по статусной модели
   async advanceStatus(order: OrderDetailsDTO): Promise<void> {
     const step = driverNextStep(order, order.photos);
     if (!step || step.kind !== 'status') {
@@ -14,7 +14,7 @@ export const TrackingService = {
     await OrderRepository.changeStatus(order.id, step.to as 'Loading' | 'InTransit' | 'Unloading');
   },
 
-  /** Фото уходит на сервер, он сохраняет файл и запись order_photos. */
+  // фото уходит на сервер, там сохраняется файл и запись в order_photos
   async uploadPhotoReport(orderId: string, stage: PhotoStage, base64: string): Promise<void> {
     await OrderRepository.uploadPhoto(orderId, stage, base64);
   },

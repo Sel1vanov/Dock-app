@@ -1,4 +1,4 @@
-/** Компоненты предметной области: шапка, маршрут, габариты, карточка заказа, прогресс рейса, фото, связь. */
+// компоненты по предметке: шапка, маршрут, габариты, карточка заказа, прогресс рейса, фото, связь
 import type { ReactNode } from 'react';
 import { Image, KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,9 +12,9 @@ import { cargoTints, colors, family, font, formatNumber, formatPrice, formatRela
 import { NotificationBell } from './NotificationBell';
 import { Badge, Button, Card, Icon, TextField } from './ui';
 
-// ------------------------------------------------------------- Header ---
+// --- шапка ---
 
-/** Шапка главных экранов: знак Dock, крупный заголовок, колокольчик уведомлений. */
+// шапка главных экранов: знак Dock, крупный заголовок, колокольчик уведомлений
 export function ScreenHeader({
   title,
   subtitle,
@@ -44,7 +44,7 @@ export function ScreenHeader({
   );
 }
 
-/** Знак Dock: оранжевый квадрат с «платформой» и слово dock. */
+// знак Dock: оранжевый квадрат с "платформой" и слово dock
 export function BrandMark({ size = 28 }: { size?: number }) {
   return (
     <View style={s.brand} accessibilityRole="header" accessibilityLabel="Dock">
@@ -56,7 +56,7 @@ export function BrandMark({ size = 28 }: { size?: number }) {
   );
 }
 
-// -------------------------------------------------------------- Route ---
+// --- маршрут ---
 
 export function RouteView({
   origin,
@@ -92,7 +92,7 @@ export function RouteView({
   );
 }
 
-// --------------------------------------------------------- Dimensions ---
+// --- габариты ---
 
 export function DimensionTiles({ dims, accent }: { dims: DimensionsDTO; accent?: boolean }) {
   const items = [
@@ -127,7 +127,7 @@ export function OrderStatusBadge({ status, isEscrowLocked }: { status: OrderStat
   return <Badge label={info.label} tone={info.tone} icon={info.icon} />;
 }
 
-// --------------------------------------------------------- Order card ---
+// --- карточка заказа ---
 
 export function OrderCard({
   order,
@@ -187,9 +187,9 @@ export function MyBidBadge({
   );
 }
 
-// ------------------------------------------------------------- Review ---
+// --- отзыв ---
 
-/** Отзыв контрагента: оценка звёздами, комментарий, автор и дата. */
+// отзыв от второй стороны: оценка звездами, комментарий, автор и дата
 export function ReviewCard({ review, roleLabel }: { review: ReviewDTO; roleLabel: string }) {
   return (
     <View style={s.review}>
@@ -206,9 +206,9 @@ export function ReviewCard({ review, roleLabel }: { review: ReviewDTO; roleLabel
   );
 }
 
-// ------------------------------------------------------------ Contacts ---
+// --- контакты ---
 
-/** Связь с контрагентом: звонок, WhatsApp, Telegram (телефон виден только по назначенному заказу). */
+// связь со второй стороной: звонок, WhatsApp, Telegram (телефон виден только по назначенному заказу)
 export function ContactButtons({ phone }: { phone: string }) {
   const links = contactLinks(phone);
   return (
@@ -234,7 +234,7 @@ export function ContactButtons({ phone }: { phone: string }) {
   );
 }
 
-// ----------------------------------------------------------- Timeline ---
+// --- таймлайн ---
 
 export function StatusTimeline({ status, isEscrowLocked }: { status: OrderStatus; isEscrowLocked: boolean }) {
   const current = timelineIndex({ status, isEscrowLocked });
@@ -275,7 +275,7 @@ export function StatusTimeline({ status, isEscrowLocked }: { status: OrderStatus
   );
 }
 
-// ------------------------------------------------------------- Photos ---
+// --- фото ---
 
 export function PhotoGrid({ photos, emptyText }: { photos: PhotoDTO[]; emptyText: string }) {
   const [opened, setOpened] = useState<string | null>(null);
@@ -292,7 +292,7 @@ export function PhotoGrid({ photos, emptyText }: { photos: PhotoDTO[]; emptyText
   );
 }
 
-/** Полноэкранный просмотр фото (нажатие — закрыть). */
+// просмотр фото на весь экран (нажатие - закрыть)
 export function PhotoViewer({ url, onClose }: { url: string | null; onClose: () => void }) {
   return (
     <Modal visible={Boolean(url)} transparent animationType="fade" onRequestClose={onClose}>
@@ -303,9 +303,9 @@ export function PhotoViewer({ url, onClose }: { url: string | null; onClose: () 
   );
 }
 
-// ------------------------------------------------------------- Modals ---
+// --- модалки ---
 
-/** Диалог с текстовым полем — причина отмены (UC-07), встречная цена, причина спора и решение по нему. */
+// диалог с текстовым полем: причина отмены (UC-07), встречная цена, причина спора и решение по нему
 export function PromptModal({
   visible,
   title,
@@ -324,12 +324,12 @@ export function PromptModal({
   confirmText: string;
   onCancel: () => void;
   onConfirm: (text: string) => void;
-  /** Поле для суммы в рублях. */
+  // поле для суммы в рублях
   numeric?: boolean;
   confirmVariant?: 'danger' | 'primary';
 }) {
   const [text, setText] = useState('');
-  // Поле очищается при закрытии окна: если ввод не прошёл проверку, текст остаётся для исправления
+  // поле очищается при закрытии окна. если ввод не прошел проверку, окно не закрывается и текст остается, можно поправить
   const [wasVisible, setWasVisible] = useState(visible);
   if (visible !== wasVisible) {
     setWasVisible(visible);
@@ -337,12 +337,12 @@ export function PromptModal({
   }
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      {/* Окно занимает весь экран, поэтому отступ на высоту клавиатуры поднимает карточку над ней. */}
+      {/* окно на весь экран, поэтому отступ на высоту клавиатуры поднимает карточку над ней */}
       <KeyboardAvoidingView behavior="padding" style={s.modalBackdrop}>
         <View style={s.modalCenter}>
           <View style={s.modalCard}>
             <Text style={font.h2}>{title}</Text>
-            {/* На небольшом экране при открытой клавиатуре текст и поле прокручиваются, кнопки остаются на виду. */}
+            {/* на маленьком экране с открытой клавиатурой текст и поле прокручиваются, а кнопки остаются на виду */}
             <ScrollView
               style={s.modalBody}
               contentContainerStyle={{ gap: spacing.lg }}

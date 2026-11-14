@@ -2,7 +2,7 @@ import { Redirect } from 'expo-router';
 
 import { useAuth } from '../viewmodels/AuthViewModel';
 
-/** Стартовый экран по роли: заказчик — «Мои заявки», водитель — «Поиск грузов», админ — «Модерация». */
+// стартовый экран по роли: заказчик - мои заявки, водитель - поиск грузов, админ - модерация
 export default function Index() {
   const { currentUser } = useAuth();
   const role = currentUser?.role;

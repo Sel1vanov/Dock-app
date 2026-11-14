@@ -11,7 +11,7 @@ import type {
   VerificationStatus,
 } from './dto';
 
-/** Справочники: русские подписи и иконки (MaterialCommunityIcons) для перечислений БД. */
+// справочники: русские подписи и иконки (MaterialCommunityIcons) для enum'ов из базы
 
 export const CARGO_TYPES: { value: CargoType; label: string; icon: string }[] = [
   { value: 'Car', label: 'Автомобиль', icon: 'car-side' },
@@ -40,7 +40,7 @@ export function vehicleTypeInfo(type: VehicleType) {
 
 export type StatusTone = 'info' | 'warning' | 'progress' | 'success' | 'muted' | 'danger';
 
-/** Подпись статуса заказа так, как она описана в Vision (статусная модель водителя). */
+// подпись статуса заказа так, как в Vision (статусная модель водителя)
 export function orderStatusInfo(
   status: OrderStatus,
   isEscrowLocked: boolean,
@@ -80,7 +80,7 @@ export function bidStatusInfo(status: BidStatus): { label: string; tone: StatusT
   }
 }
 
-/** Какие грузы обычно возит ТС такого типа — подставляется в форму ТС по умолчанию. */
+// какие грузы обычно возит ТС такого типа - подставляется в форму ТС по умолчанию
 export const DEFAULT_CARGO_BY_VEHICLE: Record<VehicleType, CargoType[]> = {
   Trawl: ['Machinery', 'Agricultural', 'Equipment'],
   Manipulator: ['Container', 'Equipment', 'Other'],
@@ -115,7 +115,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   Admin: 'Администратор',
 };
 
-/** Иконка и цвет уведомления по типу события. */
+// иконка и цвет уведомления по типу события
 export function notificationInfo(type: NotificationType): { icon: string; tone: StatusTone } {
   switch (type) {
     case 'BidPlaced':
@@ -153,7 +153,7 @@ export function notificationInfo(type: NotificationType): { icon: string; tone: 
   }
 }
 
-/** Статус спора (UC-20, UC-21). */
+// статус спора (UC-20, UC-21)
 export function disputeStatusInfo(status: DisputeStatus): { label: string; tone: StatusTone; icon: string } {
   switch (status) {
     case 'Open':
@@ -165,7 +165,7 @@ export function disputeStatusInfo(status: DisputeStatus): { label: string; tone:
   }
 }
 
-/** Этап рейса, на котором открыт спор. */
+// этап рейса, на котором открыли спор
 export const TRIP_STAGE_LABELS: Record<DisputeDTO['orderStatusAtOpen'], string> = {
   Assigned: 'оплачен, до погрузки',
   Loading: 'погрузка',

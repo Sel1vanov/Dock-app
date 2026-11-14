@@ -1,7 +1,5 @@
-/**
- * Хранение JWT на устройстве: на iOS/Android — в защищённом хранилище ОС (Keychain/Keystore)
- * через expo-secure-store; в браузере — в localStorage. При выходе токен удаляется.
- */
+// где лежит JWT на устройстве: на ios/android - в защищенном хранилище ОС (Keychain/Keystore)
+// через expo-secure-store, в браузере - в localStorage. при выходе токен удаляется
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 

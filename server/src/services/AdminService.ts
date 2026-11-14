@@ -14,18 +14,18 @@ import type { ServiceContext } from './context.js';
 import { toDocumentResponse, toUserResponse, toVehicleResponse } from './mappers.js';
 import { NotificationService } from './NotificationService.js';
 
-/** Без похожих символов (0/O, 1/l/I), чтобы пароль было легко продиктовать по телефону. */
+// без похожих символов (0/O, 1/l/I), чтобы пароль можно было продиктовать по телефону
 const LETTERS = 'abcdefghjkmnpqrstuvwxyz';
 const DIGITS = '23456789';
 
-/** Временный пароль: 6 букв и 4 цифры — проходит правила пароля (есть буква и цифра, 10 символов). */
+// временный пароль: 6 букв + 4 цифры, под правила пароля подходит (есть буква и цифра, 10 символов)
 export function generateTemporaryPassword(): string {
   const pick = (alphabet: string, n: number) =>
     Array.from({ length: n }, () => alphabet[randomInt(alphabet.length)]).join('');
   return `${pick(LETTERS, 6)}${pick(DIGITS, 4)}`;
 }
 
-/** Модерация: проверка документов водителей (UC-02), блокировка (UC-22), временный пароль. */
+// модерация: проверка документов водителей (UC-02), блокировка (UC-22), временный пароль
 export class AdminService {
   private readonly users: UserRepository;
   private readonly documents: DocumentRepository;
@@ -88,10 +88,8 @@ export class AdminService {
     return this.getUser(user.id);
   }
 
-  /**
-   * «Забыли пароль?»: администратор выдаёт временный пароль и сообщает его пользователю по телефону.
-   * Все прежние сессии пользователя завершаются; просьбы о сбросе у администраторов закрываются.
-   */
+  // "забыли пароль?": админ выдает временный пароль и говорит его юзеру по телефону
+  // все старые сессии юзера слетают, просьбы о сбросе у админов закрываются
   async issueTemporaryPassword(id: string) {
     const user = await this.users.findById(id);
     if (!user) throw new NotFoundError('Пользователь не найден');

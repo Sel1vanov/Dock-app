@@ -13,7 +13,7 @@ function tabIcon(name: string) {
   return TabIcon;
 }
 
-/** Вкладки зависят от роли: заказчик, водитель и администратор видят разные разделы. */
+// вкладки зависят от роли: у заказчика, водителя и админа разные разделы
 export default function TabsLayout() {
   const user = useCurrentUser();
   const isDriver = user.role === 'Driver';

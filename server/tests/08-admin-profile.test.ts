@@ -1,4 +1,4 @@
-/** Проверка прав по ролям (Admin), верификация водителя (UC-01, UC-02), профиль. */
+// права по ролям (Admin), верификация водителя (UC-01, UC-02), профиль
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 
@@ -39,7 +39,7 @@ describe('Верификация водителя и модерация', () => 
     res = await api(ctx, 'POST', '/users/me/verification', { token: driver.token });
     assert.equal(res.data.verificationStatus, 'pending');
 
-    // Водитель не может сам себя подтвердить — 403 на административном API
+    // водитель не может подтвердить сам себя - админский api отдает 403
     assert.equal(
       (
         await api(ctx, 'PATCH', `/admin/users/${driver.id}`, {

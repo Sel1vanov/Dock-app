@@ -1,7 +1,4 @@
-/**
- * Подключение ORM к PostgreSQL (слой database). Параметры приходят из Config,
- * а не читаются здесь из окружения.
- */
+// подключение orm к postgres. настройки приходят из Config, env тут не читаю
 import { Migrator } from '@mikro-orm/migrations';
 import { defineConfig, MikroORM, type Options } from '@mikro-orm/postgresql';
 
@@ -22,9 +19,9 @@ export function ormOptions(config: OrmConfig, overrides: Partial<Options> = {}):
       snapshot: false,
       silent: true,
     },
-    // Связанные данные по умолчанию: to-one — JOIN, to-many — отдельным запросом IN (…).
+    // как подгружать связи по умолчанию: to-one через JOIN, to-many отдельным запросом IN (...)
     loadStrategy: 'balanced',
-    // Без явного fork() глобальный EntityManager использовать запрещено: Session — на запрос.
+    // глобальный EntityManager без fork() запрещен - на каждый запрос свой
     allowGlobalContext: false,
     debug: config.DB_DEBUG ? ['query', 'query-params'] : false,
     pool: { min: 0, max: 10 },

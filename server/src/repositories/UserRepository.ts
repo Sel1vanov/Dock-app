@@ -16,7 +16,7 @@ export interface RatingAggregate {
   count: number;
 }
 
-/** Доступ к пользователям (таблица users) и их рейтингу (агрегат по reviews). */
+// пользователи (таблица users) и их рейтинг (агрегат по reviews)
 export class UserRepository {
   constructor(private readonly em: EntityManager) {}
 
@@ -24,7 +24,7 @@ export class UserRepository {
     return this.em.findOne(User, { id });
   }
 
-  /** Для входа: поле password_hash ленивое и выбирается только здесь. */
+  // для логина: password_hash ленивое поле и выбирается только тут
   findByEmailWithPassword(email: string): Promise<User | null> {
     return this.em.findOne(User, { email }, { populate: ['passwordHash'] });
   }
@@ -37,7 +37,7 @@ export class UserRepository {
     return (await this.em.count(User, { email })) > 0;
   }
 
-  /** Занят ли телефон другим аккаунтом (exceptUserId — сам пользователь при изменении профиля). */
+  // занят ли телефон другим аккаунтом (exceptUserId - сам юзер, когда редактирует профиль)
   async existsByPhone(phone: string, exceptUserId?: string): Promise<boolean> {
     return (await this.em.count(User, { phone, ...(exceptUserId ? { id: { $ne: exceptUserId } } : {}) })) > 0;
   }
@@ -46,7 +46,7 @@ export class UserRepository {
     return this.em.create(User, data);
   }
 
-  /** Поиск с фильтрами, сортировкой, LIMIT и OFFSET (модерация администратора). */
+  // поиск с фильтрами, сортировкой, LIMIT и OFFSET (для модерации)
   search(filter: UserSearch): Promise<[User[], number]> {
     const pattern = filter.q ? likePattern(filter.q) : null;
     return this.em.findAndCount(
@@ -60,11 +60,9 @@ export class UserRepository {
     );
   }
 
-  /**
-   * Рейтинги сразу для всех пользователей на экране — ОДИН запрос
-   * `SELECT target_id, avg(rating), count(*) … WHERE target_id IN (…) GROUP BY target_id`
-   * вместо запроса на каждого пользователя (защита от N+1).
-   */
+  // рейтинги сразу для всех юзеров на экране ОДНИМ запросом
+  // SELECT target_id, avg(rating), count(*) ... WHERE target_id IN (...) GROUP BY target_id
+  // а не по запросу на каждого (иначе N+1)
   async getRatings(userIds: string[]): Promise<Map<string, RatingAggregate>> {
     const ids = [...new Set(userIds)];
     const result = new Map<string, RatingAggregate>();

@@ -1,4 +1,4 @@
-/** Спор по заказу (UC-20, UC-21): карточка спора, кнопка «Открыть спор», решение администратора. */
+// спор по заказу (UC-20, UC-21): карточка спора, кнопка "открыть спор", решение админа
 import { StyleSheet, Text, View } from 'react-native';
 
 import { ROLE_LABELS, TRIP_STAGE_LABELS, disputeStatusInfo } from '../../models/catalog';
@@ -7,7 +7,7 @@ import { colors, family, font, formatPrice, formatRelative, radius, spacing } fr
 import { PromptModal } from './order';
 import { Badge, Button, Card, Icon } from './ui';
 
-/** Действия со спором из ViewModel карточки заказа (useOrderBase().dispute). */
+// действия со спором из viewmodel карточки заказа (useOrderBase().dispute)
 export interface DisputeActions {
   canOpen: boolean;
   formOpen: boolean;
@@ -21,7 +21,7 @@ export interface DisputeActions {
   resolve: (comment: string) => void;
 }
 
-/** Карточка спора: кто, когда и почему открыл, на каком этапе; решение администратора. */
+// карточка спора: кто, когда и почему открыл, на каком этапе, плюс решение админа
 export function DisputeCard({
   dispute,
   price,
@@ -87,7 +87,7 @@ export function DisputeCard({
   );
 }
 
-/** Кнопка «Открыть спор» и окна ввода причины спора и комментария к решению. */
+// кнопка "открыть спор" и окна для причины спора и комментария к решению
 export function DisputeControls({ actions }: { actions: DisputeActions }) {
   return (
     <>

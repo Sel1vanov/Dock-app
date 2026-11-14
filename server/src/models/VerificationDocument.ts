@@ -4,17 +4,15 @@ import { Entity, Enum, ManyToOne, PrimaryKey, Property, Unique } from '@mikro-or
 import { DocumentType } from './enums.js';
 import { User } from './User.js';
 
-/**
- * Скан документа водителя для верификации (UC-01): паспорт, ВУ, СТС.
- * По одному документу каждого типа — повторная загрузка заменяет файл.
- */
+// скан документа водителя для верификации (UC-01): паспорт, ВУ, СТС
+// по одному документу каждого типа, повторная загрузка заменяет файл
 @Entity({ tableName: 'verification_documents' })
 @Unique({ name: 'uk_verification_documents_user_type', properties: ['user', 'docType'] })
 export class VerificationDocument {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
   id!: string;
 
-  /** Персональные данные пользователя удаляются вместе с ним (CASCADE). */
+  // персональные данные удаляются вместе с юзером (CASCADE)
   @ManyToOne(() => User, { deleteRule: 'cascade' })
   user!: User;
 

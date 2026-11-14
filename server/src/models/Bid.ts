@@ -5,11 +5,9 @@ import { BidStatus } from './enums.js';
 import { Order } from './Order.js';
 import { User } from './User.js';
 
-/**
- * Отклик водителя с ценой (SAD 5, класс Bid). Связывает заказы и водителей (N:M с атрибутами:
- * цена, комментарий, встречная цена заказчика, статус). Один водитель — один отклик на заявку; принятый отклик — не более
- * одного на заявку (частичный уникальный индекс).
- */
+// отклик водителя с ценой (SAD 5, класс Bid). по сути N:M между заказами и водителями с доп. полями:
+// цена, комментарий, встречная цена заказчика, статус
+// один водитель - один отклик на заявку, принятый отклик на заявку максимум один (частичный уникальный индекс)
 @Entity({ tableName: 'bids' })
 @Unique({ name: 'uk_bids_order_driver', properties: ['order', 'driver'] })
 @Unique({ name: 'uk_bids_one_accepted', properties: ['order'], where: `status = 'Accepted'` })
@@ -20,7 +18,7 @@ export class Bid {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
   id!: string;
 
-  /** Отклики существуют только в рамках заявки (CASCADE). */
+  // отклик без заявки не живет (CASCADE)
   @ManyToOne(() => Order, { deleteRule: 'cascade' })
   order!: Order;
 
@@ -33,7 +31,7 @@ export class Bid {
   @Property({ type: 'string', length: 300, nullable: true })
   comment: string | null = null;
 
-  /** Встречная цена заказчика (двусторонний торг). null — заказчик свою цену не предлагал. */
+  // встречная цена заказчика (торг в обе стороны). null - заказчик свою цену не предлагал
   @Property({ type: new DecimalType('number'), precision: 12, scale: 2, nullable: true })
   counterPrice: number | null = null;
 

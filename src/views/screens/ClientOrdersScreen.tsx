@@ -7,7 +7,7 @@ import { OrderCard, ScreenHeader } from '../components/order';
 import { Badge, Banner, Button, EmptyState, LoadingView, Segmented } from '../components/ui';
 import { colors, font } from '../theme';
 
-/** «Мои заявки» заказчика: серверный поиск, фильтр по типу груза, сортировка, подгрузка страницами. */
+// мои заявки заказчика: поиск на сервере, фильтр по типу груза, сортировка, подгрузка страницами
 export function ClientOrdersScreen() {
   const vm = useClientOrdersViewModel();
   const { filters } = vm;

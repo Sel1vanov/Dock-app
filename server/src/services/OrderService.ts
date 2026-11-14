@@ -25,7 +25,7 @@ import { NotificationService, orderTitle, rub } from './NotificationService.js';
 
 export const isOpen = (order: Order) => (OPEN_ORDER_STATUSES as readonly OrderStatus[]).includes(order.status);
 
-/** Жизненный цикл заявки: создание, списки, карточка, изменение, удаление, отмена, оплата, приёмка. */
+// жизненный цикл заявки: создание, списки, карточка, изменение, удаление, отмена, оплата, приемка
 export class OrderService {
   private readonly orders: OrderRepository;
   private readonly bids: BidRepository;
@@ -43,9 +43,9 @@ export class OrderService {
     this.photos = new PhotoRepository(ctx.em);
   }
 
-  // --------------------------------------------------------------- списки ---
+  // --- списки ---
 
-  /** Заказчик — свои заявки; водитель — свои рейсы (назначенные заказы). */
+  // заказчик видит свои заявки, водитель - свои рейсы (назначенные заказы)
   async list(user: User, query: OrderListQueryT) {
     if (user.role === UserRole.Admin) throw new ForbiddenError('Список заявок доступен заказчикам и водителям');
     const [orders, total] =
@@ -55,7 +55,7 @@ export class OrderService {
     return { items: await this.toListItems(orders, user), total, limit: query.limit, offset: query.offset };
   }
 
-  /** UC-08 + UC-09: лента водителя под выбранное ТС. */
+  // UC-08 + UC-09: лента водителя под выбранное ТС
   async feed(user: User, query: FeedQueryT) {
     if (user.role !== UserRole.Driver) throw new ForbiddenError('Лента заявок доступна только водителям');
     const vehicle = await this.vehicles.findById(query.vehicleId);
@@ -75,7 +75,7 @@ export class OrderService {
     };
   }
 
-  /** Элементы списка: +1 запрос на число откликов и +1 на отклики текущего водителя — для всей страницы. */
+  // элементы списка: +1 запрос на кол-во откликов и +1 на отклики текущего водителя, на всю страницу сразу
   async toListItems(orders: Order[], user: User) {
     const ids = orders.map((o) => o.id);
     const [counts, myBids] = await Promise.all([
@@ -87,7 +87,7 @@ export class OrderService {
     return orders.map((o) => toOrderListItem(o, { bidsCount: counts.get(o.id) ?? 0, myBid: myBids.get(o.id) ?? null }));
   }
 
-  // -------------------------------------------------------------- карточка ---
+  // --- карточка ---
 
   async getDetails(user: User, orderId: string) {
     const order = await this.orders.findDetails(orderId);
@@ -102,7 +102,7 @@ export class OrderService {
       isAdmin || isClient || isDriver || (user.role === UserRole.Driver && (isOpen(order) || myBid !== null));
     if (!canSee) throw new ForbiddenError('Нет доступа к этой заявке');
 
-    // Все отклики видит только автор заявки; фото — только участники рейса.
+    // все отклики видит только автор заявки, фото - только участники рейса
     const visibleBids = isClient || isAdmin ? allBids : [];
     const isParticipant = isAdmin || isClient || isDriver;
 
@@ -118,7 +118,7 @@ export class OrderService {
       ...toOrderListItem(order, { bidsCount: allBids.length, myBid }),
       clientId: order.client.id,
       driverId: order.driver?.id ?? null,
-      // Телефоны — только контрагентам по назначенному заказу.
+      // телефоны показываем только сторонам назначенного заказа
       client: toPersonResponse(order.client, ratings, isAdmin || isClient || isDriver),
       driver: order.driver ? toPersonResponse(order.driver, ratings, isAdmin || isClient || isDriver) : null,
       bids: visibleBids.map((b) => ({
@@ -134,14 +134,14 @@ export class OrderService {
       photos: isParticipant ? order.photos.getItems().map((p) => toPhotoResponse(p, this.ctx.config)) : [],
       cancelReason: order.cancelReason,
       reviewAuthorIds: order.reviews.getItems().map((r) => r.author.id),
-      // Последний спор (споры загружены от новых к старым); виден только участникам и администратору
+      // последний спор (они загружены от новых к старым), виден только участникам и админу
       dispute: isParticipant && order.disputes.length > 0 ? toDisputeResponse(order.disputes[0]) : null,
     };
   }
 
-  // ---------------------------------------------------------------- CRUD ---
+  // --- CRUD ---
 
-  /** UC-03 + UC-04 */
+  // UC-03 + UC-04
   async create(user: User, input: OrderCreateInput) {
     if (user.role !== UserRole.Client) throw new ForbiddenError('Создавать заявки могут только заказчики');
     const cargoType = await this.cargoTypes.findByCode(input.cargoTypeCode);
@@ -162,7 +162,7 @@ export class OrderService {
     return this.getDetails(user, order.id);
   }
 
-  /** Изменить можно только свою заявку, пока на неё никто не откликнулся. */
+  // менять можно только свою заявку и только пока на нее никто не откликнулся
   async update(user: User, orderId: string, input: OrderUpdateInput) {
     const order = await this.getOwned(user, orderId);
     if (order.status !== OrderStatus.Created) {
@@ -192,7 +192,7 @@ export class OrderService {
     return this.getDetails(user, order.id);
   }
 
-  /** Удалить можно только заявку без откликов; иначе её отменяют (история торга сохраняется). */
+  // удалить можно только заявку без откликов, иначе ее отменяют (чтобы история торга осталась)
   async remove(user: User, orderId: string) {
     const order = await this.getOwned(user, orderId);
     if (order.status !== OrderStatus.Created || (await this.bids.countByOrder(order.id)) > 0) {
@@ -202,9 +202,9 @@ export class OrderService {
     await this.ctx.em.flush();
   }
 
-  // ------------------------------------------------------- смена статусов ---
+  // --- смена статусов ---
 
-  /** UC-07: отмена до оплаты; ожидающие отклики отклоняются в той же транзакции (один flush). */
+  // UC-07: отмена до оплаты. ожидающие отклики отклоняются в той же транзакции (один flush)
   async cancel(user: User, orderId: string, reason?: string) {
     const order = await this.getOwned(user, orderId);
     const allowed = isOpen(order) || (order.status === OrderStatus.Assigned && !order.isEscrowLocked);
@@ -238,7 +238,7 @@ export class OrderService {
     return this.getDetails(user, order.id);
   }
 
-  /** UC-12 + UC-13: оплата с заморозкой средств (демо безопасной сделки без платёжного шлюза). */
+  // UC-12 + UC-13: оплата с заморозкой денег (демо безопасной сделки, платежного шлюза нет)
   async pay(user: User, orderId: string) {
     const order = await this.getOwned(user, orderId);
     if (order.status !== OrderStatus.Assigned || order.isEscrowLocked) {
@@ -256,7 +256,7 @@ export class OrderService {
     return this.getDetails(user, order.id);
   }
 
-  /** UC-18 + UC-14: приёмка груза после фото выгрузки; средства переводятся исполнителю. */
+  // UC-18 + UC-14: приемка груза после фото выгрузки, деньги уходят исполнителю
   async complete(user: User, orderId: string) {
     const order = await this.getOwned(user, orderId);
     if (order.status !== OrderStatus.Unloading) {
@@ -278,7 +278,7 @@ export class OrderService {
     return this.getDetails(user, order.id);
   }
 
-  /** 404 — заявки нет; 403 — заявка чужая. */
+  // 404 - заявки нет, 403 - заявка чужая
   async getOwned(user: User, orderId: string): Promise<Order> {
     const order = await this.orders.findById(orderId);
     if (!order) throw new NotFoundError('Заявка не найдена');

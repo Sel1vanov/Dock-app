@@ -16,11 +16,11 @@ import { AuthService } from '../services/AuthService';
 
 interface AuthContextValue {
   currentUser: UserDTO | null;
-  /** Последний вошедший пользователь — нужен экранам, которые ещё видны во время выхода из аккаунта. */
+  // последний вошедший юзер - нужен экранам, которые еще видны во время выхода из аккаунта
   lastKnownUser: UserDTO | null;
-  /** Идёт восстановление сессии при запуске приложения. */
+  // идет восстановление сессии при запуске приложения
   isInitializing: boolean;
-  /** Почему пользователь оказался на экране входа: сессия истекла, аккаунт заблокирован, нет сети. */
+  // почему юзер оказался на экране входа: сессия истекла, аккаунт заблокирован, нет сети
   sessionMessage: string | null;
   refreshUser: () => Promise<void>;
   setCurrentUser: (user: UserDTO) => void;
@@ -29,14 +29,12 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-/**
- * AuthViewModel (SAD 5.2): состояние аутентификации всего приложения.
- * JWT хранится в защищённом хранилище устройства; при 401 от сервера (токен истёк
- * или аккаунт удалён) токен удаляется, и пользователь возвращается на экран входа.
- */
+// AuthViewModel (SAD 5.2): состояние авторизации на все приложение
+// JWT лежит в защищенном хранилище устройства. на 401 от сервера (токен протух
+// или аккаунт удален) токен удаляется и юзер возвращается на экран входа
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUserState] = useState<UserDTO | null>(null);
-  /** Последний вошедший пользователь — не сбрасывается при выходе (см. lastKnownUser). */
+  // последний вошедший юзер, при выходе не сбрасывается (см. lastKnownUser)
   const [lastKnownUser, setLastKnownUser] = useState<UserDTO | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
   const [sessionMessage, setSessionMessage] = useState<string | null>(null);
@@ -60,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setCurrentUser(await AuthService.loadCurrentUser());
       setSessionMessage(null);
     } catch (e) {
-      // 401 обработает onUnauthorized; 403 — аккаунт заблокирован: токен больше не нужен.
+      // 401 обработает onUnauthorized. 403 - аккаунт заблокирован, токен больше не нужен
       if (e instanceof ApiError && e.status === 403) await endSession(e.message);
       else if (!(e instanceof ApiError && e.status === 401)) setSessionMessage(errorMessage(e));
     }
@@ -104,14 +102,14 @@ export function useAuth(): AuthContextValue {
   return ctx;
 }
 
-/** Пользователь на экранах, доступных только после входа. */
+// юзер для экранов, которые доступны только после входа
 export function useCurrentUser(): UserDTO {
   const { lastKnownUser } = useAuth();
   if (!lastKnownUser) throw new Error('Экран доступен только авторизованному пользователю');
   return lastKnownUser;
 }
 
-/** signIn — вход, signUp — регистрация, reset — «Забыли пароль?». */
+// signIn - вход, signUp - регистрация, reset - "забыли пароль?"
 export type AuthMode = 'signIn' | 'signUp' | 'reset';
 
 const EMPTY_FORM: SignUpForm = {
@@ -123,7 +121,7 @@ const EMPTY_FORM: SignUpForm = {
   role: 'Client',
 };
 
-/** ViewModel экрана входа/регистрации (AuthScreen). */
+// viewmodel экрана входа/регистрации (AuthScreen)
 export function useAuthFormViewModel() {
   const { sessionMessage, setCurrentUser } = useAuth();
   const [mode, setMode] = useState<AuthMode>('signIn');
@@ -131,9 +129,9 @@ export function useAuthFormViewModel() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<SignUpForm>>({});
   const [errorMessageText, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  /** Сообщение «сессия истекла» показываем, пока пользователь не начал новое действие. */
+  // сообщение "сессия истекла" показываем, пока юзер не начал что-то делать
   const [showSessionMessage, setShowSessionMessage] = useState(true);
-  /** Ответ сервера на просьбу о сбросе пароля. */
+  // что ответил сервер на просьбу о сбросе пароля
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   const setField = <K extends keyof SignUpForm>(key: K, value: SignUpForm[K]) => {
@@ -149,7 +147,7 @@ export function useAuthFormViewModel() {
     setResetMessage(null);
   };
 
-  /** «Забыли пароль?»: просьба уходит администраторам, ответ одинаковый для любого email. */
+  // "забыли пароль?": просьба уходит админам, ответ одинаковый для любого email
   const requestReset = async () => {
     setErrorMessage(null);
     const checked = validate(passwordResetSchema, { email: values.email });
@@ -170,7 +168,7 @@ export function useAuthFormViewModel() {
   const submit = async () => {
     setErrorMessage(null);
     setShowSessionMessage(false);
-    // Проверка обязательных полей и формата до отправки запроса.
+    // обязательные поля и формат проверяю до отправки запроса
     const checked =
       mode === 'signIn'
         ? validate(signInSchema, { email: values.email, password: values.password })
@@ -186,7 +184,7 @@ export function useAuthFormViewModel() {
           ? await AuthService.signIn(checked.data)
           : await AuthService.signUp(checked.data as Parameters<typeof AuthService.signUp>[0]);
       setValues(EMPTY_FORM);
-      setCurrentUser(user); // корневой layout сам откроет приложение
+      setCurrentUser(user); // дальше корневой layout сам откроет приложение
     } catch (e) {
       if (e instanceof ApiError && Object.keys(e.fieldErrors).length > 0) setFieldErrors(e.fieldErrors);
       setErrorMessage(errorMessage(e));

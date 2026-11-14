@@ -9,7 +9,7 @@ import type {
   ApiVerificationStatus,
 } from '../models/api';
 
-/** Модерация (роль Admin): /admin/users…, /admin/disputes… */
+// модерация (роль Admin): /admin/users..., /admin/disputes...
 export const AdminRepository = {
   listUsers(query: {
     verificationStatus?: ApiVerificationStatus;
@@ -25,7 +25,7 @@ export const AdminRepository = {
     return apiRequest('GET', `/admin/users/${id}`);
   },
 
-  /** Временный пароль по просьбе «Забыли пароль?». */
+  // временный пароль по просьбе "забыли пароль?"
   issueTemporaryPassword(id: string): Promise<{ temporaryPassword: string }> {
     return apiRequest('POST', `/admin/users/${id}/temporary-password`);
   },
@@ -37,12 +37,12 @@ export const AdminRepository = {
     return apiRequest('PATCH', `/admin/users/${id}`, { body: patch });
   },
 
-  /** Споры: очередь (status=Open) или все. */
+  // споры: очередь (status=Open) или все
   listDisputes(query: { status?: ApiDisputeStatus; limit: number; offset: number }): Promise<ApiPage<ApiAdminDispute>> {
     return apiRequest('GET', '/admin/disputes', { query: { ...query } });
   },
 
-  /** UC-21: решение по спору. */
+  // UC-21: решение по спору
   resolveDispute(
     id: string,
     body: { status: 'ResolvedClient' | 'ResolvedDriver'; resolutionComment: string },

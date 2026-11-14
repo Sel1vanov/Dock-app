@@ -2,11 +2,11 @@ import type { EntityManager } from '@mikro-orm/postgresql';
 
 import { Notification, NotificationType, User, UserRole } from '../models/index.js';
 
-/** Уведомления пользователей (таблица notifications). */
+// уведомления (таблица notifications)
 export class NotificationRepository {
   constructor(private readonly em: EntityManager) {}
 
-  /** Только добавляет в Session: запись уйдёт в БД тем же flush, что и событие. */
+  // только кладет в em, в базу уйдет тем же flush, что и само событие
   create(data: Pick<Notification, 'user' | 'type' | 'title' | 'body' | 'order' | 'relatedUser'>): Notification {
     return this.em.create(Notification, data);
   }
@@ -15,7 +15,7 @@ export class NotificationRepository {
     return this.em.findOne(Notification, { id });
   }
 
-  /** Список с LIMIT/OFFSET; заявка подтягивается JOIN-ом в том же запросе. */
+  // список с LIMIT/OFFSET, заявка подтягивается JOIN-ом в том же запросе
   listByUser(userId: string, filter: { unreadOnly: boolean; limit: number; offset: number }) {
     return this.em.findAndCount(
       Notification,
@@ -32,7 +32,7 @@ export class NotificationRepository {
     return this.em.nativeUpdate(Notification, { user: userId, isRead: false }, { isRead: true });
   }
 
-  /** Закрыть просьбы о сбросе пароля пользователя у всех администраторов. */
+  // закрыть просьбы о сбросе пароля этого юзера у всех админов
   markResetRequestsRead(relatedUserId: string): Promise<number> {
     return this.em.nativeUpdate(
       Notification,
@@ -41,12 +41,12 @@ export class NotificationRepository {
     );
   }
 
-  /** Отметить прочитанными уведомления заданного типа о заказе (у всех получателей). */
+  // пометить прочитанными уведомления этого типа по заказу (у всех получателей)
   markReadByOrder(orderId: string, type: NotificationType): Promise<number> {
     return this.em.nativeUpdate(Notification, { order: orderId, type, isRead: false }, { isRead: true });
   }
 
-  /** Есть ли непрочитанная просьба о сбросе пароля — чтобы не дублировать её администраторам. */
+  // есть ли уже непрочитанная просьба о сбросе пароля - чтобы не дублировать ее админам
   async hasUnreadResetRequest(relatedUserId: string): Promise<boolean> {
     const count = await this.em.count(Notification, {
       relatedUser: relatedUserId,

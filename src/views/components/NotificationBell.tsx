@@ -5,7 +5,7 @@ import { useUnreadCount } from '../../viewmodels/NotificationsViewModel';
 import { colors, family } from '../theme';
 import { Icon } from './ui';
 
-/** Колокольчик в шапке: число непрочитанных уведомлений, нажатие — экран уведомлений. */
+// колокольчик в шапке: число непрочитанных уведомлений, по нажатию - экран уведомлений
 export function NotificationBell() {
   const { unreadCount } = useUnreadCount();
   return (

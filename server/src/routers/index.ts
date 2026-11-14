@@ -1,8 +1,5 @@
-/**
- * API версии 1: все маршруты под префиксом /api/v1. Публичны только регистрация, вход, просьба
- * о сбросе пароля, проверка работоспособности и выдача файлов по подписанной ссылке; остальное требует JWT
- * (в том числе /auth/refresh — продление сессии по действующему токену).
- */
+// api v1, все под /api/v1. без токена доступны только регистрация, логин, просьба о сбросе пароля,
+// health и файлы по подписанной ссылке. остальное требует JWT (в том числе /auth/refresh)
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 
@@ -33,7 +30,7 @@ export const apiV1: FastifyPluginAsyncZod = async (app) => {
   await app.register(authRouter, { prefix: '/auth' });
   await app.register(filesRouter, { prefix: '/files' });
 
-  // Защищённая зона: токен проверяется до разбора тела запроса (onRequest).
+  // закрытая часть: токен проверяется еще до разбора тела запроса (onRequest)
   await app.register(async (protectedApp) => {
     protectedApp.addHook('onRequest', authenticate);
     await protectedApp.register(usersRouter, { prefix: '/users' });

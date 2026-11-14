@@ -6,7 +6,7 @@ import { BidCounterRequest, BidUpdateRequest, DriverBidResponse, MyBidsQuery } f
 import { errorResponses, IdParams, NoContent } from '../schemas/common.js';
 import { OrderDetailsResponse } from '../schemas/orders.js';
 
-/** Отклики: «мои отклики» водителя, изменение и отзыв отклика, встречная цена, выбор исполнителя. */
+// отклики: мои отклики водителя, изменение и отзыв отклика, встречная цена, выбор исполнителя
 export const bidsRouter: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/my',

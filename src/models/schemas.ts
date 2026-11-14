@@ -1,13 +1,11 @@
-/**
- * Схемы проверки форм до отправки запроса (те же правила, что у схем сервера, — библиотека zod).
- * Форма хранит строки, схема проверяет обязательные поля, формат и диапазоны и превращает
- * их в типизированный объект. Окончательная проверка всё равно выполняется на сервере.
- */
+// схемы проверки форм перед отправкой запроса (zod, правила те же, что в схемах сервера)
+// форма хранит строки, схема проверяет обязательные поля, формат и диапазоны и превращает
+// их в типизированный объект. окончательно все равно проверяет сервер
 import { z } from 'zod';
 
 import { normalizePhone } from '../core/phone';
 
-/** Число из текстового поля: допускает запятую, проверяет диапазон. */
+// число из текстового поля: можно с запятой, проверяется диапазон
 const decimal = (title: string, accusative: string, min: number, max: number) =>
   z
     .string()
@@ -20,7 +18,7 @@ const decimal = (title: string, accusative: string, min: number, max: number) =>
 
 const email = z.string().trim().toLowerCase().min(1, 'Укажите email').email('Некорректный email');
 
-/** Российский номер; на сервер уходит в виде +79991112233. */
+// российский номер, на сервер уходит в виде +79991112233
 const phone = z
   .string()
   .trim()
@@ -38,7 +36,7 @@ export const signInSchema = z.object({
   password: z.string().min(1, 'Укажите пароль'),
 });
 
-/** Правила пароля — те же, что на сервере. */
+// правила пароля те же, что на сервере
 const newPassword = z
   .string()
   .min(8, 'Минимум 8 символов')
@@ -113,7 +111,7 @@ export const reviewSchema = z.object({
   comment: z.string().trim().max(500),
 });
 
-/** Текст спора (причина) и решения администратора — те же правила, что на сервере. */
+// текст спора (причина) и решения админа - правила те же, что на сервере
 export const disputeTextSchema = z.object({
   text: z.string().trim().min(5, 'Опишите подробнее — не меньше 5 символов').max(500, 'Не больше 500 символов'),
 });
@@ -134,7 +132,7 @@ export type ReviewInput = z.output<typeof reviewSchema>;
 
 export type FieldErrors<T> = Partial<Record<keyof T, string>>;
 
-/** Проверка формы: либо данные, либо ошибки по полям. */
+// проверка формы: возвращает либо данные, либо ошибки по полям
 export function validate<S extends z.ZodType>(
   schema: S,
   values: z.input<S>,

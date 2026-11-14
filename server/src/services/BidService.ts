@@ -19,7 +19,7 @@ import { toOrderListItem } from './mappers.js';
 import { NotificationService, orderTitle, rub } from './NotificationService.js';
 import { isOpen, OrderService } from './OrderService.js';
 
-/** UC-09: груз помещается в ТС по массе и габаритам, а тип груза ТС возит. */
+// UC-09: груз влезает в ТС по весу и габаритам + ТС возит такой тип груза
 export function fitsVehicle(vehicle: Vehicle, order: Order): boolean {
   return (
     order.cargoWeightKg <= vehicle.maxWeightKg &&
@@ -30,10 +30,8 @@ export function fitsVehicle(vehicle: Vehicle, order: Order): boolean {
   );
 }
 
-/**
- * Торг: отклики водителей (UC-10, UC-11), встречная цена заказчика и выбор исполнителя (UC-06).
- * О каждом шаге торга другая сторона получает уведомление в той же транзакции.
- */
+// торг: отклики водителей (UC-10, UC-11), встречная цена заказчика и выбор исполнителя (UC-06)
+// на каждый шаг торга второй стороне уходит уведомление в той же транзакции
 export class BidService {
   private readonly bids: BidRepository;
   private readonly orders: OrderRepository;
@@ -47,7 +45,7 @@ export class BidService {
     this.notifications = new NotificationService(ctx);
   }
 
-  /** Отклик по цене заказчика или со встречной ценой. Первый отклик переводит заявку в «Идёт торг». */
+  // отклик по цене заказчика или со своей ценой. первый отклик переводит заявку в Bidding (идет торг)
   async place(user: User, orderId: string, input: BidCreateInput) {
     if (user.role !== UserRole.Driver) throw new ForbiddenError('Откликаться на заявки могут только водители');
     if (user.verificationStatus !== VerificationStatus.Verified) {
@@ -76,7 +74,7 @@ export class BidService {
       { order },
     );
     try {
-      await this.ctx.em.flush(); // INSERT отклика и UPDATE статуса заявки — одна транзакция
+      await this.ctx.em.flush(); // INSERT отклика и UPDATE статуса заявки уходят одной транзакцией
     } catch (e) {
       if (e instanceof UniqueConstraintViolationException) throw new ConflictError('Вы уже откликнулись на эту заявку');
       throw e;
@@ -84,7 +82,7 @@ export class BidService {
     return new OrderService(this.ctx).getDetails(user, bid.order.id);
   }
 
-  /** Водитель меняет цену или комментарий. Новая цена водителя снимает встречную цену заказчика. */
+  // водитель меняет цену или комментарий. новая цена водителя сбрасывает встречную цену заказчика
   async update(user: User, bidId: string, input: BidUpdateInput) {
     const bid = await this.getOwnedPending(user, bidId);
     if (input.price !== undefined && input.price !== bid.offeredPrice) {
@@ -103,7 +101,7 @@ export class BidService {
     return new OrderService(this.ctx).getDetails(user, bid.order.id);
   }
 
-  /** Заказчик предлагает водителю свою цену в ответ на его отклик. */
+  // заказчик предлагает водителю свою цену в ответ на отклик
   async counter(user: User, bidId: string, input: BidCounterInput) {
     const bid = await this.bids.findById(bidId);
     if (!bid) throw new NotFoundError('Отклик не найден');
@@ -124,7 +122,7 @@ export class BidService {
     return new OrderService(this.ctx).getDetails(user, bid.order.id);
   }
 
-  /** Водитель соглашается на встречную цену заказчика: она становится ценой отклика. */
+  // водитель согласился на встречную цену - она становится ценой отклика
   async acceptCounter(user: User, bidId: string) {
     const bid = await this.getOwnedPending(user, bidId);
     if (bid.counterPrice === null) throw new ConflictError('Заказчик не предлагал встречную цену');
@@ -141,21 +139,19 @@ export class BidService {
     return new OrderService(this.ctx).getDetails(user, bid.order.id);
   }
 
-  /** Отозвать можно только ожидающий отклик. Если откликов не осталось, заявка снова «ищет исполнителя». */
+  // отозвать можно только ожидающий отклик. если откликов не осталось - заявка обратно в Created
   async withdraw(user: User, bidId: string) {
     const bid = await this.getOwnedPending(user, bidId);
     const order = bid.order;
     const isLastBid = (await this.bids.countByOrder(order.id)) === 1; // считаем до удаления
     this.bids.remove(bid);
     if (order.status === OrderStatus.Bidding && isLastBid) order.status = OrderStatus.Created;
-    await this.ctx.em.flush(); // DELETE отклика и UPDATE заявки — одна транзакция
+    await this.ctx.em.flush(); // DELETE отклика и UPDATE заявки одной транзакцией
   }
 
-  /**
-   * UC-06: выбор исполнителя — многошаговая операция в ОДНОЙ транзакции с явными commit/rollback:
-   * блокировка строки заявки (SELECT … FOR UPDATE), назначение водителя и цены, принятие отклика,
-   * отклонение остальных. Если любой шаг падает — rollback, и в БД не остаётся «половины» изменений.
-   */
+  // UC-06: выбор исполнителя - несколько шагов в ОДНОЙ транзакции с явными commit/rollback:
+  // лочим строку заявки (SELECT ... FOR UPDATE), ставим водителя и цену, принимаем отклик,
+  // остальные отклоняем. упал любой шаг - rollback, и в базе не остается половины изменений
   async accept(user: User, bidId: string) {
     const em = this.ctx.em;
     await em.begin();
@@ -189,7 +185,7 @@ export class BidService {
           { order },
         );
       }
-      await em.flush(); // UPDATE orders, UPDATE bids, INSERT уведомлений — ещё внутри транзакции
+      await em.flush(); // UPDATE orders, UPDATE bids, INSERT уведомлений - все еще внутри транзакции
       await this.bids.rejectPendingExcept(order.id, bid.id);
       await em.commit();
     } catch (e) {
@@ -218,7 +214,7 @@ export class BidService {
     return new OrderService(this.ctx).getDetails(user, bid.order.id);
   }
 
-  /** «Мои отклики» водителя вместе с заявками. */
+  // мои отклики водителя вместе с заявками
   async listMine(user: User, status?: BidStatus) {
     if (user.role !== UserRole.Driver) throw new ForbiddenError('Раздел доступен только водителям');
     const bids = await this.bids.listByDriver(user.id, status);

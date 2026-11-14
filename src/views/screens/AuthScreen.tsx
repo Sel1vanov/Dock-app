@@ -21,7 +21,7 @@ const ROLES = [
   { value: 'Driver' as const, title: 'Водитель', text: 'Есть трал или манипулятор', icon: 'truck-flatbed' },
 ];
 
-/** AuthScreen (SAD 5.2): вход, регистрация с выбором роли и «Забыли пароль?». */
+// AuthScreen (SAD 5.2): вход, регистрация с выбором роли и "забыли пароль?"
 export function AuthScreen() {
   const vm = useAuthFormViewModel();
   const insets = useSafeAreaInsets();
@@ -158,7 +158,7 @@ export function AuthScreen() {
             />
           )}
 
-          {/* Форма регистрации длиннее экрана: ошибку сервера и ошибки верхних полей показываем у кнопки. */}
+          {/* форма регистрации длиннее экрана, поэтому ошибку сервера и ошибки верхних полей показываю у кнопки */}
           {isSignUp ? (errorBanner ?? <FormErrors errors={vm.fieldErrors} />) : null}
 
           {isReset ? (

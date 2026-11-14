@@ -1,13 +1,11 @@
-/**
- * Выборка и сохранение заявок (таблица orders).
- *
- * Загрузка связей без N+1:
- *  - списки: заказчик и тип груза подтягиваются JOIN-ом в том же запросе (strategy: 'joined' —
- *    аналог joinedload), число откликов — одним сгруппированным запросом по id всей страницы;
- *  - карточка: to-one связи JOIN-ом, коллекции (отклики, фото, отзывы) — отдельными запросами
- *    `WHERE order_id IN (…)` (strategy: 'select-in' — аналог selectinload).
- * Число SQL-запросов не зависит от количества заявок на странице или откликов в заявке.
- */
+// выборка и сохранение заявок (таблица orders)
+//
+// как тут сделано без N+1:
+//  - списки: заказчик и тип груза идут JOIN-ом в том же запросе (strategy: 'joined', как joinedload),
+//    кол-во откликов - одним запросом с GROUP BY по id всей страницы
+//  - карточка: to-one связи JOIN-ом, коллекции (отклики, фото, отзывы) отдельными запросами
+//    WHERE order_id IN (...) (strategy: 'select-in', как selectinload)
+// т.е. число sql-запросов не зависит от того, сколько заявок на странице и откликов в заявке
 import { type EntityManager, type ObjectQuery, LockMode, type QueryOrderMap, raw } from '@mikro-orm/postgresql';
 
 import {
@@ -32,7 +30,7 @@ export interface OrderFilter {
   offset: number;
 }
 
-/** Выражение поиска совпадает с выражением GIN-индекса idx_orders_search_trgm. */
+// выражение должно совпадать с выражением GIN-индекса idx_orders_search_trgm, иначе индекс не сработает
 const searchExpression = raw(
   (alias) =>
     `(coalesce(${alias}.description, '') || ' ' || ${alias}.origin_address || ' ' || ${alias}.destination_address)`,
@@ -41,7 +39,7 @@ const searchExpression = raw(
 function orderBy(sort: OrderSortKey): QueryOrderMap<Order>[] {
   const direction = sort.startsWith('-') ? 'desc' : 'asc';
   const field = sort.replace('-', '') as 'createdAt' | 'price';
-  // id — второй ключ сортировки: стабильный порядок при одинаковых значениях (важно для OFFSET).
+  // id вторым ключом сортировки, чтобы порядок был стабильный при одинаковых значениях (важно для OFFSET)
   return [{ [field]: direction }, { id: 'asc' }];
 }
 
@@ -97,12 +95,12 @@ export class OrderRepository {
     return this.em.findOne(Order, { id }, { populate: ['client', 'cargoType'], strategy: 'joined' });
   }
 
-  /** Строка заказа с блокировкой FOR UPDATE — внутри транзакции (выбор исполнителя). */
+  // строка заказа с FOR UPDATE, вызывать внутри транзакции (выбор исполнителя)
   findByIdForUpdate(id: string): Promise<Order | null> {
     return this.em.findOne(Order, { id }, { lockMode: LockMode.PESSIMISTIC_WRITE });
   }
 
-  /** Карточка заказа со всеми связями. */
+  // карточка заказа со всеми связями
   findDetails(id: string): Promise<Order | null> {
     return this.em.findOne(
       Order,
@@ -121,7 +119,7 @@ export class OrderRepository {
     );
   }
 
-  /** «Мои заявки» заказчика: фильтр, поиск, сортировка, LIMIT/OFFSET. */
+  // мои заявки заказчика: фильтр, поиск, сортировка, LIMIT/OFFSET
   listByClient(clientId: string, filter: OrderFilter): Promise<[Order[], number]> {
     return this.em.findAndCount(
       Order,
@@ -136,7 +134,7 @@ export class OrderRepository {
     );
   }
 
-  /** «Мои рейсы» водителя. */
+  // мои рейсы водителя
   listByDriver(driverId: string, filter: OrderFilter): Promise<[Order[], number]> {
     return this.em.findAndCount(
       Order,
@@ -151,10 +149,8 @@ export class OrderRepository {
     );
   }
 
-  /**
-   * UC-08 + UC-09: открытые заявки, которые помещаются в ТС по массе и габаритам и тип груза
-   * которых ТС возит (связь N:M vehicle_cargo_types). Фильтрация — в SQL, а не на клиенте.
-   */
+  // UC-08 + UC-09: открытые заявки, которые влезают в ТС по весу и габаритам и тип груза
+  // которых это ТС возит (N:M vehicle_cargo_types). фильтруется в sql, а не на клиенте
   feed(vehicle: Vehicle, filter: Omit<OrderFilter, 'status'>): Promise<[Order[], number]> {
     return this.em.findAndCount(
       Order,
@@ -177,7 +173,7 @@ export class OrderRepository {
     );
   }
 
-  /** Сколько открытых заявок под тем же поиском — чтобы показать, сколько скрыл фильтр по ТС. */
+  // сколько всего открытых заявок под тем же поиском - чтобы показать, сколько скрыл фильтр по ТС
   countOpen(filter: Pick<OrderFilter, 'q' | 'cargoType'>): Promise<number> {
     return this.em.count(Order, { status: { $in: [...OPEN_ORDER_STATUSES] }, ...commonFilters(filter) });
   }

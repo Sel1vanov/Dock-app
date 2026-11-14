@@ -5,7 +5,7 @@ import { ImageBase64, PaginationQuery, RatingResponse, SearchQuery, pageOf, posi
 import { DisputeResponse } from './disputes.js';
 import { VehicleResponse } from './vehicles.js';
 
-// ------------------------------------------------------------------ запросы ---
+// --- запросы ---
 
 const orderFields = {
   cargoTypeCode: z.string({ error: 'Выберите тип груза' }).trim().min(1).max(32),
@@ -83,7 +83,7 @@ export const ReviewCreateRequest = z
   .strict()
   .meta({ id: 'ReviewCreateRequest' });
 
-// ------------------------------------------------------------------- ответы ---
+// --- ответы ---
 
 export const CargoResponse = z.object({
   typeCode: z.string(),

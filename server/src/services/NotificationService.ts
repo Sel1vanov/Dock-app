@@ -4,16 +4,14 @@ import { NotificationRepository } from '../repositories/index.js';
 import type { NotificationResponseT, NotificationsQueryT } from '../schemas/notifications.js';
 import type { ServiceContext } from './context.js';
 
-/** Цена в тексте уведомления: «45 000 ₽». */
+// цена для текста уведомления: 45 000 ₽
 export const rub = (n: number) => `${Math.round(n).toLocaleString('ru-RU')} ₽`;
 
-/** Короткое название заявки для текста уведомления: описание груза или его тип. */
+// короткое название заявки для уведомления: описание груза или его тип
 export const orderTitle = (order: Order) => `«${order.description || order.cargoType.name}»`;
 
-/**
- * Уведомления о событиях. Методы notify* только добавляют запись в Session текущего запроса:
- * она сохраняется тем же flush (в той же транзакции), что и изменение, о котором сообщает.
- */
+// уведомления о событиях. методы notify* только кладут запись в em текущего запроса,
+// сохраняется она тем же flush (в той же транзакции), что и само изменение
 export class NotificationService {
   private readonly notifications: NotificationRepository;
 
@@ -38,7 +36,7 @@ export class NotificationService {
     });
   }
 
-  /** Всем активным администраторам: о пользователе (документы, сброс пароля) или о заказе (спор). */
+  // всем активным админам: про юзера (документы, сброс пароля) или про заказ (спор)
   async notifyAdmins(
     type: NotificationType,
     title: string,

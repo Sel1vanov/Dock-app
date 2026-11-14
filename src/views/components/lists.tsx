@@ -1,4 +1,4 @@
-/** Поиск, фильтры, сортировка и постраничная загрузка списков. */
+// поиск, фильтры, сортировка и подгрузка списков страницами
 import { type ReactNode, useState } from 'react';
 import {
   ActivityIndicator,
@@ -20,7 +20,7 @@ import { useCargoTypes } from '../../viewmodels/useCargoTypes';
 import { colors, family, font, radius, spacing } from '../theme';
 import { Chip, Icon } from './ui';
 
-// --------------------------------------------------------------- Search ---
+// --- поиск ---
 
 export function SearchBar({
   value,
@@ -54,9 +54,9 @@ export function SearchBar({
   );
 }
 
-// -------------------------------------------------- Фильтр и сортировка ---
+// --- фильтр и сортировка ---
 
-/** Фильтр по типу груза и сортировка — параметры уходят на сервер. */
+// фильтр по типу груза и сортировка, параметры уходят на сервер
 export function OrderFilterBar({
   cargoType,
   onCargoType,
@@ -73,7 +73,7 @@ export function OrderFilterBar({
   const current = ORDER_SORT_OPTIONS.find((o) => o.value === sort) ?? ORDER_SORT_OPTIONS[0];
   return (
     <>
-      {/* Обёртка фиксирует высоту: горизонтальный ScrollView иначе растягивается по вертикали. */}
+      {/* обертка нужна, чтобы зафиксировать высоту: иначе горизонтальный ScrollView растягивается по вертикали */}
       <View style={s.filterWrap}>
         <ScrollView
           horizontal
@@ -148,12 +148,10 @@ export function OptionsModal<T extends string>({
   );
 }
 
-// ----------------------------------------------------- Список страницами ---
+// --- список страницами ---
 
-/**
- * Список с подгрузкой при прокрутке (onEndReached → следующая страница с сервера),
- * pull-to-refresh, состояниями «пусто», «загрузка ещё» и «показаны все».
- */
+// список с подгрузкой при прокрутке (onEndReached -> следующая страница с сервера),
+// pull-to-refresh и состояниями "пусто", "загружаю еще" и "показаны все"
 export function PagedList<T extends { id: string }>({
   items,
   total,
@@ -199,7 +197,7 @@ export function PagedList<T extends { id: string }>({
       onEndReached={hasMore ? onEndReached : undefined}
       onEndReachedThreshold={0.4}
       keyboardShouldPersistTaps="handled"
-      // Поиск открывает клавиатуру над списком: при прокрутке результатов она убирается
+      // поиск открывает клавиатуру над списком, при прокрутке результатов она прячется
       keyboardDismissMode="on-drag"
       refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
     />

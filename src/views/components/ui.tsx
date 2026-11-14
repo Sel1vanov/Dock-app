@@ -1,4 +1,4 @@
-/** Базовые UI-компоненты Dock. */
+// базовые ui-компоненты Dock
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type ComponentRef, type ReactNode, useEffect, useRef, useState } from 'react';
 import {
@@ -26,7 +26,7 @@ export function Icon({ name, size = 20, color = colors.text }: { name: string; s
   return <MaterialCommunityIcons name={name as IconName} size={size} color={color as string} />;
 }
 
-// --------------------------------------------------------------- Button ---
+// --- Button ---
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
 
@@ -85,7 +85,7 @@ export function Button({
   );
 }
 
-// ----------------------------------------------------------------- Card ---
+// --- Card ---
 
 export function Card({ children, style, onPress }: { children: ReactNode; style?: ViewStyle; onPress?: () => void }) {
   if (onPress) {
@@ -110,9 +110,9 @@ export function SectionTitle({ title, action }: { title: string; action?: ReactN
   );
 }
 
-// ------------------------------------------------------------- TextField ---
+// --- TextField ---
 
-/** Поле ввода с подписью и ошибкой. У поля пароля (secureTextEntry) справа кнопка «показать / скрыть». */
+// поле ввода с подписью и ошибкой. у поля пароля (secureTextEntry) справа кнопка показать/скрыть
 export function TextField({
   label,
   error,
@@ -151,10 +151,8 @@ export function TextField({
   );
 }
 
-/**
- * Сводка ошибок формы рядом с кнопкой отправки: на длинной форме поле с ошибкой может оказаться
- * выше видимой части экрана, и без сводки кажется, что кнопка не сработала.
- */
+// сводка ошибок формы рядом с кнопкой отправки: на длинной форме поле с ошибкой может быть
+// выше видимой части экрана, и без сводки кажется, что кнопка просто не сработала
 export function FormErrors({ errors }: { errors: Record<string, string | undefined> }) {
   const messages = [...new Set(Object.values(errors).filter((message) => message !== undefined))];
   if (messages.length === 0) return null;
@@ -170,7 +168,7 @@ export function FormErrors({ errors }: { errors: Record<string, string | undefin
   );
 }
 
-// ------------------------------------------------------- Chip / Segmented ---
+// --- Chip / Segmented ---
 
 export function Chip({
   label,
@@ -229,7 +227,7 @@ export function Segmented<T extends string>({
   );
 }
 
-// ---------------------------------------------------------------- Badge ---
+// --- Badge ---
 
 export function Badge({ label, tone, icon }: { label: string; tone: StatusTone; icon?: string }) {
   const c = toneColors[tone];
@@ -267,7 +265,7 @@ export function RatingLabel({ rating }: { rating: { average: number; count: numb
   );
 }
 
-// --------------------------------------------------- Состояния экрана ---
+// --- состояния экрана ---
 
 export function Banner({
   tone,
@@ -326,16 +324,14 @@ export function LoadingView() {
   );
 }
 
-// ------------------------------------------------------------ Клавиатура ---
+// --- клавиатура ---
 
-/**
- * Не даёт экранной клавиатуре закрыть поля ввода на Android.
- * В режиме «от края до края» Android не сжимает окно под клавиатуру, поэтому обёртка сама получает нижний
- * отступ на высоту перекрытия: список внутри становится ниже и прокручивается к полю, в которое вводят.
- * Перекрытие считается по реальному положению обёртки на экране, так что шапка и нижние вкладки учитываются
- * сами, а если система всё же сжала окно, отступ получается нулевым.
- * На iOS то же делает сам ScrollView — см. keyboardScrollProps.
- */
+// не дает клавиатуре закрыть поля ввода на android
+// в режиме edge-to-edge android не сжимает окно под клавиатуру, поэтому обертка сама получает нижний
+// отступ на высоту перекрытия: список внутри становится ниже и прокручивается к полю, в которое вводят
+// перекрытие считаю по реальному положению обертки на экране, так что шапка и нижние вкладки учитываются
+// сами, а если система все-таки сжала окно, отступ получается нулевой
+// на ios то же самое делает сам ScrollView, см. keyboardScrollProps
 export function KeyboardAvoider({ children, style }: { children: ReactNode; style?: ViewStyle }) {
   const ref = useRef<ComponentRef<typeof View>>(null);
   const [inset, setInset] = useState(0);
@@ -361,10 +357,8 @@ export function KeyboardAvoider({ children, style }: { children: ReactNode; styl
   );
 }
 
-/**
- * Свойства ScrollView для экранов с полями ввода. На iOS список сам добавляет отступ под клавиатуру
- * и прокручивается к активному полю, а клавиатуру можно убрать, потянув список вниз.
- */
+// пропсы ScrollView для экранов с полями ввода. на ios список сам добавляет отступ под клавиатуру
+// и прокручивается к активному полю, а клавиатуру можно убрать, потянув список вниз
 export const keyboardScrollProps = {
   keyboardShouldPersistTaps: 'handled',
   automaticallyAdjustKeyboardInsets: Platform.OS === 'ios',

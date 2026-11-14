@@ -7,7 +7,7 @@ import { PagedList } from '../components/lists';
 import { Banner, Button, Card, EmptyState, Icon, LoadingView } from '../components/ui';
 import { colors, family, font, formatRelative, spacing, toneColors } from '../theme';
 
-/** Уведомления о новых откликах, встречной цене, этапах рейса, отзывах и проверке документов. */
+// уведомления о новых откликах, встречной цене, этапах рейса, отзывах и проверке документов
 export function NotificationsScreen() {
   const vm = useNotificationsViewModel();
   if (vm.isLoading) return <LoadingView />;

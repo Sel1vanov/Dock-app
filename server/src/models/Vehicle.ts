@@ -6,7 +6,7 @@ import { VehicleType } from './enums.js';
 import { User } from './User.js';
 import { VehicleCargoType } from './VehicleCargoType.js';
 
-/** Транспорт водителя с габаритно-весовыми характеристиками (SAD 5, класс Vehicle). */
+// машина водителя с габаритами и грузоподъемностью (SAD 5, класс Vehicle)
 @Entity({ tableName: 'vehicles' })
 @Check({ name: 'ck_vehicles_max_weight', expression: 'max_weight_kg > 0 and max_weight_kg <= 200000' })
 @Check({
@@ -17,7 +17,7 @@ export class Vehicle {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
   id!: string;
 
-  /** Удаление водителя удаляет и его ТС: без владельца запись о машине не имеет смысла. */
+  // удалили водителя - удаляются и его ТС, без владельца они не нужны
   @Index({ name: 'idx_vehicles_driver' })
   @ManyToOne(() => User, { deleteRule: 'cascade' })
   driver!: User;
@@ -40,7 +40,7 @@ export class Vehicle {
   @Property({ type: new DecimalType('number'), precision: 5, scale: 2 })
   heightM!: number;
 
-  /** N:M «какие типы грузов возит ТС» через промежуточную таблицу vehicle_cargo_types. */
+  // N:M "какие типы грузов возит ТС" через таблицу vehicle_cargo_types
   @ManyToMany(() => CargoType, undefined, { pivotEntity: () => VehicleCargoType, owner: true })
   cargoTypes = new Collection<CargoType>(this);
 

@@ -17,7 +17,7 @@ import {
   DisputeResolveRequest,
 } from '../schemas/disputes.js';
 
-/** Модерация (только роль Admin): проверка документов водителей, блокировка, временный пароль, споры. */
+// модерация (только Admin): проверка документов водителей, блокировка, временный пароль, споры
 export const adminRouter: FastifyPluginAsyncZod = async (app) => {
   app.addHook('preHandler', requireRole(UserRole.Admin));
 

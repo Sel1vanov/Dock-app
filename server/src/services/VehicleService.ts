@@ -5,7 +5,7 @@ import type { VehicleCreateInput, VehicleUpdateInput } from '../schemas/vehicles
 import type { ServiceContext } from './context.js';
 import { toVehicleResponse } from './mappers.js';
 
-/** CRUD транспорта водителя. Чужое ТС нельзя ни посмотреть через этот раздел, ни изменить. */
+// CRUD транспорта водителя. чужое ТС тут нельзя ни посмотреть, ни изменить
 export class VehicleService {
   private readonly vehicles: VehicleRepository;
   private readonly cargoTypes: CargoTypeRepository;
@@ -37,7 +37,7 @@ export class VehicleService {
       heightM: input.heightM,
     });
     vehicle.cargoTypes.set(cargoTypes);
-    await this.ctx.em.flush(); // INSERT в vehicles и vehicle_cargo_types — одна транзакция
+    await this.ctx.em.flush(); // INSERT в vehicles и vehicle_cargo_types одной транзакцией
     return toVehicleResponse(vehicle);
   }
 
@@ -56,7 +56,7 @@ export class VehicleService {
     await this.ctx.em.flush();
   }
 
-  /** 404 — такого ТС нет; 403 — ТС есть, но принадлежит другому водителю. */
+  // 404 - такого ТС нет, 403 - есть, но чужое
   private async getOwned(user: User, id: string): Promise<Vehicle> {
     this.requireDriver(user);
     const vehicle = await this.vehicles.findById(id);

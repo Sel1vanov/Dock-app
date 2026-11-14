@@ -10,7 +10,7 @@ export interface CargoTypeOption {
 
 let cached: CargoTypeOption[] | null = null;
 
-/** Справочник типов груза с сервера (названия и порядок) + иконки из клиента. Кэшируется на сеанс. */
+// справочник типов груза с сервера (названия и порядок) + иконки с клиента. кэшируется, пока приложение открыто
 export const CatalogService = {
   async getCargoTypes(): Promise<CargoTypeOption[]> {
     if (cached) return cached;

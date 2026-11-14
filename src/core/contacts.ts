@@ -1,12 +1,10 @@
-/**
- * Связь с контрагентом по заказу: звонок и мессенджеры. Встроенного чата в приложении нет —
- * используется телефон из профиля, который виден только участникам назначенного заказа.
- */
+// связь со второй стороной по заказу: звонок и мессенджеры. своего чата в приложении нет,
+// используется телефон из профиля, который видят только участники назначенного заказа
 import { Linking } from 'react-native';
 
 import { notify } from './platform';
 
-/** Номер в международном формате без «+»: российский 8XXXXXXXXXX или 10 цифр → 7XXXXXXXXXX. */
+// номер в международном формате без плюса: 8XXXXXXXXXX или 10 цифр -> 7XXXXXXXXXX
 export function internationalDigits(phone: string): string {
   let digits = phone.replace(/\D/g, '');
   if (digits.length === 11 && digits.startsWith('8')) digits = `7${digits.slice(1)}`;
@@ -19,7 +17,7 @@ export function contactLinks(phone: string) {
   return {
     call: `tel:+${digits}`,
     whatsapp: `https://wa.me/${digits}`,
-    /** Откроет чат, если собеседник разрешил находить себя в Telegram по номеру. */
+    // чат откроется, только если человек разрешил находить себя в telegram по номеру
     telegram: `https://t.me/+${digits}`,
   };
 }

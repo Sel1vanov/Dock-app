@@ -1,6 +1,4 @@
-/**
- * Карточка заказа (торг, выбор исполнителя) и TrackingViewModel (SAD 5.2: статусы и фотофиксация).
- */
+// карточка заказа (торг, выбор исполнителя) и TrackingViewModel (SAD 5.2: статусы и фото груза)
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -38,10 +36,10 @@ import { useAction, useQuery } from './useAsync';
 
 const formatPrice = (n: number) => `${n.toLocaleString('ru-RU')} ₽`;
 
-/** Как часто перечитывать открытый заказ: отклики, встречная цена и этапы рейса появляются без обновления вручную. */
+// как часто перечитывать открытый заказ, чтобы отклики, встречная цена и этапы рейса появлялись сами, без ручного обновления
 const ORDER_POLL_MS = 15_000;
 
-/** Общая часть: загрузка заказа, роль пользователя в нём и действия, общие для обоих экранов. */
+// общая часть: загрузка заказа, роль юзера в нем и действия, которые нужны обоим экранам
 function useOrderBase(orderId: string) {
   const user = useCurrentUser();
   const query = useQuery(() => OrderService.getOrderDetails(orderId), [orderId, user.id], {
@@ -51,7 +49,7 @@ function useOrderBase(orderId: string) {
   const isClient = Boolean(order && order.clientId === user.id);
   const isAssignedDriver = Boolean(order && order.driverId === user.id);
 
-  /** Выполнить действие и перечитать заказ. Успех — короткое уведомление, ошибку показываем диалогом. */
+  // выполнить действие и перечитать заказ. успех - короткая всплывашка, ошибка - диалог
   const action = useAction(async (fn: () => Promise<unknown>, successText?: string) => {
     await fn();
     if (successText) showToast(successText);
@@ -84,7 +82,7 @@ function useOrderBase(orderId: string) {
     return action.run(() => OrderService.cancelOrder(order, reason), 'Заявка отменена');
   };
 
-  /** Проверка текста спора до запроса: ошибка — диалогом, иначе текст без лишних пробелов. */
+  // проверка текста спора до запроса: ошибка - диалогом, иначе возвращаю текст без лишних пробелов
   const checkDisputeText = (title: string, text: string): string | null => {
     const checked = validate(disputeTextSchema, { text });
     if (checked.ok) return checked.data.text;
@@ -92,7 +90,7 @@ function useOrderBase(orderId: string) {
     return null;
   };
 
-  /** UC-20: участник заказа открывает спор — окно с причиной. */
+  // UC-20: участник заказа открывает спор - окно с причиной
   const [disputeFormOpen, setDisputeFormOpen] = useState(false);
   const openDispute = async (reason: string) => {
     const text = checkDisputeText('Спор', reason);
@@ -101,7 +99,7 @@ function useOrderBase(orderId: string) {
     await action.run(() => OrderService.openDispute(order, text), 'Спор открыт — администратор свяжется с вами');
   };
 
-  /** UC-21: администратор решает спор — окно с комментарием к решению. */
+  // UC-21: админ решает спор - окно с комментарием к решению
   const [resolveFor, setResolveFor] = useState<'client' | 'driver' | null>(null);
   const resolveDispute = async (comment: string) => {
     const dispute = order?.dispute;
@@ -148,7 +146,7 @@ function useOrderBase(orderId: string) {
   };
 }
 
-// ----------------------------------------------------- Карточка заказа ---
+// --- карточка заказа ---
 
 export function useOrderDetailsViewModel(orderId: string) {
   const base = useOrderBase(orderId);
@@ -158,7 +156,7 @@ export function useOrderDetailsViewModel(orderId: string) {
   const vehiclesQuery = useQuery(isDriverRole ? () => VehicleService.getMyVehicles() : null, [user.id, isDriverRole]);
   const vehicles = useMemo(() => vehiclesQuery.data ?? [], [vehiclesQuery.data]);
 
-  /** Совместимость груза с ТС водителя (UC-09) — лучшая из машин. */
+  // совместимость груза с ТС водителя (UC-09), берется лучшая из его машин
   const compatibility = useMemo(() => {
     if (!order || !isDriverRole) return null;
     const results = vehicles.map((v) => ({ vehicle: v, ...checkCompatibility(v, order.cargo) }));
@@ -167,7 +165,7 @@ export function useOrderDetailsViewModel(orderId: string) {
 
   const [bidForm, setBidForm] = useState<BidForm>({ price: '', comment: '' });
   const [bidErrors, setBidErrors] = useState<FieldErrors<BidForm>>({});
-  // Цена в форме — текущий отклик или цена заказчика; обновляется, когда они меняются на сервере.
+  // цена в форме - текущий отклик или цена заказчика. обновляется, когда они меняются на сервере
   const bidSource = order ? `${order.id}:${order.myBid?.price ?? order.price}` : null;
   const [bidFormSource, setBidFormSource] = useState<string | null>(null);
   if (order && bidSource !== bidFormSource) {
@@ -180,7 +178,7 @@ export function useOrderDetailsViewModel(orderId: string) {
     setBidErrors((e) => ({ ...e, [key]: undefined }));
   };
 
-  /** UC-10 — по цене заказчика; UC-11 — со встречной ценой из формы. */
+  // UC-10 - по цене заказчика, UC-11 - со своей ценой из формы
   const submitBid = async (atClientPrice: boolean) => {
     if (!order) return;
     const checked = validate(bidSchema, atClientPrice ? { ...bidForm, price: String(order.price) } : bidForm);
@@ -217,7 +215,7 @@ export function useOrderDetailsViewModel(orderId: string) {
       void runAction(() => BidService.acceptBid(bidId), 'Исполнитель выбран. Оплатите заказ на экране рейса');
   };
 
-  /** Встречная цена заказчика: окно с полем цены открывается для выбранного отклика. */
+  // встречная цена заказчика: окно с полем цены открывается для выбранного отклика
   const [counterBidId, setCounterBidId] = useState<string | null>(null);
   const submitCounter = async (priceText: string) => {
     const bidId = counterBidId;
@@ -234,7 +232,7 @@ export function useOrderDetailsViewModel(orderId: string) {
     );
   };
 
-  /** Водитель соглашается на цену заказчика. */
+  // водитель соглашается на цену заказчика
   const acceptCounter = async () => {
     const bid = order?.myBid;
     if (!bid?.counterPrice) return;
@@ -252,7 +250,7 @@ export function useOrderDetailsViewModel(orderId: string) {
     }
   };
 
-  /** Изменение и удаление — только своей заявки, пока на неё нет откликов. */
+  // менять и удалять можно только свою заявку и пока на нее нет откликов
   const canEditOrder = Boolean(order && isClient && canEdit(order));
   const deleteOrder = async () => {
     if (!order) return;
@@ -305,7 +303,7 @@ export function useOrderDetailsViewModel(orderId: string) {
   };
 }
 
-// ------------------------------------------------- TrackingViewModel ---
+// --- TrackingViewModel ---
 
 export function useTrackingViewModel(orderId: string) {
   const base = useOrderBase(orderId);
@@ -314,7 +312,7 @@ export function useTrackingViewModel(orderId: string) {
 
   const nextStep = order && isAssignedDriver ? driverNextStep(order, order.photos) : null;
 
-  /** UC-15: смена статуса рейса. */
+  // UC-15: смена статуса рейса
   const advanceStatus = async () => {
     if (!order || nextStep?.kind !== 'status') return;
     if (await confirmAction(nextStep.label, 'Заказчик увидит новый статус рейса', 'Подтвердить')) {
@@ -322,7 +320,7 @@ export function useTrackingViewModel(orderId: string) {
     }
   };
 
-  /** UC-17: фотофиксация груза. */
+  // UC-17: фото груза
   const uploadPhoto = async (stage: PhotoStage) => {
     if (!order) return;
     const source = await chooseImageSource();
@@ -341,7 +339,7 @@ export function useTrackingViewModel(orderId: string) {
     }
   };
 
-  /** UC-12/13: безопасная сделка (демо без платёжного шлюза). */
+  // UC-12/13: безопасная сделка (демо, платежного шлюза нет)
   const payOrder = async (o: OrderDetailsDTO) => {
     const confirmed = await confirmAction(
       'Оплатить заказ',
@@ -351,7 +349,7 @@ export function useTrackingViewModel(orderId: string) {
     if (confirmed) void runAction(() => OrderService.payOrder(o), 'Оплата заморожена до приёмки груза');
   };
 
-  /** UC-18 */
+  // UC-18
   const confirmDelivery = async (o: OrderDetailsDTO) => {
     const confirmed = await confirmAction(
       'Подтвердить приёмку груза?',

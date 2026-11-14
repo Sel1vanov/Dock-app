@@ -1,7 +1,5 @@
-/**
- * Безопасность: хеширование паролей (bcrypt), JWT access-токены, подписанные ссылки на файлы.
- * Криптография — только готовые библиотеки (bcryptjs, jsonwebtoken, node:crypto).
- */
+// пароли (bcrypt), jwt и подписанные ссылки на файлы
+// свою криптографию не пишу, только готовые либы (bcryptjs, jsonwebtoken, node:crypto)
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import bcrypt from 'bcryptjs';
@@ -11,24 +9,24 @@ import type { Config } from './config.js';
 import type { UserRole } from '../models/enums.js';
 import { UnauthorizedError } from './errors.js';
 
-/** Стоимость bcrypt: 2^12 итераций — ~250 мс на хеш, заметно тормозит перебор паролей. */
+// 2^12 раундов, это ~250 мс на хеш - перебирать пароли будет долго
 const BCRYPT_ROUNDS = 12;
 
-/** Хеш-заглушка: сравнение с ним, когда пользователь не найден, уравнивает время ответа. */
+// хеш-пустышка: если юзера нет, все равно сравниваю с ним, чтобы время ответа было такое же
 const DUMMY_HASH = bcrypt.hashSync('dock-timing-protection', BCRYPT_ROUNDS);
 
 export function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, BCRYPT_ROUNDS);
 }
 
-/** Версия пароля для токена: время последней смены пароля в мс (0 — пароль не меняли). */
+// версия пароля для токена = время последней смены в мс (0 - не меняли)
 export const passwordVersion = (changedAt: Date | null) => changedAt?.getTime() ?? 0;
 
 export function verifyPassword(password: string, hash: string | null | undefined): Promise<boolean> {
   return bcrypt.compare(password, hash ?? DUMMY_HASH).then((ok) => ok && Boolean(hash));
 }
 
-// ---------------------------------------------------------------------- JWT ---
+// --- jwt ---
 
 const JWT_ISSUER = 'dock-api';
 const JWT_AUDIENCE = 'dock-app';
@@ -36,23 +34,21 @@ const JWT_AUDIENCE = 'dock-app';
 export interface AccessTokenPayload {
   sub: string;
   role: UserRole;
-  /** Версия пароля (время его последней смены, мс; 0 — не меняли). Смена пароля отзывает старые токены. */
+  // версия пароля (см. passwordVersion). сменил пароль - старые токены перестают работать
   pwv: number;
-  /**
-   * Начало сессии — когда пользователь ввёл пароль (секунды Unix). При продлении токена переносится
-   * в новый токен без изменений, поэтому продлевать сессию бесконечно нельзя (SESSION_MAX_AGE).
-   */
+  // когда юзер реально ввел пароль (unix сек). при продлении переносится в новый токен как есть,
+  // поэтому бесконечно продлевать не получится (SESSION_MAX_AGE)
   sst: number;
 }
 
 export interface IssuedToken {
   accessToken: string;
   tokenType: 'Bearer';
-  /** Через сколько секунд токен перестанет приниматься. */
+  // через сколько секунд токен протухнет
   expiresIn: number;
 }
 
-/** sessionStartedAt не задан — новая сессия (вход, регистрация, смена пароля); задан — продление прежней. */
+// sessionStartedAt нет - новая сессия (логин, регистрация, смена пароля), есть - продление старой
 export function createAccessToken(
   config: Pick<Config, 'JWT_SECRET' | 'JWT_EXPIRES_IN'>,
   payload: Omit<AccessTokenPayload, 'sst'>,
@@ -69,7 +65,7 @@ export function createAccessToken(
   return { accessToken, tokenType: 'Bearer', expiresIn: config.JWT_EXPIRES_IN };
 }
 
-/** Проверяет подпись, алгоритм, издателя, аудиторию и срок действия токена. */
+// проверяет подпись, алгоритм, issuer, audience и срок
 export function verifyAccessToken(config: Pick<Config, 'JWT_SECRET'>, token: string): AccessTokenPayload {
   try {
     const decoded = jwt.verify(token, config.JWT_SECRET, {
@@ -95,13 +91,13 @@ export function verifyAccessToken(config: Pick<Config, 'JWT_SECRET'>, token: str
   }
 }
 
-// -------------------------------------------------------- подписанные ссылки ---
+// --- подписанные ссылки на файлы ---
 
 function fileSignature(secret: string, key: string, expires: number): string {
   return createHmac('sha256', secret).update(`${key}:${expires}`).digest('base64url');
 }
 
-/** Временная ссылка на приватный файл (аналог signed URL в S3). */
+// временная ссылка на приватный файл (как signed url в s3)
 export function signFileUrl(
   config: Pick<Config, 'FILE_URL_SECRET' | 'FILE_URL_TTL'>,
   key: string,

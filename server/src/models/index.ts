@@ -1,4 +1,4 @@
-/** ORM-модели (аналог декларативных моделей SQLAlchemy). Отдельно от схем API (src/schemas). */
+// модели orm (как декларативные модели в sqlalchemy). схемы api лежат отдельно в src/schemas
 export { Bid } from './Bid.js';
 export { CargoType } from './CargoType.js';
 export { Dispute } from './Dispute.js';

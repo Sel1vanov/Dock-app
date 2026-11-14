@@ -1,17 +1,15 @@
 import { Migration } from '@mikro-orm/migrations';
 
-/**
- * Миграция 1 — начальная схема Dock: 8 таблиц, связи 1:N, связь N:M через vehicle_cargo_types,
- * ограничения целостности и индексы под запросы API. Применяется к пустой базе.
- *
- * Сгенерирована по ORM-моделям и дополнена строками справочника cargo_types
- * (без них нельзя создать ни одной заявки).
- */
+// миграция 1 - начальная схема: 8 таблиц, связи 1:N, N:M через vehicle_cargo_types,
+// ограничения и индексы под запросы api. накатывается на пустую базу
+//
+// сгенерил по моделям orm и руками добавил строки справочника cargo_types
+// (без них ни одну заявку не создать)
 export class Migration20261028100000_initial_schema extends Migration {
   override name = 'Migration20261028100000_initial_schema';
 
   override up(): void {
-    // ------------------------------------------------------------ cargo_types (справочник)
+    // --- cargo_types (справочник)
     this.addSql(`create table "cargo_types" (
       "code" varchar(32) not null,
       "name" varchar(64) not null,
@@ -27,7 +25,7 @@ export class Migration20261028100000_initial_schema extends Migration {
       ('Equipment', 'Оборудование', 5),
       ('Other', 'Другое', 6);`);
 
-    // ------------------------------------------------------------------------ users
+    // --- users
     this.addSql(`create table "users" (
       "id" uuid not null default gen_random_uuid(),
       "email" varchar(254) not null,
@@ -47,7 +45,7 @@ export class Migration20261028100000_initial_schema extends Migration {
       constraint "ck_users_phone_format" check (phone ~ '^\\+?[0-9]{10,15}$')
     );`);
 
-    // --------------------------------------------------------------------- vehicles
+    // --- vehicles
     this.addSql(`create table "vehicles" (
       "id" uuid not null default gen_random_uuid(),
       "driver_id" uuid not null,
@@ -67,7 +65,7 @@ export class Migration20261028100000_initial_schema extends Migration {
     );`);
     this.addSql(`create index "idx_vehicles_driver" on "vehicles" ("driver_id");`);
 
-    // ---------------------------------------------- vehicle_cargo_types (связь N:M)
+    // --- vehicle_cargo_types (связь N:M)
     this.addSql(`create table "vehicle_cargo_types" (
       "vehicle_id" uuid not null,
       "cargo_type_code" varchar(32) not null,
@@ -76,7 +74,7 @@ export class Migration20261028100000_initial_schema extends Migration {
       constraint "vehicle_cargo_types_cargo_type_code_foreign" foreign key ("cargo_type_code") references "cargo_types" ("code") on update cascade on delete restrict
     );`);
 
-    // ----------------------------------------------------------------------- orders
+    // --- orders
     this.addSql(`create table "orders" (
       "id" uuid not null default gen_random_uuid(),
       "client_id" uuid not null,
@@ -110,18 +108,18 @@ export class Migration20261028100000_initial_schema extends Migration {
       constraint "orders_driver_id_foreign" foreign key ("driver_id") references "users" ("id") on delete restrict,
       constraint "orders_cargo_type_code_foreign" foreign key ("cargo_type_code") references "cargo_types" ("code") on delete restrict
     );`);
-    // «Мои заявки» заказчика: WHERE client_id = ? ORDER BY created_at DESC
+    // мои заявки заказчика: WHERE client_id = ? ORDER BY created_at DESC
     this.addSql(`create index "idx_orders_client_created" on "orders" ("client_id", "created_at" desc);`);
-    // «Мои рейсы» водителя: WHERE driver_id = ? ORDER BY updated_at DESC (заявки без водителя не индексируются)
+    // мои рейсы водителя: WHERE driver_id = ? ORDER BY updated_at DESC (заявки без водителя в индекс не попадают)
     this.addSql(
       `create index "idx_orders_driver_updated" on "orders" ("driver_id", "updated_at" desc) where driver_id is not null;`,
     );
-    // Лента водителя: только открытые заявки, новые сверху
+    // лента водителя: только открытые заявки, новые сверху
     this.addSql(
       `create index "idx_orders_open_created" on "orders" ("created_at" desc) where status in ('Created', 'Bidding');`,
     );
 
-    // ------------------------------------------------------------------------- bids
+    // --- bids
     this.addSql(`create table "bids" (
       "id" uuid not null default gen_random_uuid(),
       "order_id" uuid not null,
@@ -138,12 +136,12 @@ export class Migration20261028100000_initial_schema extends Migration {
       constraint "bids_order_id_foreign" foreign key ("order_id") references "orders" ("id") on delete cascade,
       constraint "bids_driver_id_foreign" foreign key ("driver_id") references "users" ("id") on delete cascade
     );`);
-    // Не больше одного принятого отклика на заявку
+    // максимум один принятый отклик на заявку
     this.addSql(`create unique index "uk_bids_one_accepted" on "bids" ("order_id") where status = 'Accepted';`);
-    // «Мои отклики» водителя
+    // мои отклики водителя
     this.addSql(`create index "idx_bids_driver_created" on "bids" ("driver_id", "created_at" desc);`);
 
-    // ----------------------------------------------------------------- order_photos
+    // --- order_photos
     this.addSql(`create table "order_photos" (
       "id" uuid not null default gen_random_uuid(),
       "order_id" uuid not null,
@@ -157,7 +155,7 @@ export class Migration20261028100000_initial_schema extends Migration {
     );`);
     this.addSql(`create index "idx_order_photos_order" on "order_photos" ("order_id");`);
 
-    // ---------------------------------------------------------------------- reviews
+    // --- reviews
     this.addSql(`create table "reviews" (
       "id" uuid not null default gen_random_uuid(),
       "order_id" uuid not null,

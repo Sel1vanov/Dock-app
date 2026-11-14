@@ -1,7 +1,5 @@
-/**
- * Заявки (/orders). Поиск, фильтрация, сортировка и постраничная загрузка выполняются
- * на сервере: клиент передаёт параметры q, cargoType, status, sort, limit, offset.
- */
+// заявки (/orders). поиск, фильтры, сортировка и подгрузка страницами делаются
+// на сервере, клиент только передает q, cargoType, status, sort, limit, offset
 import { apiRequest } from '../core/api';
 import type { ApiFeedPage, ApiOrderDetails, ApiOrderListItem, ApiPage, ApiPhotoStage } from '../models/api';
 
@@ -27,12 +25,12 @@ export interface ListQuery {
 }
 
 export const OrderRepository = {
-  /** Заказчик — свои заявки, водитель — свои рейсы. */
+  // заказчик получает свои заявки, водитель - свои рейсы
   list(query: ListQuery): Promise<ApiPage<ApiOrderListItem>> {
     return apiRequest('GET', '/orders', { query: { ...query } });
   },
 
-  /** UC-08 + UC-09: лента под ТС — фильтр по габаритам и типам грузов выполняется в БД. */
+  // UC-08 + UC-09: лента под ТС, фильтр по габаритам и типам грузов делает база
   feed(vehicleId: string, query: ListQuery): Promise<ApiFeedPage> {
     return apiRequest('GET', '/orders/feed', { query: { vehicleId, ...query } });
   },
@@ -57,7 +55,7 @@ export const OrderRepository = {
     return apiRequest('POST', `/orders/${id}/cancel`, { body: reason ? { reason } : {} });
   },
 
-  /** UC-12/13: заморозка средств (демо безопасной сделки). */
+  // UC-12/13: заморозка денег (демо безопасной сделки)
   pay(id: string): Promise<ApiOrderDetails> {
     return apiRequest('POST', `/orders/${id}/payment`);
   },
@@ -74,7 +72,7 @@ export const OrderRepository = {
     return apiRequest('POST', `/orders/${id}/complete`);
   },
 
-  /** UC-20: открыть спор по заказу. */
+  // UC-20: открыть спор по заказу
   openDispute(id: string, reason: string): Promise<ApiOrderDetails> {
     return apiRequest('POST', `/orders/${id}/disputes`, { body: { reason } });
   },

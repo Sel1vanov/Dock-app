@@ -1,4 +1,4 @@
-/** Показывает уведомления из core/toast поверх всех экранов на 2,5 секунды. */
+// показывает уведомления из core/toast поверх всех экранов на 2,5 секунды
 import { useEffect, useState } from 'react';
 import { Animated, Platform, StyleSheet, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

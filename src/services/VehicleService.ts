@@ -13,7 +13,7 @@ const toPayload = (input: VehicleInput): VehiclePayload => ({
   cargoTypeCodes: input.cargoTypes,
 });
 
-/** Управление транспортом водителя (CRUD). */
+// транспорт водителя (CRUD)
 export const VehicleService = {
   async getMyVehicles(): Promise<VehicleDTO[]> {
     return (await VehicleRepository.list()).map(toVehicleDTO);

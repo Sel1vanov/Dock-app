@@ -2,7 +2,7 @@ import { formatPhoneInput } from '../../core/phone';
 import { useProfileEditViewModel } from '../../viewmodels/ProfileViewModels';
 import { Banner, Button, Card, ScreenScroll, TextField } from '../components/ui';
 
-/** Изменение имени и телефона. Email и роль меняются только администратором. */
+// изменение имени и телефона. email и роль может менять только админ
 export function ProfileEditScreen() {
   const vm = useProfileEditViewModel();
   return (

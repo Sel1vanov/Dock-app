@@ -6,11 +6,9 @@ import { verifyFileSignature } from '../core/security.js';
 import { errorResponses } from '../schemas/common.js';
 import { isValidFileKey } from '../services/FileStorage.js';
 
-/**
- * Выдача приватных файлов по подписанной ссылке (HMAC + срок действия), которую API включает
- * в ответы только тем, кому файл доступен. Ссылку нельзя подделать или продлить.
- * Отдельный заголовок Authorization не нужен — так ссылку может открыть компонент <Image>.
- */
+// отдача приватных файлов по подписанной ссылке (HMAC + срок). ссылку api кладет в ответы
+// только тем, кому файл можно видеть, подделать или продлить ее нельзя
+// Authorization тут не нужен - иначе <Image> не смог бы открыть ссылку
 export const filesRouter: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/*',

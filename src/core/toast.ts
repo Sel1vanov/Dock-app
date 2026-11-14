@@ -1,7 +1,5 @@
-/**
- * Короткие уведомления об успешной операции («Заявка опубликована»).
- * ViewModel вызывает showToast(), а компонент ToastHost (views) показывает сообщение.
- */
+// короткие всплывашки об успешной операции ("Заявка опубликована")
+// viewmodel вызывает showToast(), а показывает сообщение компонент ToastHost (views)
 export type ToastTone = 'success' | 'info' | 'danger';
 
 export interface ToastMessage {

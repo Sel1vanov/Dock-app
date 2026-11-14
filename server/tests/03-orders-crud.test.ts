@@ -1,8 +1,6 @@
-/**
- * Кейс 5: обязательные тесты API — создание, получение, изменение, удаление, ошибочный сценарий —
- * с проверкой, что запись действительно сохранена в PostgreSQL и доступна при повторном запросе.
- * Кейс 1/4: серверный поиск, фильтрация, сортировка и пагинация (LIMIT/OFFSET).
- */
+// кейс 5: обязательные тесты api - создание, получение, изменение, удаление, сценарий с ошибкой,
+// с проверкой, что запись реально лежит в postgres и отдается при повторном запросе
+// кейс 1/4: поиск, фильтры, сортировка и пагинация на сервере (LIMIT/OFFSET)
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 
@@ -24,7 +22,7 @@ before(async () => {
 });
 after(() => ctx.close());
 
-/** Читает строку напрямую из PostgreSQL, минуя API и Identity Map ORM. */
+// читает строку напрямую из postgres, мимо api и identity map orm
 async function dbRow(id: string) {
   const rows = await ctx.orm.em.fork().execute<any[]>('select * from orders where id = ?', [id]);
   return rows[0];

@@ -1,7 +1,5 @@
-/**
- * Кейс 3: схема разворачивается на пустой БД только миграциями, совпадает с ORM-моделями,
- * откатывается и накатывается повторно; ограничения БД отклоняют некорректные данные сами.
- */
+// кейс 3: схема поднимается на пустой базе одними миграциями, совпадает с моделями orm,
+// откатывается и накатывается заново. кривые данные база отклоняет сама своими ограничениями
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 
@@ -84,8 +82,8 @@ describe('Миграции и ограничения PostgreSQL', () => {
       (e: Error) => e instanceof UniqueConstraintViolationException && e.message.includes('uk_users_phone'),
       'второй аккаунт на тот же телефон база не примет',
     );
-    // Код ошибки зависит от версии PostgreSQL (23503 или 23001 — см. isForeignKeyViolation), поэтому
-    // проверяем сам факт нарушения внешнего ключа и что сработало именно ограничение orders → users.
+    // код ошибки зависит от версии postgres (23503 или 23001, см. isForeignKeyViolation), поэтому
+    // проверяю сам факт нарушения внешнего ключа и что сработало именно ограничение orders -> users
     await assert.rejects(
       em.execute(`delete from users where id = ?`, [client.id]),
       (e: Error) => isForeignKeyViolation(e) && e.message.includes('orders_client_id_foreign'),

@@ -53,7 +53,7 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
-  // Шрифт Onest: пять начертаний, каждое — отдельное семейство (см. family в views/theme.ts).
+  // шрифт Onest: пять начертаний, каждое идет отдельным семейством (см. family в views/theme.ts)
   const [fontsLoaded, fontError] = useFonts({
     Onest_400Regular,
     Onest_500Medium,

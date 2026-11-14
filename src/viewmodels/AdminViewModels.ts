@@ -1,4 +1,4 @@
-/** Модерация (роль Admin): проверка документов водителей, блокировка пользователей, споры. */
+// модерация (роль Admin): проверка документов водителей, блокировка юзеров, споры
 import { router } from 'expo-router';
 import { useState } from 'react';
 
@@ -36,11 +36,11 @@ export function useModerationViewModel() {
   };
 }
 
-/** Очередь споров (UC-21): «Ждут решения» или все; карточка спора — экран заявки. */
+// очередь споров (UC-21): "ждут решения" или все. карточка спора - это экран заявки
 export function useDisputeQueueViewModel() {
   const [onlyOpen, setOnlyOpen] = useState(true);
   const list = usePagedQuery((offset) => AdminService.listDisputes(onlyOpen ? 'Open' : undefined, offset), [onlyOpen]);
-  // Счётчик на вкладке «Споры» — сколько ждут решения, при любом выбранном фильтре
+  // счетчик на вкладке "споры" - сколько ждут решения, независимо от выбранного фильтра
   const openTotal = useQuery(onlyOpen ? null : () => AdminService.listDisputes('Open', 0).then((p) => p.total), [
     onlyOpen,
     list.total,
@@ -57,7 +57,7 @@ export function useDisputeQueueViewModel() {
 export function useAdminUserViewModel(userId: string) {
   const query = useQuery(() => AdminService.getUser(userId), [userId]);
   const [busy, setBusy] = useState(false);
-  /** Выданный временный пароль: показывается на экране, пока администратор диктует его по телефону. */
+  // выданный временный пароль: висит на экране, пока админ диктует его по телефону
   const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
 
   const run = async (fn: () => Promise<AdminUserDTO>, success: string) => {
@@ -78,7 +78,7 @@ export function useAdminUserViewModel(userId: string) {
     user: query.data,
     busy,
     temporaryPassword,
-    /** «Забыли пароль?»: новый пароль сообщается пользователю по телефону, его прежние сессии завершаются. */
+    // "забыли пароль?": новый пароль сообщается юзеру по телефону, его старые сессии слетают
     issueTemporaryPassword: async () => {
       const ok = await confirmAction(
         'Выдать временный пароль?',

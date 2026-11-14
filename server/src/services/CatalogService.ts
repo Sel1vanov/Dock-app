@@ -1,7 +1,7 @@
 import { CargoTypeRepository } from '../repositories/index.js';
 import type { ServiceContext } from './context.js';
 
-/** Справочники для форм клиента. */
+// справочники для форм на клиенте
 export class CatalogService {
   private readonly cargoTypes: CargoTypeRepository;
 

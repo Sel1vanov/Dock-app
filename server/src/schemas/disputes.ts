@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { ACTIVE_TRIP_STATUSES, DisputeStatus, OrderStatus, UserRole } from '../models/enums.js';
 import { PaginationQuery, pageOf } from './common.js';
 
-// ------------------------------------------------------------------ запросы ---
+// --- запросы ---
 
 export const DisputeOpenRequest = z
   .object({
@@ -34,7 +34,7 @@ export const AdminDisputesQuery = PaginationQuery.extend({
   status: z.enum(DisputeStatus).optional().describe('Open — ждут решения; без параметра — все'),
 });
 
-// ------------------------------------------------------------------- ответы ---
+// --- ответы ---
 
 export const DisputeResponse = z
   .object({

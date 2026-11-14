@@ -19,19 +19,17 @@ const NOTIFICATION_TYPES = [
 const DISPUTE_NOTIFICATION_TYPES = ['DisputeOpened', 'DisputeResolved'];
 const list = (values: string[]) => values.map((v) => `'${v}'`).join(', ');
 
-/**
- * Миграция 5 — споры (UC-20 «Открыть спор», UC-21 «Разрешить спор»):
- *  1. Новая таблица disputes: кто и почему открыл спор, на каком этапе рейса, решение администратора.
- *     Частичный уникальный индекс не даёт открыть второй спор, пока первый не решён.
- *  2. Новый статус заказа Disputed: рейс приостановлен, средства остаются замороженными —
- *     CHECK-ограничения orders расширяются.
- *  3. Новые типы уведомлений DisputeOpened и DisputeResolved.
- */
+// миграция 5 - споры (UC-20 открыть спор, UC-21 разрешить спор):
+//  1. таблица disputes: кто и почему открыл, на каком этапе рейса, что решил админ.
+//     частичный уникальный индекс не дает открыть второй спор, пока первый не решен
+//  2. новый статус заказа Disputed: рейс на паузе, деньги остаются замороженными,
+//     поэтому расширяются CHECK-и на orders
+//  3. новые типы уведомлений DisputeOpened и DisputeResolved
 export class Migration20261103100000_disputes extends Migration {
   override name = 'Migration20261103100000_disputes';
 
   override up(): void {
-    // 1. Таблица споров
+    // 1. таблица споров
     this.addSql(`create table "disputes" (
       "id" uuid not null default gen_random_uuid(),
       "order_id" uuid not null,
@@ -54,14 +52,14 @@ export class Migration20261103100000_disputes extends Migration {
       constraint "disputes_opened_by_id_foreign" foreign key ("opened_by_id") references "users" ("id") on delete restrict,
       constraint "disputes_resolved_by_id_foreign" foreign key ("resolved_by_id") references "users" ("id") on delete set null
     );`);
-    // Споры заказа (карточка заявки)
+    // споры по заказу (для карточки заявки)
     this.addSql(`create index "idx_disputes_order" on "disputes" ("order_id");`);
-    // Очередь администратора: открытые споры по дате
+    // очередь админа: открытые споры по дате
     this.addSql(`create index "idx_disputes_status_created" on "disputes" ("status", "created_at");`);
-    // Не больше одного открытого спора по заказу
+    // максимум один открытый спор на заказ
     this.addSql(`create unique index "uk_disputes_order_open" on "disputes" ("order_id") where status = 'Open';`);
 
-    // 2. Статус заказа Disputed
+    // 2. статус заказа Disputed
     this.addSql(`alter table "orders"
       drop constraint "orders_status_check",
       drop constraint "ck_orders_driver_by_status",
@@ -74,14 +72,14 @@ export class Migration20261103100000_disputes extends Migration {
       add constraint "ck_orders_escrow_by_status" check ((not is_escrow_locked or status in ('Assigned', 'Loading', 'InTransit', 'Unloading', 'Disputed'))
         and (is_escrow_locked or status not in ('Loading', 'InTransit', 'Unloading', 'Disputed')));`);
 
-    // 3. Типы уведомлений
+    // 3. типы уведомлений
     this.addSql(`alter table "notifications" drop constraint "notifications_type_check";`);
     this.addSql(`alter table "notifications" add constraint "notifications_type_check"
       check ("type" in (${list([...NOTIFICATION_TYPES, ...DISPUTE_NOTIFICATION_TYPES])}));`);
   }
 
   override down(): void {
-    // Заказы с открытым спором возвращаются на этап рейса, на котором спор был открыт
+    // заказы с открытым спором возвращаю на тот этап рейса, где спор открыли
     this.addSql(`update "orders" o set "status" = d."order_status_at_open"
       from "disputes" d where d."order_id" = o."id" and d."status" = 'Open' and o."status" = 'Disputed';`);
     this.addSql(`delete from "notifications" where "type" in (${list(DISPUTE_NOTIFICATION_TYPES)});`);

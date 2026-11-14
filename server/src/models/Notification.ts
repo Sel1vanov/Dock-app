@@ -5,20 +5,18 @@ import { NotificationType } from './enums.js';
 import { Order } from './Order.js';
 import { User } from './User.js';
 
-/**
- * Уведомление пользователю о событии: новый отклик, выбор исполнителя, смена статуса рейса и т. д.
- * Создаётся в той же транзакции, что и само событие: если операция откатилась, уведомления тоже нет.
- */
+// уведомление юзеру о событии: новый отклик, выбор исполнителя, смена статуса рейса и т.д.
+// создается в той же транзакции, что и событие: откатилась операция - уведомления тоже нет
 @Entity({ tableName: 'notifications' })
-// Список уведомлений пользователя: WHERE user_id = ? ORDER BY created_at DESC
+// список уведомлений юзера: WHERE user_id = ? ORDER BY created_at DESC
 @Index({ name: 'idx_notifications_user_created', columns: [{ name: 'user_id' }, { name: 'created_at', sort: 'desc' }] })
-// Счётчик непрочитанных на колокольчике: WHERE user_id = ? AND NOT is_read
+// счетчик на колокольчике: WHERE user_id = ? AND NOT is_read
 @Index({ name: 'idx_notifications_user_unread', properties: ['user'], where: 'not is_read' })
 export class Notification {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
   id!: string;
 
-  /** Получатель. Уведомления — часть аккаунта и удаляются вместе с ним (CASCADE). */
+  // получатель. уведомления удаляются вместе с аккаунтом (CASCADE)
   @ManyToOne(() => User, { deleteRule: 'cascade' })
   user!: User;
 
@@ -31,11 +29,11 @@ export class Notification {
   @Property({ type: 'string', length: 300 })
   body!: string;
 
-  /** Заявка, к которой относится событие. Удалили заявку — уведомление о ней теряет смысл (CASCADE). */
+  // заявка, про которую событие. удалили заявку - уведомление уже не нужно (CASCADE)
   @ManyToOne(() => Order, { nullable: true, deleteRule: 'cascade' })
   order: Order | null = null;
 
-  /** Пользователь, о котором сообщается администратору (документы на проверке, сброс пароля). */
+  // юзер, про которого сообщаем админу (документы на проверке, сброс пароля)
   @ManyToOne(() => User, { nullable: true, deleteRule: 'cascade' })
   relatedUser: User | null = null;
 

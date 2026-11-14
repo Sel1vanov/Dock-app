@@ -4,7 +4,7 @@ import { useVerificationViewModel } from '../../viewmodels/ProfileViewModels';
 import { Banner, Button, Card, Icon, LoadingView, ScreenScroll } from '../components/ui';
 import { colors, font, radius, spacing } from '../theme';
 
-/** UC-01 «Пройти верификацию документов». */
+// UC-01: пройти верификацию документов
 export function VerificationScreen() {
   const vm = useVerificationViewModel();
   if (vm.isLoading) return <LoadingView />;

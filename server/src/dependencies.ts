@@ -1,13 +1,11 @@
-/**
- * Зависимости обработчиков запросов — аналог Depends() в FastAPI:
- *  - getSession(request)   — Session (EntityManager) этого запроса;
- *  - authenticate          — проверка Bearer-токена и загрузка текущего пользователя;
- *  - requireRole(...roles) — проверка роли;
- *  - services(request)     — сервисы, собранные поверх Session запроса.
- *
- * Session создаётся на каждый запрос (orm.em.fork()) и не разделяется между запросами:
- * у каждого запроса свой Identity Map и своя транзакция.
- */
+// зависимости для обработчиков (как Depends() в fastapi):
+//  - getSession(request)   - EntityManager этого запроса
+//  - authenticate          - проверяет Bearer токен и грузит текущего юзера
+//  - requireRole(...roles) - проверка роли
+//  - services(request)     - сервисы поверх em этого запроса
+//
+// em создается на каждый запрос (orm.em.fork()) и между запросами не шарится:
+// у каждого свой identity map и своя транзакция
 import type { MikroORM } from '@mikro-orm/postgresql';
 import type { EntityManager } from '@mikro-orm/postgresql';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -38,7 +36,7 @@ declare module 'fastify' {
   interface FastifyRequest {
     em: EntityManager;
     currentUser: User | null;
-    /** Когда пользователь ввёл пароль (секунды Unix) — из токена; нужно для продления сессии. */
+    // когда юзер ввел пароль (unix сек), берется из токена. нужно для продления сессии
     sessionStartedAt: number;
   }
 }
@@ -52,7 +50,7 @@ export function registerDependencies(
   app.decorateRequest('em', null as unknown as EntityManager);
   app.decorateRequest('currentUser', null);
   app.decorateRequest('sessionStartedAt', 0);
-  // Новая Session на каждый запрос.
+  // новый em на каждый запрос
   app.addHook('onRequest', async (request) => {
     request.em = deps.orm.em.fork();
   });
@@ -62,7 +60,7 @@ export function getSession(request: FastifyRequest): EntityManager {
   return request.em;
 }
 
-/** Проверяет заголовок Authorization: Bearer <JWT> (подпись, срок, издатель) и загружает пользователя. */
+// проверяет Authorization: Bearer <JWT> (подпись, срок, issuer) и подгружает юзера
 export async function authenticate(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
   const header = request.headers.authorization;
   const match = header?.match(/^Bearer\s+(\S+)$/i);
@@ -90,7 +88,7 @@ export function currentUser(request: FastifyRequest): User {
   return request.currentUser;
 }
 
-/** Сервисы для обработчика: каждый получает Session текущего запроса. */
+// сервисы для обработчика, все работают с em текущего запроса
 export function services(request: FastifyRequest) {
   const ctx: ServiceContext = {
     em: getSession(request),

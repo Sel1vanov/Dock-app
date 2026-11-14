@@ -32,7 +32,7 @@ import {
 } from '../components/ui';
 import { colors, family, font, formatNumber, formatPrice, formatRelative, radius, spacing } from '../theme';
 
-/** Карточка заявки: торг (UC-10, UC-11), выбор исполнителя (UC-06), отмена (UC-07), спор (UC-20, UC-21). */
+// карточка заявки: торг (UC-10, UC-11), выбор исполнителя (UC-06), отмена (UC-07), спор (UC-20, UC-21)
 export function OrderDetailsScreen({ orderId }: { orderId: string }) {
   const vm = useOrderDetailsViewModel(orderId);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -113,7 +113,7 @@ export function OrderDetailsScreen({ orderId }: { orderId: string }) {
 
       {vm.hasTrip ? <Button title="Открыть рейс и фотофиксацию" icon="truck-fast" onPress={vm.openTracking} /> : null}
 
-      {/* ------------------------------------------------ Водитель ------ */}
+      {/* --- водитель --- */}
       {vm.isDriverRole && order.client ? (
         <Card>
           <Text style={styles.meta}>Заказчик</Text>
@@ -128,7 +128,7 @@ export function OrderDetailsScreen({ orderId }: { orderId: string }) {
         <Banner tone="muted" icon="handshake" title="Исполнитель выбран" text="Заказчик выбрал другое предложение" />
       ) : null}
 
-      {/* ------------------------------------------------ Заказчик ------ */}
+      {/* --- заказчик --- */}
       {vm.isClient && vm.isBiddingOpen ? (
         <>
           <SectionTitle title={`Отклики водителей · ${order.bids.length}`} />
@@ -168,7 +168,7 @@ export function OrderDetailsScreen({ orderId }: { orderId: string }) {
         </Card>
       ) : null}
 
-      {/* ------------------------------------------- Администратор ------ */}
+      {/* --- админ --- */}
       {vm.isAdmin ? (
         <Card>
           <Text style={styles.meta}>Заказчик</Text>

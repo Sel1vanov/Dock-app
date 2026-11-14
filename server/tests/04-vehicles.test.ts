@@ -1,4 +1,4 @@
-/** CRUD транспорта и связь N:M «ТС ↔ типы груза»; проверка владельца записи. */
+// CRUD транспорта и связь N:M между ТС и типами груза, проверка что запись своя
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 

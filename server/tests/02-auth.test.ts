@@ -1,7 +1,5 @@
-/**
- * Кейс 6: регистрация, вход, хеширование, JWT со сроком действия, 401/403/409/422,
- * отсутствие пароля и хеша в ответах.
- */
+// кейс 6: регистрация, логин, хеширование, JWT со сроком, 401/403/409/422,
+// пароля и хеша в ответах быть не должно
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 
@@ -98,7 +96,7 @@ describe('Регистрация и вход', () => {
       'admin',
       'Администратор',
       'Админ Dock',
-      'аdmin', // русская «а»
+      'аdmin', // тут русская а
       'adm1n',
       'ad_min',
       'a d m i n',
@@ -117,7 +115,7 @@ describe('Регистрация и вход', () => {
       assert.equal(res.statusCode, 422, fullName);
       assert.equal(res.data.error.details[0].field, 'fullName', fullName);
     }
-    // Обычные имена, похожие на запрещённые слова только частью букв, проходят
+    // обычные имена, которые только частью букв похожи на запрещенные слова, должны проходить
     for (const [i, fullName] of ['Влад Минин', 'Евдокия Ботова', 'John Murdock', 'Пётр Иванов (СтройТех)'].entries()) {
       const res = await api(ctx, 'POST', '/auth/register', {
         body: { ...VALID, email: `allowed${i}@mail.ru`, phone: `+7903888${String(i).padStart(4, '0')}`, fullName },
@@ -210,7 +208,7 @@ describe('Защита эндпоинтов токеном', () => {
   test('продление сессии: по действующему токену выдаётся новый, начало сессии сохраняется', async () => {
     const user = await registerUser(ctx, 'Client');
     const first = jwt.decode(user.token) as jwt.JwtPayload;
-    await new Promise((resolve) => setTimeout(resolve, 1100)); // чтобы у нового токена было другое время выдачи
+    await new Promise((resolve) => setTimeout(resolve, 1100)); // ждем секунду, чтобы у нового токена было другое время выдачи
 
     const res = await api(ctx, 'POST', '/auth/refresh', { token: user.token });
     assert.equal(res.statusCode, 200);

@@ -1,8 +1,6 @@
-/**
- * Полный сценарий (интеграционный путь Vision): заявка → отклик → выбор → оплата → погрузка с фото
- * → в пути → выгрузка с фото → приёмка → отзывы. Плюс отказ в недопустимых переходах (409)
- * и доступ к фото только по подписанной ссылке.
- */
+// полный сценарий (интеграционный путь из Vision): заявка -> отклик -> выбор -> оплата -> погрузка с фото
+// -> в пути -> выгрузка с фото -> приемка -> отзывы. плюс отказ на недопустимых переходах (409)
+// и доступ к фото только по подписанной ссылке
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 
@@ -31,7 +29,7 @@ describe('Исполнение рейса', () => {
     const status = (path: string, body: object = {}) =>
       api(ctx, 'POST', `/orders/${order.id}${path}`, { token: driver.token, body });
 
-    // Лента водителя показывает заявку под его ТС
+    // лента водителя показывает заявку под его ТС
     const feed = await api(ctx, 'GET', `/orders/feed?vehicleId=${driver.vehicleId}`, { token: driver.token });
     assert.ok(feed.data.items.some((o: { id: string }) => o.id === order.id));
 
@@ -41,10 +39,10 @@ describe('Исполнение рейса', () => {
       api(ctx, 'GET', `/orders?status=${group}`, { token: client.token }).then((r) => r.data.total);
     assert.deepEqual([await clientList('open'), await clientList('inProgress')], [1, 0]);
     await api(ctx, 'POST', `/bids/${bid.id}/accept`, { token: client.token });
-    // После выбора исполнителя заявка переходит из «Поиск» в «В работе»
+    // после выбора исполнителя заявка переезжает из "поиск" в "в работе"
     assert.deepEqual([await clientList('open'), await clientList('inProgress')], [0, 1]);
 
-    // До оплаты рейс начать нельзя
+    // до оплаты рейс начать нельзя
     let res = await status('/status', { status: 'Loading' });
     assert.equal(res.statusCode, 409);
     assert.match(res.data.error.message, /после оплаты/);
@@ -95,7 +93,7 @@ describe('Исполнение рейса', () => {
     assert.equal(res.data.status, 'Completed');
     assert.equal(res.data.isEscrowLocked, false, 'средства переведены исполнителю');
 
-    // Отзывы обеих сторон, повтор — 409, посторонний — 403
+    // отзывы с обеих сторон, повторный - 409, от постороннего - 403
     const review = { rating: 5, comment: 'Отлично' };
     assert.equal(
       (await api(ctx, 'POST', `/orders/${order.id}/reviews`, { token: client.token, body: review })).statusCode,
@@ -128,7 +126,7 @@ describe('Исполнение рейса', () => {
       [5, 'Отлично', 'Client'],
     );
 
-    // О каждом этапе рейса заказчик получил уведомление
+    // на каждый этап рейса заказчику должно прийти уведомление
     const clientNotes = await api(ctx, 'GET', '/notifications?limit=50', { token: client.token });
     const titles = clientNotes.data.items.map((n: { title: string }) => n.title);
     for (const title of ['Водитель прибыл на погрузку', 'Груз в пути', 'Водитель прибыл на выгрузку']) {
@@ -141,7 +139,7 @@ describe('Исполнение рейса', () => {
       assert.ok(driverTypes.includes(type), `водителю не пришло уведомление ${type}`);
     }
 
-    // Фото открывается по подписанной ссылке, подделанная или без подписи — 403
+    // фото открывается по подписанной ссылке, с поддельной подписью или без нее - 403
     const file = await ctx.app.inject({ method: 'GET', url: photoUrl });
     assert.equal(file.statusCode, 200);
     assert.equal(file.headers['content-type'], 'image/jpeg');

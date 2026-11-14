@@ -1,4 +1,4 @@
-/** Точка входа сервера: конфигурация → ORM → проверка миграций → HTTP. */
+// точка входа: конфиг -> orm -> проверка миграций -> http
 import { loadConfig, loadEnvFile } from './core/config.js';
 import { buildApp } from './app.js';
 import { initOrm } from './database/orm.js';

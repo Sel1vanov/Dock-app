@@ -9,11 +9,9 @@ import { OrderPhoto } from './OrderPhoto.js';
 import { Review } from './Review.js';
 import { User } from './User.js';
 
-/**
- * Заявка на перевозку (SAD 5, класс Order) — основная сущность.
- * Согласованность статуса, исполнителя и оплаты проверяется CHECK-ограничениями,
- * поэтому некорректную комбинацию нельзя записать даже в обход API.
- */
+// заявка на перевозку (SAD 5, класс Order) - главная сущность
+// связку статус/исполнитель/оплата проверяют CHECK-и в базе, так что кривую комбинацию
+// не записать даже в обход api
 @Entity({ tableName: 'orders' })
 @Check({
   name: 'ck_orders_cargo_dimensions',
@@ -47,7 +45,7 @@ import { User } from './User.js';
   columns: [{ name: 'created_at', sort: 'desc' }],
   where: `status in ('Created', 'Bidding')`,
 })
-// Поиск по тексту заявки (ILIKE '%…%'): триграммный GIN-индекс по тому же выражению, что в запросе.
+// поиск по тексту заявки (ILIKE '%...%'): триграммный GIN-индекс по тому же выражению, что и в запросе
 @Index({
   name: 'idx_orders_search_trgm',
   expression: `create index "idx_orders_search_trgm" on "orders" using gin ((coalesce(description, '') || ' ' || origin_address || ' ' || destination_address) gin_trgm_ops)`,
@@ -56,11 +54,11 @@ export class Order {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
   id!: string;
 
-  /** Заказчика с заявками удалить нельзя (RESTRICT): заявки — история сделок и расчётов. */
+  // заказчика с заявками удалить нельзя (RESTRICT) - заявки это история сделок и расчетов
   @ManyToOne(() => User, { deleteRule: 'restrict' })
   client!: User;
 
-  /** Назначенный водитель. RESTRICT по той же причине; до выбора исполнителя — NULL. */
+  // назначенный водитель, пока не выбран - NULL. RESTRICT по той же причине
   @ManyToOne(() => User, { nullable: true, deleteRule: 'restrict' })
   driver: User | null = null;
 
@@ -70,7 +68,7 @@ export class Order {
   @Property({ type: 'string', length: 500, nullable: true })
   description: string | null = null;
 
-  /** В БД — килограммы и метры; тонны показывает только интерфейс. */
+  // в базе кг и метры, тонны показываются только в интерфейсе
   @Property({ type: new DecimalType('number'), precision: 10, scale: 2 })
   cargoWeightKg!: number;
 
@@ -95,7 +93,7 @@ export class Order {
   @Enum({ items: () => OrderStatus, default: OrderStatus.Created })
   status: Opt<OrderStatus> = OrderStatus.Created;
 
-  /** Безопасная сделка (UC-13): средства заморожены до приёмки груза. */
+  // безопасная сделка (UC-13): деньги заморожены до приемки груза
   @Property({ type: 'boolean', default: false })
   isEscrowLocked: Opt<boolean> = false;
 

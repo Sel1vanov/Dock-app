@@ -1,11 +1,9 @@
 import type { StatusTone } from '../models/catalog';
 import type { CargoType } from '../models/dto';
 
-/**
- * Дизайн-токены Dock («минимализм с характером»): белый фон, чёрный текст и кнопки навигации,
- * фирменный оранжевый — для главных действий и акцентов. Шрифт Onest (поддерживает кириллицу).
- * Ключи navy* сохранены, чтобы экраны не зависели от конкретной палитры: сейчас это оттенки графита.
- */
+// дизайн-токены Dock: белый фон, черный текст и кнопки навигации,
+// фирменный оранжевый - для главных действий и акцентов. шрифт Onest (умеет кириллицу)
+// ключи navy* остались, чтобы экраны не зависели от конкретной палитры. сейчас это оттенки графита
 export const colors = {
   navy900: '#111111',
   navy800: '#1F1F1F',
@@ -14,7 +12,7 @@ export const colors = {
   accent: '#FF6B00',
   accentDark: '#C2410C',
   accentSoft: '#FFF0E5',
-  /** Текст на оранжевом: тёмный читается лучше белого (контраст выше 4.5:1). */
+  // текст на оранжевом: темный читается лучше белого (контраст выше 4.5:1)
   onAccent: '#111111',
 
   bg: '#F7F7F5',
@@ -47,7 +45,7 @@ export const toneColors: Record<StatusTone, { fg: string; bg: string }> = {
   danger: { fg: colors.danger, bg: colors.dangerSoft },
 };
 
-/** Цвет плашки с иконкой типа груза: ленту легче просматривать глазами. */
+// цвет плашки с иконкой типа груза - так ленту легче просматривать глазами
 export const cargoTints: Record<CargoType, { fg: string; bg: string }> = {
   Machinery: { fg: colors.accentDark, bg: colors.accentSoft },
   Agricultural: { fg: colors.success, bg: colors.successSoft },
@@ -61,7 +59,7 @@ export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28 } as cons
 
 export const radius = { sm: 10, md: 14, lg: 20, xl: 26, pill: 999 } as const;
 
-/** Начертания шрифта Onest: на iOS и Android вес задаётся отдельным семейством, а не fontWeight. */
+// начертания Onest: на ios и android вес задается отдельным семейством, а не через fontWeight
 export const family = {
   regular: 'Onest_400Regular',
   medium: 'Onest_500Medium',
@@ -102,7 +100,7 @@ export function formatRelative(iso: string): string {
   return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
 }
 
-/** Приветствие по времени суток на устройстве. */
+// приветствие по времени суток на устройстве
 export function greeting(date = new Date()): string {
   const h = date.getHours();
   if (h >= 5 && h < 12) return 'Доброе утро';
@@ -111,7 +109,7 @@ export function greeting(date = new Date()): string {
   return 'Доброй ночи';
 }
 
-/** «1 заявка», «2 заявки», «5 заявок». */
+// 1 заявка, 2 заявки, 5 заявок
 export function plural(n: number, one: string, few: string, many: string): string {
   const mod10 = n % 10;
   const mod100 = n % 100;

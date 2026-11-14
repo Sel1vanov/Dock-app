@@ -1,4 +1,4 @@
-/** Встречная цена заказчика, уведомления, смена пароля и сброс пароля через администратора. */
+// встречная цена заказчика, уведомления, смена пароля и сброс пароля через админа
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 
@@ -76,7 +76,7 @@ describe('Торг и уведомления', () => {
     assert.equal((await api(ctx, 'POST', `/bids/${bid.id}/accept-counter`, { token: d1.token })).statusCode, 409);
     assert.equal((await notifications(client.token)).items[0].type, 'CounterAccepted');
 
-    // Новая цена водителя снимает встречную цену заказчика
+    // новая цена водителя сбрасывает встречную цену заказчика
     await api(ctx, 'POST', `/bids/${bid.id}/counter`, { token: client.token, body: { price: 43000 } });
     res = await api(ctx, 'PATCH', `/bids/${bid.id}`, { token: d1.token, body: { price: 44000 } });
     assert.deepEqual([res.data.myBid.price, res.data.myBid.counterPrice], [44000, null]);

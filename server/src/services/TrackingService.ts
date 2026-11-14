@@ -9,21 +9,21 @@ import { decodeImage } from './FileStorage.js';
 import { NotificationService, orderTitle } from './NotificationService.js';
 import { OrderService } from './OrderService.js';
 
-/** Что сообщить заказчику о новом этапе рейса. */
+// что написать заказчику про новый этап рейса
 const STATUS_NOTICES: Partial<Record<OrderStatus, string>> = {
   [OrderStatus.Loading]: 'Водитель прибыл на погрузку',
   [OrderStatus.InTransit]: 'Груз в пути',
   [OrderStatus.Unloading]: 'Водитель прибыл на выгрузку',
 };
 
-/** Допустимые переходы рейса, которые выполняет водитель (UC-15). */
+// какие переходы по рейсу может делать водитель (UC-15)
 const DRIVER_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus>> = {
   [OrderStatus.Assigned]: OrderStatus.Loading,
   [OrderStatus.Loading]: OrderStatus.InTransit,
   [OrderStatus.InTransit]: OrderStatus.Unloading,
 };
 
-/** Исполнение рейса: смена статусов водителем и фотофиксация груза (UC-15, UC-17). */
+// выполнение рейса: водитель меняет статусы и грузит фото груза (UC-15, UC-17)
 export class TrackingService {
   private readonly orders: OrderRepository;
   private readonly photos: PhotoRepository;
@@ -57,7 +57,7 @@ export class TrackingService {
     return new OrderService(this.ctx).getDetails(user, order.id);
   }
 
-  /** Фото погрузки — на статусе «Прибыл на погрузку», выгрузки — на «Прибыл на выгрузку». */
+  // фото погрузки можно только на статусе "прибыл на погрузку", выгрузки - на "прибыл на выгрузку"
   async uploadPhoto(user: User, orderId: string, input: PhotoUploadInput) {
     const order = await this.getAssigned(user, orderId);
     if (order.status === OrderStatus.Disputed) throw tripPaused();

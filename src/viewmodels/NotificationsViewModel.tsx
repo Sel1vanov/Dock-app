@@ -1,8 +1,6 @@
-/**
- * Уведомления: счётчик непрочитанных для колокольчика (опрашивается раз в 30 секунд, пока
- * приложение открыто) и экран списка уведомлений. Когда приходит новое уведомление,
- * его заголовок коротко показывается поверх экрана.
- */
+// уведомления: счетчик непрочитанных для колокольчика (опрашивается раз в 30 сек, пока
+// приложение открыто) и экран со списком. когда приходит новое уведомление,
+// его заголовок ненадолго показывается поверх экрана
 import { router } from 'expo-router';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
@@ -31,13 +29,13 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const { currentUser } = useAuth();
   const userId = currentUser?.id ?? null;
   const [unreadCount, setUnreadCount] = useState(0);
-  // Другой пользователь вошёл — счётчик прежнего не показываем (корректировка состояния при рендере).
+  // зашел другой юзер - счетчик прошлого не показываем (состояние правится прямо при рендере)
   const [countedFor, setCountedFor] = useState(userId);
   if (countedFor !== userId) {
     setCountedFor(userId);
     setUnreadCount(0);
   }
-  /** Предыдущее значение счётчика: null — ещё не загружали (при входе подсказку не показываем). */
+  // прошлое значение счетчика. null - еще не загружали (при входе всплывашку не показываем)
   const previous = useRef<number | null>(null);
 
   const refreshUnread = useCallback(async () => {
@@ -51,7 +49,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       previous.current = count;
       setUnreadCount(count);
     } catch {
-      // Нет сети или сессия истекла — счётчик обновится при следующей проверке.
+      // нет сети или сессия истекла - счетчик обновится при следующей проверке
     }
   }, [userId]);
 
@@ -80,12 +78,12 @@ export function useUnreadCount(): NotificationsContextValue {
   return useContext(NotificationsContext);
 }
 
-/** Экран «Уведомления»: список страницами, переход к заявке, отметка о прочтении. */
+// экран уведомлений: список страницами, переход к заявке, отметка о прочтении
 export function useNotificationsViewModel() {
   const user = useCurrentUser();
   const { unreadCount, refreshUnread } = useUnreadCount();
   const list = usePagedQuery((offset) => NotificationService.getPage(offset), [user.id]);
-  /** Прочитанные в этом сеансе экрана — чтобы точка «новое» исчезала сразу после нажатия. */
+  // что прочитали, пока экран открыт - чтобы точка "новое" пропадала сразу после нажатия
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
   const open = async (n: NotificationDTO) => {

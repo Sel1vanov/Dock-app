@@ -1,7 +1,5 @@
-/**
- * Споры (UC-20 «Открыть спор», UC-21 «Разрешить спор»): кто и когда может открыть спор,
- * приостановка рейса, решение администратора в пользу каждой из сторон в одной транзакции.
- */
+// споры (UC-20 открыть спор, UC-21 разрешить спор): кто и когда может открыть,
+// пауза рейса, решение админа в пользу каждой из сторон одной транзакцией
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 
@@ -26,7 +24,7 @@ before(async () => {
 });
 after(() => ctx.close());
 
-/** Заказ с выбранным исполнителем; paid — оплачен (средства заморожены), можно ехать. */
+// заказ с выбранным исполнителем. paid - оплачен (деньги заморожены), можно ехать
 async function tripOrder(paid = true) {
   const client = await registerUser(ctx, 'Client');
   const driver = await createVerifiedDriver(ctx);
@@ -72,7 +70,7 @@ describe('Открытие спора (UC-20)', () => {
     assert.equal(res.data.dispute.openedBy.role, 'Driver');
     assert.deepEqual(await orderRow(orderId), { status: 'Disputed', is_escrow_locked: true, cancel_reason: null });
 
-    // Пока спор открыт, рейс не двигается, приёмки и второго спора нет
+    // пока спор открыт - рейс не двигается, приемки нет, второй спор не открыть
     const step = await api(ctx, 'POST', `/orders/${orderId}/status`, {
       token: driver.token,
       body: { status: 'InTransit' },
@@ -90,7 +88,7 @@ describe('Открытие спора (UC-20)', () => {
     assert.ok((await notificationTypes(client.token)).includes('DisputeOpened'), 'заказчику пришло уведомление');
     assert.ok((await notificationTypes(admin.token)).includes('DisputeOpened'), 'администратору пришло уведомление');
 
-    // Заказ в разделе «В работе» у заказчика
+    // заказ лежит у заказчика в разделе "в работе"
     const inProgress = await api(ctx, 'GET', '/orders?status=inProgress', { token: client.token });
     assert.ok(inProgress.data.items.some((o: { id: string }) => o.id === orderId));
   });
@@ -131,7 +129,7 @@ describe('Решение спора администратором (UC-21)', () 
     const { client, driver, orderId } = await tripOrder();
     const dispute = (await openDispute(orderId, client.token)).data.dispute;
 
-    // Очередь администратора
+    // очередь админа
     const queue = await api(ctx, 'GET', '/admin/disputes?status=Open', { token: admin.token });
     assert.equal(queue.statusCode, 200);
     const item = queue.data.items.find((d: { id: string }) => d.id === dispute.id);
@@ -149,7 +147,7 @@ describe('Решение спора администратором (UC-21)', () 
     const review = await api(ctx, 'POST', `/orders/${orderId}/reviews`, { token: driver.token, body: { rating: 4 } });
     assert.equal(review.statusCode, 201, 'после завершения стороны оценивают друг друга');
 
-    // Карточка заказа показывает решение участникам
+    // в карточке заказа участники видят решение
     const details = await api(ctx, 'GET', `/orders/${orderId}`, { token: client.token });
     assert.equal(details.data.dispute.status, 'ResolvedDriver');
     assert.equal(details.data.dispute.resolutionComment, 'Проверили фото и переписку сторон');

@@ -10,10 +10,8 @@ import { colors, family, font, formatNumber, greeting, plural, radius, spacing }
 
 const ADD_VEHICLE = '__add__';
 
-/**
- * OrderFeedScreen (SAD 5.2): UC-08 «Список доступных заявок» + UC-09 «Фильтр по параметрам ТС».
- * Габариты, масса и типы грузов ТС, а также поиск и сортировка применяются на сервере.
- */
+// OrderFeedScreen (SAD 5.2): UC-08 список доступных заявок + UC-09 фильтр по параметрам ТС
+// габариты, вес и типы грузов ТС, а также поиск и сортировка применяются на сервере
 export function OrderFeedScreen() {
   const vm = useOrderFeedViewModel();
   const v = vm.selectedVehicle;

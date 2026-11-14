@@ -1,7 +1,5 @@
-/**
- * Ошибки приложения с понятным пользователю текстом. HTTP-клиент переводит ответы сервера
- * в ApiError, чтобы верхние слои не зависели от деталей транспорта.
- */
+// ошибки приложения с понятным для юзера текстом. http-клиент переводит ответы сервера
+// в ApiError, чтобы слои выше не зависели от деталей транспорта
 export class AppError extends Error {
   constructor(
     message: string,
@@ -12,7 +10,7 @@ export class AppError extends Error {
   }
 }
 
-/** Ошибка от сервера: HTTP-статус, машиночитаемый код и ошибки по полям формы (422). */
+// ошибка от сервера: http-статус, код и ошибки по полям формы (422)
 export class ApiError extends AppError {
   constructor(
     readonly status: number,

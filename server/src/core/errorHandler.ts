@@ -1,7 +1,5 @@
-/**
- * Единая обработка ошибок. Клиент получает только код и понятное сообщение
- * ({ error: { code, message, details? } }); стек, SQL и текст исключения пишутся в серверный журнал.
- */
+// общий обработчик ошибок. клиенту уходит только { error: { code, message, details? } },
+// а стек, sql и текст исключения - в лог сервера
 import {
   CheckConstraintViolationException,
   DriverException,
@@ -18,11 +16,8 @@ function send(reply: FastifyReply, status: number, code: ErrorCode, message: str
   return reply.status(status).send({ error: { code, message, ...(details?.length ? { details } : {}) } });
 }
 
-/**
- * Нарушение внешнего ключа. PostgreSQL сообщает о нём двумя кодами: 23503 (foreign_key_violation) и, в новых
- * версиях для правила ON DELETE RESTRICT, 23001 (restrict_violation: «violates RESTRICT setting of foreign key
- * constraint»). MikroORM распознаёт только 23503, поэтому 23001 проверяем по коду сами.
- */
+// нарушение внешнего ключа. у postgres для этого два кода: 23503 и в новых версиях
+// 23001 (для ON DELETE RESTRICT). mikroorm знает только 23503, поэтому 23001 ловлю сам
 export function isForeignKeyViolation(error: unknown): boolean {
   return (
     error instanceof ForeignKeyConstraintViolationException ||
@@ -30,7 +25,7 @@ export function isForeignKeyViolation(error: unknown): boolean {
   );
 }
 
-/** '/cargoTypeCodes/0' → 'cargoTypeCodes' — имя поля формы, к которому относится ошибка. */
+// '/cargoTypeCodes/0' -> 'cargoTypeCodes', т.е. имя поля формы, где ошибка
 function fieldOf(instancePath: string, fallback: string): string {
   const parts = instancePath.split('/').filter(Boolean);
   return parts.find((p) => !/^\d+$/.test(p)) ?? fallback;
@@ -38,7 +33,7 @@ function fieldOf(instancePath: string, fallback: string): string {
 
 export function registerErrorHandler(app: FastifyInstance) {
   app.setErrorHandler((error: FastifyError, request: FastifyRequest, reply: FastifyReply) => {
-    // 422 — тело, параметры или query не прошли проверку схемой
+    // 422 - body/params/query не прошли схему
     if (hasZodFastifySchemaValidationErrors(error)) {
       const context = (error as { validationContext?: string }).validationContext ?? 'body';
       const details = error.validation.map((v) => ({
@@ -55,7 +50,7 @@ export function registerErrorHandler(app: FastifyInstance) {
       return send(reply, error.statusCode, error.code, error.message, error.details);
     }
 
-    // Ограничения целостности БД — последний рубеж, если проверка сервиса что-то пропустила
+    // ограничения самой бд - на случай если проверка в сервисе что-то пропустила
     if (error instanceof UniqueConstraintViolationException) {
       request.log.warn({ err: error }, 'unique constraint violation');
       return send(reply, 409, 'CONFLICT', 'Запись с такими данными уже существует');
@@ -74,7 +69,7 @@ export function registerErrorHandler(app: FastifyInstance) {
       return send(reply, 500, 'INTERNAL_ERROR', 'Внутренняя ошибка сервера');
     }
 
-    // Ошибки самого Fastify (битый JSON, слишком большое тело, лимит запросов)
+    // ошибки самого fastify (кривой json, большое тело, лимит запросов)
     const status = error.statusCode ?? 500;
     if (status === 413) return send(reply, 413, 'PAYLOAD_TOO_LARGE', 'Слишком большой запрос (файл больше 5 МБ)');
     if (status === 429) return send(reply, 429, 'TOO_MANY_REQUESTS', 'Слишком много попыток. Повторите через минуту');

@@ -17,10 +17,8 @@ import {
 } from '../components/ui';
 import { colors, family, font, radius, spacing } from '../theme';
 
-/**
- * OrderCreateScreen (SAD 5.2): UC-03 «Создать заявку», UC-04 «Указать габариты и вес», UC-05 «Маршрут».
- * С параметром orderId тот же экран изменяет заявку (пока на неё нет откликов).
- */
+// OrderCreateScreen (SAD 5.2): UC-03 создать заявку, UC-04 указать габариты и вес, UC-05 маршрут
+// если передан orderId - этот же экран редактирует заявку (пока на нее нет откликов)
 export function OrderFormScreen({ orderId }: { orderId?: string }) {
   const vm = useOrderFormViewModel(orderId);
   const { values, errors } = vm;
@@ -32,7 +30,7 @@ export function OrderFormScreen({ orderId }: { orderId?: string }) {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       {vm.isEdit ? null : <ScreenHeader title="Что перевозим?" subtitle="Новая заявка" />}
-      {/* После публикации форма создаётся заново — пустая и прокрученная к началу. */}
+      {/* после публикации форма создается заново - пустая и прокрученная в начало */}
       <ScreenScroll key={vm.formKey}>
         <SectionTitle title="Тип груза" />
         <View style={styles.types}>

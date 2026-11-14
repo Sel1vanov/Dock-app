@@ -6,7 +6,7 @@ import type { PasswordChangeInput, SignInInput, SignUpInput } from '../models/sc
 import { AuthRepository } from '../repositories/AuthRepository';
 import { UserRepository } from '../repositories/UserRepository';
 
-/** Регистрация, вход, выход, смена пароля и профиль текущего пользователя. Токен хранится в tokenStorage. */
+// регистрация, вход, выход, смена пароля и профиль текущего юзера. токен лежит в tokenStorage
 export const AuthService = {
   async signIn({ email, password }: SignInInput): Promise<UserDTO> {
     const result = await AuthRepository.login(email, password);
@@ -20,19 +20,19 @@ export const AuthService = {
     return toUserDTO(result.user);
   },
 
-  /** Выход: токен удаляется с устройства. */
+  // выход: токен удаляется с устройства
   async signOut(): Promise<void> {
     await tokenStorage.remove();
   },
 
-  /** Смена пароля: прежние токены сервер отзывает, сохраняем выданный новый. */
+  // смена пароля: старые токены сервер отзывает, сохраняем новый, который он выдал
   async changePassword(input: PasswordChangeInput): Promise<UserDTO> {
     const result = await UserRepository.changePassword(input);
     await saveToken(result);
     return toUserDTO(result.user);
   },
 
-  /** «Забыли пароль?»: возвращает текст ответа сервера для пользователя. */
+  // "забыли пароль?": возвращает текст ответа сервера, чтобы показать юзеру
   async requestPasswordReset(email: string): Promise<string> {
     return (await AuthRepository.requestPasswordReset(email)).message;
   },

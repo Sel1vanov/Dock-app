@@ -4,7 +4,7 @@ import { currentUser, services } from '../dependencies.js';
 import { errorResponses, IdParams, NoContent } from '../schemas/common.js';
 import { NotificationPageResponse, NotificationsQuery, UnreadCountResponse } from '../schemas/notifications.js';
 
-/** Уведомления текущего пользователя: список, счётчик непрочитанных, отметка о прочтении. */
+// уведомления текущего юзера: список, счетчик непрочитанных, отметка о прочтении
 export const notificationsRouter: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/',

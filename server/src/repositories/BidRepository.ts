@@ -2,7 +2,7 @@ import { type EntityManager, raw } from '@mikro-orm/postgresql';
 
 import { Bid, BidStatus } from '../models/index.js';
 
-/** Отклики водителей (таблица bids). */
+// отклики водителей (таблица bids)
 export class BidRepository {
   constructor(private readonly em: EntityManager) {}
 
@@ -22,7 +22,7 @@ export class BidRepository {
     );
   }
 
-  /** Ожидающие отклики заявки, кроме выбранного: их авторам уходит уведомление об отказе. */
+  // ожидающие отклики заявки кроме выбранного - их авторам уйдет уведомление об отказе
   listPendingExcept(orderId: string, exceptBidId: string): Promise<Bid[]> {
     return this.em.find(Bid, { order: orderId, status: BidStatus.Pending, id: { $ne: exceptBidId } });
   }
@@ -35,7 +35,7 @@ export class BidRepository {
     return this.em.count(Bid, { order: orderId });
   }
 
-  /** Отклики водителя вместе с заявками — заявка, заказчик и тип груза JOIN-ом в одном запросе. */
+  // отклики водителя вместе с заявками: заявка, заказчик и тип груза одним запросом через JOIN
   listByDriver(driverId: string, status?: BidStatus): Promise<Bid[]> {
     return this.em.find(
       Bid,
@@ -48,7 +48,7 @@ export class BidRepository {
     );
   }
 
-  /** Число откликов для всех заявок страницы — один запрос с GROUP BY. */
+  // кол-во откликов сразу для всех заявок страницы - один запрос с GROUP BY
   async countByOrders(orderIds: string[]): Promise<Map<string, number>> {
     const result = new Map<string, number>();
     if (orderIds.length === 0) return result;
@@ -64,7 +64,7 @@ export class BidRepository {
     return result;
   }
 
-  /** Отклики текущего водителя на заявки страницы ленты — один запрос IN (…). */
+  // отклики текущего водителя на заявки из страницы ленты - один запрос IN (...)
   async findByDriverForOrders(driverId: string, orderIds: string[]): Promise<Map<string, Bid>> {
     const result = new Map<string, Bid>();
     if (orderIds.length === 0) return result;
@@ -73,7 +73,7 @@ export class BidRepository {
     return result;
   }
 
-  /** Отклонить остальные ожидающие отклики заявки (часть транзакции выбора исполнителя). */
+  // отклонить остальные ожидающие отклики заявки (часть транзакции выбора исполнителя)
   rejectPendingExcept(orderId: string, exceptBidId: string | null): Promise<number> {
     return this.em.nativeUpdate(
       Bid,

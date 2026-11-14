@@ -5,7 +5,7 @@ import { currentUser, services } from '../dependencies.js';
 import { errorResponses, IdParams, NoContent } from '../schemas/common.js';
 import { VehicleCreateRequest, VehicleResponse, VehicleUpdateRequest } from '../schemas/vehicles.js';
 
-/** CRUD транспорта водителя. */
+// CRUD транспорта водителя
 export const vehiclesRouter: FastifyPluginAsyncZod = async (app) => {
   app.get(
     '/',

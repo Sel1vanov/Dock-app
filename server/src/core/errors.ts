@@ -1,8 +1,5 @@
-/**
- * Ошибки приложения. Сервисы бросают их с понятным пользователю текстом, а единый обработчик
- * (core/errorHandler.ts) превращает в HTTP-ответ с нужным кодом. Внутренние исключения
- * (SQL, стек вызовов) клиенту не передаются — только в серверный журнал.
- */
+// ошибки приложения. сервисы кидают их с нормальным текстом для пользователя,
+// errorHandler.ts превращает в http-ответ. внутренности (sql, стек) наружу не уходят
 export type ErrorCode =
   | 'BAD_REQUEST'
   | 'UNAUTHORIZED'
@@ -32,14 +29,14 @@ export class AppError extends Error {
   }
 }
 
-/** 401 — нет токена, токен поддельный или истёк. */
+// 401 - токена нет, он левый или протух
 export class UnauthorizedError extends AppError {
   constructor(message = 'Требуется авторизация', code: 'UNAUTHORIZED' | 'TOKEN_EXPIRED' = 'UNAUTHORIZED') {
     super(401, code, message);
   }
 }
 
-/** 403 — пользователь известен, но прав на действие нет. */
+// 403 - кто это понятно, но прав нет
 export class ForbiddenError extends AppError {
   constructor(message = 'Недостаточно прав для этого действия') {
     super(403, 'FORBIDDEN', message);
@@ -52,14 +49,14 @@ export class NotFoundError extends AppError {
   }
 }
 
-/** 409 — запрос корректен, но противоречит текущему состоянию данных (дубликат, статус заказа). */
+// 409 - запрос нормальный, но не вяжется с текущими данными (дубль, не тот статус заказа)
 export class ConflictError extends AppError {
   constructor(message: string, details?: FieldError[]) {
     super(409, 'CONFLICT', message, details);
   }
 }
 
-/** 422 — данные не прошли проверку. */
+// 422 - данные не прошли проверку
 export class ValidationError extends AppError {
   constructor(message: string, details?: FieldError[]) {
     super(422, 'VALIDATION_ERROR', message, details);

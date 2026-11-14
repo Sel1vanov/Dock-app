@@ -2,7 +2,7 @@ import { type EntityManager, LockMode } from '@mikro-orm/postgresql';
 
 import { Dispute, type DisputeStatus } from '../models/index.js';
 
-/** Споры по заказам (таблица disputes). */
+// споры по заказам (таблица disputes)
 export class DisputeRepository {
   constructor(private readonly em: EntityManager) {}
 
@@ -10,7 +10,7 @@ export class DisputeRepository {
     return this.em.create(Dispute, data);
   }
 
-  /** Спор вместе с заказом и его участниками — для решения администратора (JOIN в одном запросе). */
+  // спор вместе с заказом и участниками, одним запросом с JOIN - для решения админа
   findById(id: string): Promise<Dispute | null> {
     return this.em.findOne(
       Dispute,
@@ -22,12 +22,12 @@ export class DisputeRepository {
     );
   }
 
-  /** Строка спора с блокировкой FOR UPDATE — внутри транзакции (решение администратора). */
+  // строка спора с FOR UPDATE, вызывать внутри транзакции (решение админа)
   lockById(id: string): Promise<Dispute | null> {
     return this.em.findOne(Dispute, { id }, { lockMode: LockMode.PESSIMISTIC_WRITE });
   }
 
-  /** Очередь администратора: фильтр по статусу, старые сверху, LIMIT/OFFSET; связи — JOIN. */
+  // очередь админа: фильтр по статусу, старые сверху, LIMIT/OFFSET, связи через JOIN
   list(filter: { status?: DisputeStatus; limit: number; offset: number }): Promise<[Dispute[], number]> {
     return this.em.findAndCount(Dispute, filter.status ? { status: filter.status } : {}, {
       populate: ['openedBy', 'resolvedBy', 'order', 'order.client', 'order.driver', 'order.cargoType'],

@@ -1,7 +1,5 @@
-/**
- * Сборка HTTP-приложения: валидация схемами, обработка ошибок, CORS, ограничение частоты
- * запросов, документация Swagger и маршруты API v1. Используется сервером (main.ts) и тестами.
- */
+// тут собирается само fastify-приложение: валидация, ошибки, cors, rate limit, swagger, роуты v1
+// вынесено из main.ts, чтобы тесты могли поднять то же самое
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
@@ -23,8 +21,7 @@ import { registerDependencies } from './dependencies.js';
 import { apiV1 } from './routers/index.js';
 import { type FileStorage, LocalFileStorage } from './services/FileStorage.js';
 
-// Стандартные сообщения проверки zod — на русском («Нераспознанный ключ», «Неверный вариант…»).
-// Для большинства полей в схемах заданы свои сообщения; это — для остальных случаев.
+// сообщения zod по умолчанию на русском. в схемах почти везде свои тексты, это для всего остального
 z.config(z.locales.ru());
 
 export interface AppDeps {
@@ -45,7 +42,7 @@ export async function buildApp({ config, orm, storage }: AppDeps): Promise<Fasti
   const app = Fastify({
     logger: {
       level: config.LOG_LEVEL,
-      // Токены и пароли не попадают в журнал.
+      // чтобы токены и пароли не светились в логах
       redact: [
         'req.headers.authorization',
         'body.password',

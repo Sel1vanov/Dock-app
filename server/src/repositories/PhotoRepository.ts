@@ -2,7 +2,7 @@ import type { EntityManager } from '@mikro-orm/postgresql';
 
 import { OrderPhoto, type PhotoStage } from '../models/index.js';
 
-/** Записи фотофиксации (order_photos). Сами файлы — в FileStorage. */
+// записи о фото (order_photos). сами файлы лежат в FileStorage
 export class PhotoRepository {
   constructor(private readonly em: EntityManager) {}
 

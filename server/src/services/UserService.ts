@@ -18,7 +18,7 @@ const DOCUMENT_LABELS: Record<DocumentType, string> = {
   [DocumentType.Sts]: 'СТС',
 };
 
-/** Профиль текущего пользователя и документы для верификации водителя (UC-01). */
+// профиль текущего юзера и документы для верификации водителя (UC-01)
 export class UserService {
   private readonly users: UserRepository;
   private readonly documents: DocumentRepository;
@@ -34,7 +34,7 @@ export class UserService {
   }
 
   async updateProfile(user: User, input: UserUpdateInput) {
-    // Служебное имя нельзя взять и после регистрации; у администратора оно таким и должно быть
+    // служебное имя нельзя взять и после регистрации. у админа оно таким и должно быть, его не проверяем
     if (input.fullName && input.fullName !== user.fullName && user.role !== UserRole.Admin) {
       assertNameAllowed(input.fullName);
     }
@@ -45,14 +45,14 @@ export class UserService {
     try {
       await this.ctx.em.flush();
     } catch (e) {
-      // uk_users_phone — на случай, если тот же номер одновременно занял другой аккаунт
+      // uk_users_phone - если этот же номер одновременно занял другой аккаунт
       if (e instanceof UniqueConstraintViolationException) throw duplicateUserError(e);
       throw e;
     }
     return this.getProfile(user);
   }
 
-  /** Отзывы, которые оставили пользователю (UC-19), с пагинацией. */
+  // отзывы, которые оставили юзеру (UC-19), с пагинацией
   async listMyReviews(user: User, page: { limit: number; offset: number }) {
     const [reviews, total] = await new ReviewRepository(this.ctx.em).listByTarget(user.id, page);
     return {
@@ -77,7 +77,7 @@ export class UserService {
     return docs.map((d) => toDocumentResponse(d, this.ctx.config));
   }
 
-  /** Загрузка или замена документа. Пока документы на проверке — менять их нельзя. */
+  // загрузка или замена документа. пока документы на проверке, менять их нельзя
   async uploadDocument(user: User, docType: DocumentType, imageBase64: string) {
     this.requireDriver(user);
     if (user.verificationStatus === VerificationStatus.Pending) {
@@ -98,14 +98,14 @@ export class UserService {
     try {
       await this.ctx.em.flush();
     } catch (e) {
-      await this.ctx.storage.remove(fileKey); // запись не сохранилась — не оставляем «осиротевший» файл
+      await this.ctx.storage.remove(fileKey); // запись в базу не сохранилась - убираю файл, чтобы не висел без записи
       throw e;
     }
     if (oldKey) await this.ctx.storage.remove(oldKey);
     return { document: toDocumentResponse(doc, this.ctx.config), created: !existing };
   }
 
-  /** Отправка на проверку: нужны все три документа. */
+  // отправка на проверку: нужны все три документа
   async submitForVerification(user: User) {
     this.requireDriver(user);
     if (user.verificationStatus === VerificationStatus.Pending) throw new ConflictError('Документы уже на проверке');

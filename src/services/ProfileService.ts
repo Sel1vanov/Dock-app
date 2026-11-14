@@ -3,7 +3,7 @@ import type { DocumentDTO, DocumentType, Page, ReviewDTO, UserDTO } from '../mod
 import { toDocumentDTO, toReviewDTO, toUserDTO } from '../models/mappers';
 import { UserRepository } from '../repositories/UserRepository';
 
-/** Документы для верификации водителя (UC-01). */
+// документы для верификации водителя (UC-01)
 export const VERIFICATION_DOCS: { key: DocumentType; label: string; hint: string; icon: string }[] = [
   { key: 'passport', label: 'Паспорт', hint: 'Разворот с фото', icon: 'card-account-details' },
   { key: 'license', label: 'Водительское удостоверение', hint: 'Лицевая сторона', icon: 'steering' },
@@ -15,7 +15,7 @@ export const ProfileService = {
     return toUserDTO(await UserRepository.updateMe(patch));
   },
 
-  /** Отзывы обо мне, новые сверху (UC-19). */
+  // отзывы обо мне, новые сверху (UC-19)
   async getReviews(offset: number, limit = 10): Promise<Page<ReviewDTO>> {
     const page = await UserRepository.listReviews(limit, offset);
     return { items: page.items.map(toReviewDTO), total: page.total };
@@ -29,7 +29,7 @@ export const ProfileService = {
     await UserRepository.uploadDocument(key, base64);
   },
 
-  /** Отправка на проверку: нужны все три документа (сервер проверит то же самое). */
+  // отправка на проверку: нужны все три документа (сервер проверит то же самое)
   async submitForVerification(uploaded: DocumentType[]): Promise<UserDTO> {
     const missing = VERIFICATION_DOCS.filter((d) => !uploaded.includes(d.key));
     if (missing.length > 0) throw new AppError(`Загрузите: ${missing.map((d) => d.label).join(', ')}`);

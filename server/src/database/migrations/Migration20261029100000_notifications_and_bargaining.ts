@@ -1,16 +1,14 @@
 import { Migration } from '@mikro-orm/migrations';
 
-/**
- * Миграция 3:
- *  1. Таблица notifications — уведомления о событиях заявки, торга, рейса и модерации.
- *  2. bids.counter_price — встречная цена заказчика (двусторонний торг).
- *  3. users.password_changed_at — после смены пароля токены, выданные раньше, не принимаются.
- */
+// миграция 3:
+//  1. таблица notifications - уведомления по заявке, торгу, рейсу и модерации
+//  2. bids.counter_price - встречная цена заказчика (торг в обе стороны)
+//  3. users.password_changed_at - после смены пароля старые токены не принимаются
 export class Migration20261029100000_notifications_and_bargaining extends Migration {
   override name = 'Migration20261029100000_notifications_and_bargaining';
 
   override up(): void {
-    // 1. Уведомления
+    // 1. уведомления
     this.addSql(`create table "notifications" (
       "id" uuid not null default gen_random_uuid(),
       "user_id" uuid not null,
@@ -27,17 +25,17 @@ export class Migration20261029100000_notifications_and_bargaining extends Migrat
       constraint "notifications_order_id_foreign" foreign key ("order_id") references "orders" ("id") on delete cascade,
       constraint "notifications_related_user_id_foreign" foreign key ("related_user_id") references "users" ("id") on delete cascade
     );`);
-    // Список уведомлений пользователя, новые сверху
+    // список уведомлений юзера, новые сверху
     this.addSql(`create index "idx_notifications_user_created" on "notifications" ("user_id", "created_at" desc);`);
-    // Счётчик непрочитанных: индекс только по непрочитанным строкам
+    // счетчик непрочитанных - индекс только по непрочитанным строкам
     this.addSql(`create index "idx_notifications_user_unread" on "notifications" ("user_id") where not is_read;`);
 
-    // 2. Встречная цена заказчика
+    // 2. встречная цена заказчика
     this.addSql(`alter table "bids"
       add column "counter_price" numeric(12,2) null,
       add constraint "ck_bids_counter_price_positive" check (counter_price is null or counter_price > 0);`);
 
-    // 3. Дата смены пароля
+    // 3. дата смены пароля
     this.addSql(`alter table "users" add column "password_changed_at" timestamptz null;`);
   }
 

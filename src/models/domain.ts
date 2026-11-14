@@ -1,19 +1,17 @@
-/**
- * Доменные правила (концептуальные операции классов из SAD, раздел 5):
- * Vehicle.checkCompatibility(), статусная модель Order и права участников.
- * Чистые функции без обращений к сети — их используют сервисы и ViewModel.
- * Окончательно правила проверяет сервер API (и CHECK-ограничения БД), здесь — чтобы не показывать лишних кнопок.
- */
+// доменные правила (операции классов из SAD, раздел 5):
+// Vehicle.checkCompatibility(), статусная модель Order и права участников
+// чистые функции без сети, используются в сервисах и viewmodel
+// окончательно все проверяет сервер (и CHECK-и в базе), тут только чтобы не показывать лишние кнопки
 import type { CargoDTO, DimensionsDTO, OrderStatus, PhotoDTO, PhotoStage, VehicleDTO } from './dto';
 
-// ---------------------------------------------------------------- Vehicle ---
+// --- Vehicle ---
 
 export interface CompatibilityResult {
   ok: boolean;
   issues: string[];
 }
 
-/** UC-09: помещается ли груз в ТС по массе и габаритам и возит ли ТС такой тип груза. */
+// UC-09: влезает ли груз в ТС по весу и габаритам и возит ли ТС такой тип груза
 export function checkCompatibility(vehicle: VehicleDTO, cargo: CargoDTO): CompatibilityResult {
   const issues: string[] = [];
   if (!vehicle.cargoTypes.some((c) => c.code === cargo.type)) issues.push(`не возит: ${cargo.typeName.toLowerCase()}`);
@@ -24,10 +22,8 @@ export function checkCompatibility(vehicle: VehicleDTO, cargo: CargoDTO): Compat
   return { ok: issues.length === 0, issues };
 }
 
-/**
- * Предельные габариты без спецразрешения (ПДД РФ, прил. к ОП): ширина 2,55 м, высота 4 м,
- * длина автопоезда 20 м. Груз за этими пределами — негабаритный (Vision, раздел 6; UC-23).
- */
+// предельные габариты без спецразрешения (ПДД РФ, прил. к ОП): ширина 2,55 м, высота 4 м,
+// длина автопоезда 20 м. все, что больше - негабарит (Vision раздел 6, UC-23)
 export const LEGAL_LIMITS = { widthM: 2.55, heightM: 4, lengthM: 20 } as const;
 
 export function oversizeReasons(cargo: DimensionsDTO): string[] {
@@ -38,14 +34,14 @@ export function oversizeReasons(cargo: DimensionsDTO): string[] {
   return reasons;
 }
 
-// ------------------------------------------------------------------ Order ---
+// --- Order ---
 
 export interface OrderState {
   status: OrderStatus;
   isEscrowLocked: boolean;
 }
 
-/** Шаги прогресса заказа для экрана отслеживания (UC-16). */
+// шаги прогресса заказа для экрана отслеживания (UC-16)
 export const ORDER_TIMELINE: { key: string; label: string }[] = [
   { key: 'published', label: 'Опубликован' },
   { key: 'assigned', label: 'Исполнитель выбран' },
@@ -56,7 +52,7 @@ export const ORDER_TIMELINE: { key: string; label: string }[] = [
   { key: 'completed', label: 'Завершён' },
 ];
 
-/** Индекс текущего шага ORDER_TIMELINE (-1 — заказ отменён или рейс приостановлен спором). */
+// индекс текущего шага в ORDER_TIMELINE (-1 - заказ отменен или рейс на паузе из-за спора)
 export function timelineIndex({ status, isEscrowLocked }: OrderState): number {
   switch (status) {
     case 'Created':
@@ -80,27 +76,27 @@ export function timelineIndex({ status, isEscrowLocked }: OrderState): number {
 
 export const isOpenForBids = (s: OrderState) => s.status === 'Created' || s.status === 'Bidding';
 
-/** Изменить или удалить можно только заявку, на которую ещё никто не откликнулся. */
+// менять и удалять можно только заявку, на которую еще никто не откликнулся
 export const canEdit = (s: OrderState) => s.status === 'Created';
 export const canDelete = canEdit;
 
-/** UC-07: отменить можно до оплаты. */
+// UC-07: отменить можно до оплаты
 export const canCancel = (s: OrderState) => isOpenForBids(s) || (s.status === 'Assigned' && !s.isEscrowLocked);
 
-/** UC-12: оплата после выбора исполнителя. */
+// UC-12: оплата после выбора исполнителя
 export const canPay = (s: OrderState) => s.status === 'Assigned' && !s.isEscrowLocked;
 
 export const hasPhoto = (photos: PhotoDTO[], stage: PhotoStage) => photos.some((p) => p.stage === stage);
 
-/** UC-20: спор открывают после оплаты и до приёмки груза; пока он открыт, рейс приостановлен. */
+// UC-20: спор открывают после оплаты и до приемки груза. пока он открыт, рейс на паузе
 export const canOpenDispute = (s: OrderState) =>
   s.isEscrowLocked && ['Assigned', 'Loading', 'InTransit', 'Unloading'].includes(s.status);
 
-/** UC-18: приёмка — после фотофиксации выгрузки. */
+// UC-18: приемка только после фото выгрузки
 export const canConfirmDelivery = (s: OrderState, photos: PhotoDTO[]) =>
   s.status === 'Unloading' && hasPhoto(photos, 'Unloading');
 
-/** Следующее действие водителя по рейсу (UC-15, UC-17). */
+// следующее действие водителя по рейсу (UC-15, UC-17)
 export type DriverStep =
   | { kind: 'status'; to: OrderStatus; label: string; hint: string }
   | { kind: 'photo'; stage: PhotoStage; label: string; hint: string }

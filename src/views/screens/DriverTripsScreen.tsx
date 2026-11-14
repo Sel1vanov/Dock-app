@@ -6,7 +6,7 @@ import { MyBidBadge, OrderCard, ScreenHeader } from '../components/order';
 import { Banner, Chip, EmptyState, LoadingView, ScreenScroll, Segmented } from '../components/ui';
 import { colors, font, spacing } from '../theme';
 
-/** «Мои рейсы» водителя: рейсы (активные/завершённые, подгрузка страницами) и отправленные отклики. */
+// мои рейсы водителя: рейсы (активные/завершенные, подгрузка страницами) и отправленные отклики
 export function DriverTripsScreen() {
   const vm = useDriverTripsViewModel();
 

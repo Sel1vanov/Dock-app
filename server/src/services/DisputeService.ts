@@ -18,12 +18,10 @@ import { OrderService } from './OrderService.js';
 
 const ALREADY_OPEN = 'По этому заказу уже открыт спор — дождитесь решения администратора';
 
-/**
- * Споры (UC-20, UC-21). Пока спор открыт, заказ в статусе Disputed: рейс приостановлен,
- * средства остаются замороженными. Администратор решает спор:
- *  - в пользу заказчика — заказ отменяется, замороженные средства возвращаются заказчику;
- *  - в пользу водителя — заказ завершается, средства переводятся водителю.
- */
+// споры (UC-20, UC-21). пока спор открыт, заказ в статусе Disputed: рейс на паузе,
+// деньги заморожены. админ решает:
+//  - в пользу заказчика - заказ отменяется, деньги возвращаются заказчику
+//  - в пользу водителя - заказ завершается, деньги уходят водителю
 export class DisputeService {
   private readonly disputes: DisputeRepository;
   private readonly orders: OrderRepository;
@@ -35,7 +33,7 @@ export class DisputeService {
     this.notifications = new NotificationService(ctx);
   }
 
-  /** UC-20: заказчик или назначенный водитель открывает спор после оплаты и до приёмки груза. */
+  // UC-20: заказчик или назначенный водитель открывает спор после оплаты и до приемки груза
   async open(user: User, orderId: string, input: DisputeOpenInput) {
     const order = await this.orders.findById(orderId);
     if (!order) throw new NotFoundError('Заявка не найдена');
@@ -67,33 +65,31 @@ export class DisputeService {
       { order },
     );
     try {
-      await this.ctx.em.flush(); // INSERT спора, UPDATE заказа и уведомления — одна транзакция
+      await this.ctx.em.flush(); // INSERT спора, UPDATE заказа и уведомления - одной транзакцией
     } catch (e) {
-      // Два участника открыли спор одновременно: второй отклоняет частичный уникальный индекс
+      // оба участника открыли спор одновременно - второго отсечет частичный уникальный индекс
       if (e instanceof UniqueConstraintViolationException) throw new ConflictError(ALREADY_OPEN);
       throw e;
     }
     return new OrderService(this.ctx).getDetails(user, order.id);
   }
 
-  /** Очередь администратора. */
+  // очередь админа
   async list(query: AdminDisputesQueryT) {
     const [items, total] = await this.disputes.list(query);
     return { items: items.map(toAdminDisputeResponse), total, limit: query.limit, offset: query.offset };
   }
 
-  /**
-   * UC-21: решение администратора — одна транзакция с явными commit/rollback. Строка спора блокируется
-   * (SELECT … FOR UPDATE): если два администратора решают спор одновременно, второй дождётся первого
-   * и получит 409. Спор, заказ, деньги и уведомления меняются вместе или не меняются вовсе.
-   */
+  // UC-21: решение админа - одна транзакция с явными commit/rollback. строка спора лочится
+  // (SELECT ... FOR UPDATE): если два админа решают одновременно, второй дождется первого
+  // и получит 409. спор, заказ, деньги и уведомления меняются либо все вместе, либо никак
   async resolve(admin: User, disputeId: string, input: DisputeResolveInput) {
     const em = this.ctx.em;
     await em.begin();
     try {
       const dispute = await this.decide(admin, disputeId, input);
       await em.flush();
-      // Уведомления «Новый спор» у всех администраторов больше не требуют внимания
+      // уведомления "новый спор" у всех админов больше не актуальны, помечаю прочитанными
       await new NotificationRepository(em).markReadByOrder(dispute.order.id, NotificationType.DisputeOpened);
       await em.commit();
       return toAdminDisputeResponse(dispute);

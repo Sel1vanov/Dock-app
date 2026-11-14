@@ -12,7 +12,7 @@ import { AdminRepository } from '../repositories/AdminRepository';
 
 export const ADMIN_PAGE_SIZE = 15;
 
-/** Модерация: проверка документов водителей (UC-02), блокировка (UC-22), споры (UC-21). */
+// модерация: проверка документов водителей (UC-02), блокировка (UC-22), споры (UC-21)
 export const AdminService = {
   async listUsers(
     filter: { verificationStatus?: VerificationStatus; role?: UserRole; q?: string },
@@ -43,7 +43,7 @@ export const AdminService = {
     return { items: page.items, total: page.total };
   },
 
-  /** UC-21: в пользу заказчика — возврат и отмена; в пользу водителя — выплата и завершение. */
+  // UC-21: в пользу заказчика - возврат и отмена, в пользу водителя - выплата и завершение
   async resolveDispute(id: string, inFavorOf: 'client' | 'driver', comment: string): Promise<AdminDisputeDTO> {
     return AdminRepository.resolveDispute(id, {
       status: inFavorOf === 'client' ? 'ResolvedClient' : 'ResolvedDriver',

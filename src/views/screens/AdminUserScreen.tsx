@@ -22,7 +22,7 @@ import {
 } from '../components/ui';
 import { colors, font, formatDateTime, formatNumber, radius, spacing } from '../theme';
 
-/** Карточка пользователя для администратора: документы, транспорт, решение по проверке, блокировка. */
+// карточка юзера для админа: документы, транспорт, решение по проверке, блокировка
 export function AdminUserScreen({ userId }: { userId: string }) {
   const vm = useAdminUserViewModel(userId);
   const [opened, setOpened] = useState<string | null>(null);

@@ -11,7 +11,7 @@ export interface VehiclePayload {
   cargoTypeCodes: string[];
 }
 
-/** Транспорт водителя: CRUD /vehicles. */
+// транспорт водителя: CRUD /vehicles
 export const VehicleRepository = {
   list(): Promise<ApiVehicle[]> {
     return apiRequest('GET', '/vehicles');

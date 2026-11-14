@@ -4,7 +4,7 @@ import { usePasswordChangeViewModel } from '../../viewmodels/ProfileViewModels';
 import { Banner, Button, Card, ScreenScroll, TextField } from '../components/ui';
 import { colors, font } from '../theme';
 
-/** Смена пароля по текущему паролю. Остальные устройства после смены выйдут из аккаунта. */
+// смена пароля по текущему. остальные устройства после смены вылетят из аккаунта
 export function PasswordChangeScreen() {
   const vm = usePasswordChangeViewModel();
   return (

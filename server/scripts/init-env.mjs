@@ -1,4 +1,4 @@
-// Создаёт server/.env из .env.example, подставляя случайные секреты. Существующий .env не трогает.
+// делает server/.env из .env.example со случайными секретами. если .env уже есть - не трогает
 import { randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';

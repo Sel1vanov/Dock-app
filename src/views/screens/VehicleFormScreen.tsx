@@ -17,7 +17,7 @@ import {
 } from '../components/ui';
 import { colors, font, spacing } from '../theme';
 
-/** Добавление и изменение ТС: габаритно-весовые характеристики (Vehicle из SAD) и типы перевозимых грузов. */
+// добавление и изменение ТС: габариты и грузоподъемность (Vehicle из SAD) и типы грузов, которые оно возит
 export function VehicleFormScreen({ vehicleId }: { vehicleId?: string }) {
   const vm = useVehicleFormViewModel(vehicleId);
   const { values, errors } = vm;

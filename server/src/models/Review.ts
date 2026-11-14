@@ -4,10 +4,8 @@ import { Check, Entity, Index, ManyToOne, PrimaryKey, Property, Unique } from '@
 import { Order } from './Order.js';
 import { User } from './User.js';
 
-/**
- * Отзыв и оценка контрагенту после завершения заказа (UC-19).
- * Каждая сторона оставляет не больше одного отзыва по заказу; оценить себя нельзя.
- */
+// отзыв и оценка второй стороне после завершения заказа (UC-19)
+// от каждой стороны максимум один отзыв на заказ, себя оценить нельзя
 @Entity({ tableName: 'reviews' })
 @Unique({ name: 'uk_reviews_order_author', properties: ['order', 'author'] })
 @Check({ name: 'ck_reviews_rating_range', expression: 'rating between 1 and 5' })
@@ -19,11 +17,11 @@ export class Review {
   @ManyToOne(() => Order, { deleteRule: 'cascade' })
   order!: Order;
 
-  /** Пользователей с историей отзывов не удаляют физически (RESTRICT) — их блокируют. */
+  // юзеров с отзывами из базы не удаляем (RESTRICT), только блокируем
   @ManyToOne(() => User, { deleteRule: 'restrict' })
   author!: User;
 
-  /** Индекс — для подсчёта рейтинга пользователя (avg по target_id). */
+  // индекс нужен для подсчета рейтинга (avg по target_id)
   @Index({ name: 'idx_reviews_target' })
   @ManyToOne(() => User, { deleteRule: 'restrict' })
   target!: User;

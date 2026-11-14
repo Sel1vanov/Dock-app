@@ -1,8 +1,5 @@
-/**
- * Перечисления предметной области. В PostgreSQL хранятся как text + CHECK (… in (…)):
- * такой столбец проще расширять миграцией, чем нативный enum, а недопустимое значение
- * всё равно отклоняет сама БД.
- */
+// enum'ы предметной области. в postgres лежат как text + CHECK (... in (...)):
+// такой столбец проще расширять миграцией, чем нативный enum, а левое значение база все равно не пропустит
 
 export enum UserRole {
   Client = 'Client',
@@ -10,7 +7,7 @@ export enum UserRole {
   Admin = 'Admin',
 }
 
-/** Статус проверки документов водителя (UC-01, UC-02). */
+// статус проверки документов водителя (UC-01, UC-02)
 export enum VerificationStatus {
   None = 'none',
   Pending = 'pending',
@@ -26,7 +23,7 @@ export enum VehicleType {
   Other = 'Other',
 }
 
-/** Статусная модель заказа (SAD, раздел 5 + docs/SAD-changes.md). */
+// статусы заказа (SAD раздел 5 + docs/SAD-changes.md)
 export enum OrderStatus {
   Created = 'Created',
   Bidding = 'Bidding',
@@ -34,13 +31,13 @@ export enum OrderStatus {
   Loading = 'Loading',
   InTransit = 'InTransit',
   Unloading = 'Unloading',
-  /** Открыт спор (UC-20): рейс приостановлен до решения администратора (UC-21). */
+  // открыт спор (UC-20): рейс на паузе, пока админ не решит (UC-21)
   Disputed = 'Disputed',
   Completed = 'Completed',
   Cancelled = 'Cancelled',
 }
 
-/** Спор по заказу: открыт → решён в пользу заказчика (возврат) или водителя (выплата). */
+// спор: открыт -> решен в пользу заказчика (возврат) или водителя (выплата)
 export enum DisputeStatus {
   Open = 'Open',
   ResolvedClient = 'ResolvedClient',
@@ -64,7 +61,7 @@ export enum DocumentType {
   Sts = 'sts',
 }
 
-/** Типы уведомлений: о каком событии сообщается пользователю. */
+// типы уведомлений - про какое событие сообщаем
 export enum NotificationType {
   BidPlaced = 'BidPlaced',
   BidUpdated = 'BidUpdated',
@@ -85,17 +82,17 @@ export enum NotificationType {
 }
 
 export const OPEN_ORDER_STATUSES = [OrderStatus.Created, OrderStatus.Bidding] as const;
-/** Исполнитель выбран, рейс идёт. После оплаты в этих статусах можно открыть спор. */
+// исполнитель выбран, рейс идет. после оплаты в этих статусах можно открыть спор
 export const ACTIVE_TRIP_STATUSES = [
   OrderStatus.Assigned,
   OrderStatus.Loading,
   OrderStatus.InTransit,
   OrderStatus.Unloading,
 ] as const;
-/** «В работе» у заказчика: рейс идёт или приостановлен спором. */
+// "в работе" у заказчика: рейс идет или стоит на паузе из-за спора
 export const IN_PROGRESS_ORDER_STATUSES = [...ACTIVE_TRIP_STATUSES, OrderStatus.Disputed] as const;
 export const FINISHED_ORDER_STATUSES = [OrderStatus.Completed, OrderStatus.Cancelled] as const;
 
-/** Группы статусов для фильтра списка заявок (GET /orders?status=…). */
+// группы статусов для фильтра списка заявок (GET /orders?status=...)
 export const ORDER_STATUS_GROUPS = ['active', 'open', 'inProgress', 'archive'] as const;
 export type OrderStatusGroup = (typeof ORDER_STATUS_GROUPS)[number];

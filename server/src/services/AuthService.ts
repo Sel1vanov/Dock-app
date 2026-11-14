@@ -13,7 +13,7 @@ import { NotificationService } from './NotificationService.js';
 const DUPLICATE_EMAIL = 'Пользователь с таким email уже зарегистрирован';
 export const DUPLICATE_PHONE = 'Этот номер телефона уже привязан к другому аккаунту';
 
-/** Какое уникальное ограничение таблицы users нарушено — в 409 с указанием поля формы. */
+// смотрит, какое уникальное ограничение users нарушено, и отдает 409 с нужным полем формы
 export function duplicateUserError(e: UniqueConstraintViolationException): ConflictError {
   const constraint = (e as { constraint?: string }).constraint ?? e.message;
   return constraint.includes('uk_users_phone')
@@ -21,14 +21,14 @@ export function duplicateUserError(e: UniqueConstraintViolationException): Confl
     : new ConflictError(DUPLICATE_EMAIL, [{ field: 'email', message: DUPLICATE_EMAIL }]);
 }
 
-/** Имя не должно выдавать пользователя за сотрудника сервиса («Администратор», «Поддержка»). */
+// имя не должно выдавать юзера за сотрудника сервиса (Администратор, Поддержка), см. reservedNames.ts
 export function assertNameAllowed(fullName: string): void {
   if (isReservedName(fullName)) {
     throw new ValidationError(RESERVED_NAME_MESSAGE, [{ field: 'fullName', message: RESERVED_NAME_MESSAGE }]);
   }
 }
 
-/** Регистрация, вход, смена пароля и просьба о его сбросе. */
+// регистрация, логин, смена пароля и просьба о сбросе
 export class AuthService {
   private readonly users: UserRepository;
 
@@ -38,8 +38,8 @@ export class AuthService {
 
   async register(input: RegisterInput) {
     assertNameAllowed(input.fullName);
-    // Один email и один телефон — один аккаунт (в том числе заблокированный: завести второй нельзя).
-    // Проверка приложением — понятная ошибка до попытки записи…
+    // один email и один телефон - один аккаунт (заблокированный тоже считается, второй не завести)
+    // сначала проверяю сам, чтобы отдать понятную ошибку еще до записи
     if (await this.users.existsByEmail(input.email)) {
       throw new ConflictError(DUPLICATE_EMAIL, [{ field: 'email', message: DUPLICATE_EMAIL }]);
     }
@@ -57,7 +57,7 @@ export class AuthService {
     try {
       await this.ctx.em.flush();
     } catch (e) {
-      // …и уникальные ограничения uk_users_email, uk_users_phone в БД — на случай одновременных регистраций.
+      // а уникальные uk_users_email и uk_users_phone в базе страхуют, если зарегистрировались одновременно
       if (e instanceof UniqueConstraintViolationException) throw duplicateUserError(e);
       throw e;
     }
@@ -66,7 +66,7 @@ export class AuthService {
 
   async login(input: LoginInput) {
     const user = await this.users.findByEmailWithPassword(input.email);
-    // Одинаковый ответ для «нет такого email» и «неверный пароль» — не раскрываем, кто зарегистрирован.
+    // ответ одинаковый и для "нет такого email", и для "неверный пароль" - чтобы не палить, кто зарегистрирован
     const ok = await verifyPassword(input.password, user?.passwordHash);
     if (!user || !ok) throw new UnauthorizedError('Неверный email или пароль');
     if (user.isBlocked) throw new ForbiddenError('Аккаунт заблокирован администратором');
@@ -75,7 +75,7 @@ export class AuthService {
     return { ...this.issueToken(user), user: toUserResponse(user, rating) };
   }
 
-  /** Смена пароля по текущему паролю. Токены, выданные до смены, перестают приниматься; выдаётся новый. */
+  // смена пароля по текущему. старые токены перестают приниматься, взамен выдается новый
   async changePassword(user: User, input: PasswordChangeInput) {
     const withHash = await this.users.findByEmailWithPassword(user.email);
     if (!withHash || !(await verifyPassword(input.currentPassword, withHash.passwordHash))) {
@@ -90,11 +90,9 @@ export class AuthService {
     return { ...this.issueToken(withHash), user: toUserResponse(withHash, rating) };
   }
 
-  /**
-   * «Забыли пароль?»: почтового сервиса в проекте нет, поэтому просьба уходит администраторам
-   * уведомлением, а администратор выдаёт временный пароль и сообщает его по телефону из профиля.
-   * Ответ одинаковый для любого email — не раскрываем, кто зарегистрирован.
-   */
+  // "забыли пароль?": почты в проекте нет, поэтому просьба уходит админам уведомлением,
+  // а админ выдает временный пароль и сообщает его по телефону из профиля
+  // ответ одинаковый для любого email - не палим, кто зарегистрирован
   async requestPasswordReset(email: string) {
     const user = await this.users.findByEmail(email);
     const notifications = new NotificationRepository(this.ctx.em);
@@ -118,12 +116,9 @@ export class AuthService {
     };
   }
 
-  /**
-   * Тихое продление сессии: по действующему токену выдаётся новый на тот же срок. Приложение делает это само,
-   * пока им пользуются, поэтому срок жизни токена остаётся коротким, а пароль каждый час вводить не нужно.
-   * Блокировка и смена пароля уже проверены в authenticate; дольше SESSION_MAX_AGE после ввода пароля
-   * сессия не продлевается.
-   */
+  // тихое продление сессии: по живому токену выдается новый на тот же срок. приложение делает это само,
+  // пока им пользуются - так токен живет недолго, а пароль каждый час вводить не надо
+  // блокировка и смена пароля уже проверены в authenticate. дольше SESSION_MAX_AGE после ввода пароля не продлеваем
   async refresh(user: User, sessionStartedAt: number) {
     if (Date.now() / 1000 - sessionStartedAt > this.ctx.config.SESSION_MAX_AGE) {
       throw new UnauthorizedError('Сессия длится слишком долго. Войдите снова', 'TOKEN_EXPIRED');

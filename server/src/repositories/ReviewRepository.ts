@@ -9,7 +9,7 @@ export class ReviewRepository {
     return this.em.create(Review, data);
   }
 
-  /** Отзывы о пользователе, новые сверху; автор подтягивается JOIN-ом в том же запросе. */
+  // отзывы о юзере, новые сверху, автор подтягивается JOIN-ом в том же запросе
   listByTarget(targetId: string, page: { limit: number; offset: number }): Promise<[Review[], number]> {
     return this.em.findAndCount(
       Review,

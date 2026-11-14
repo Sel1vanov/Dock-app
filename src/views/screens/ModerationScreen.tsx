@@ -19,7 +19,7 @@ const FILTERS: { value: ModerationFilter; label: string; icon: string }[] = [
   { value: 'all', label: 'Все', icon: 'account-multiple' },
 ];
 
-/** Модерация (UC-02, UC-21, UC-22): проверка документов, пользователи, очередь споров. */
+// модерация (UC-02, UC-21, UC-22): проверка документов, юзеры, очередь споров
 export function ModerationScreen() {
   const [section, setSection] = useState<'users' | 'disputes'>('users');
   const users = useModerationViewModel();
@@ -111,7 +111,7 @@ function UserList({ vm }: { vm: ReturnType<typeof useModerationViewModel> }) {
   );
 }
 
-/** Очередь споров (UC-21): нажатие открывает карточку заявки, где администратор принимает решение. */
+// очередь споров (UC-21): нажатие открывает карточку заявки, там админ и принимает решение
 function DisputeQueue({ vm }: { vm: ReturnType<typeof useDisputeQueueViewModel> }) {
   return (
     <>

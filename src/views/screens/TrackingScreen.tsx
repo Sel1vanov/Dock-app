@@ -18,10 +18,8 @@ import {
 } from '../components/ui';
 import { colors, family, font, formatDateTime, formatPrice, radius, spacing } from '../theme';
 
-/**
- * TrackingScreen (SAD 5.2): статус рейса (UC-15, UC-16), фотофиксация (UC-17),
- * оплата (UC-12), приёмка груза (UC-18), отзыв (UC-19) и спор (UC-20).
- */
+// TrackingScreen (SAD 5.2): статус рейса (UC-15, UC-16), фото груза (UC-17),
+// оплата (UC-12), приемка груза (UC-18), отзыв (UC-19) и спор (UC-20)
 export function TrackingScreen({ orderId }: { orderId: string }) {
   const vm = useTrackingViewModel(orderId);
   const order = vm.order;
@@ -62,7 +60,7 @@ export function TrackingScreen({ orderId }: { orderId: string }) {
 
       {order.dispute ? <DisputeCard dispute={order.dispute} price={order.price} actions={vm.dispute} /> : null}
 
-      {/* ----------------------------------------- Действия водителя ---- */}
+      {/* --- действия водителя --- */}
       {vm.nextStep ? (
         <Card style={styles.actionCard}>
           <Text style={styles.actionHint}>{vm.nextStep.hint}</Text>
@@ -86,7 +84,7 @@ export function TrackingScreen({ orderId }: { orderId: string }) {
         </Card>
       ) : null}
 
-      {/* ---------------------------------------- Действия заказчика ---- */}
+      {/* --- действия заказчика --- */}
       {vm.canPay ? (
         <Banner
           tone="warning"

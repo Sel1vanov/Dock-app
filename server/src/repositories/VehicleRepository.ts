@@ -2,11 +2,11 @@ import type { EntityManager } from '@mikro-orm/postgresql';
 
 import { Vehicle } from '../models/index.js';
 
-/** Транспорт водителей (vehicles + связь N:M vehicle_cargo_types). */
+// транспорт водителей (vehicles + N:M vehicle_cargo_types)
 export class VehicleRepository {
   constructor(private readonly em: EntityManager) {}
 
-  /** Типы грузов (N:M) догружаются одним запросом IN (…) для всех ТС — аналог selectinload. */
+  // типы грузов (N:M) догружаются одним запросом IN (...) на все ТС, как selectinload
   listByDriver(driverId: string): Promise<Vehicle[]> {
     return this.em.find(
       Vehicle,
@@ -15,7 +15,7 @@ export class VehicleRepository {
     );
   }
 
-  /** ТС сразу нескольких водителей (для списка откликов) — без запроса на каждого водителя. */
+  // ТС сразу нескольких водителей (для списка откликов), без запроса на каждого
   async listByDrivers(driverIds: string[]): Promise<Map<string, Vehicle[]>> {
     const result = new Map<string, Vehicle[]>();
     if (driverIds.length === 0) return result;

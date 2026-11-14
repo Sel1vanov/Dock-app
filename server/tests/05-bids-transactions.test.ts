@@ -1,7 +1,5 @@
-/**
- * Кейс 4: многошаговая операция «выбор исполнителя» атомарна — commit при успехе,
- * rollback при ошибке на любом шаге; уникальность отклика обеспечивается и сервисом, и БД.
- */
+// кейс 4: выбор исполнителя (несколько шагов) атомарен - commit если все ок,
+// rollback при ошибке на любом шаге. уникальность отклика держит и сервис, и база
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 
@@ -97,7 +95,7 @@ describe('Отклики и выбор исполнителя', () => {
       .myBid;
     await api(ctx, 'POST', `/orders/${order.id}/bids`, { token: d2.token, body: { price: 39000 } });
 
-    // Имитируем сбой: шаги 1–2 (UPDATE orders, UPDATE bids) уже отправлены в БД, шаг 3 падает.
+    // имитирую сбой: шаги 1-2 (UPDATE orders, UPDATE bids) уже ушли в базу, шаг 3 падает
     const original = BidRepository.prototype.rejectPendingExcept;
     BidRepository.prototype.rejectPendingExcept = async () => {
       throw new Error('Сбой соединения с БД (имитация)');

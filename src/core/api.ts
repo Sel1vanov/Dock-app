@@ -1,11 +1,9 @@
-/**
- * HTTP-клиент API v1. Добавляет заголовок Authorization: Bearer <JWT>, разбирает ответы
- * и ошибки сервера. При 401 (токен истёк или недействителен) сообщает AuthViewModel,
- * чтобы удалить токен и вернуть пользователя на экран входа.
- *
- * Пока приложением пользуются, токен тихо продлевается (POST /auth/refresh): срок его жизни
- * остаётся коротким, но пароль заново вводить не приходится.
- */
+// http-клиент для api v1. сам ставит Authorization: Bearer <JWT>, разбирает ответы
+// и ошибки сервера. на 401 (токен протух или отозван) дергает AuthViewModel,
+// чтобы тот удалил токен и вернул юзера на экран входа
+//
+// пока приложением пользуются, токен тихо продлевается (POST /auth/refresh):
+// живет он недолго, но пароль заново вводить не приходится
 import { API_BASE, API_URL } from './config';
 import { ApiError, AppError, toAppError } from './errors';
 import { tokenStorage } from './tokenStorage';
@@ -14,28 +12,28 @@ type Query = Record<string, string | number | boolean | undefined | null>;
 
 let unauthorizedHandler: ((reason: string) => void) | null = null;
 
-/** Подписка на «сессия больше не действительна» (один обработчик — AuthViewModel). */
+// подписка на "сессия больше не действует" (обработчик один - AuthViewModel)
 export function onUnauthorized(handler: ((reason: string) => void) | null) {
   unauthorizedHandler = handler;
 }
 
 const REQUEST_TIMEOUT_MS = 20_000;
 
-// ------------------------------------------------------ продление сессии ---
+// --- продление сессии ---
 
-/** Когда токен пора продлить (мс). 0 — токен взят из хранилища при запуске: продлеваем при первом же запросе. */
+// когда пора продлевать токен (мс). 0 - токен достали из хранилища при запуске, продлеваем на первом же запросе
 let renewAfter = 0;
 let isRenewing = false;
-/** После неудачной попытки (нет сети, сессия слишком давняя) следующую делаем не раньше чем через 5 минут. */
+// если продлить не вышло (нет сети, сессия слишком старая) - следующая попытка не раньше чем через 5 минут
 const RENEW_RETRY_MS = 5 * 60_000;
 
-/** Сохранить выданный сервером токен; продлевать его начнём с половины срока действия. */
+// сохранить токен от сервера. продлевать начнем с половины его срока
 export async function saveToken(issued: { accessToken: string; expiresIn: number }): Promise<void> {
   await tokenStorage.set(issued.accessToken);
   renewAfter = Date.now() + (issued.expiresIn * 1000) / 2;
 }
 
-/** Вызывается после каждого успешного запроса с токеном: если подошло время — получить новый токен. */
+// вызывается после каждого успешного запроса с токеном: если пора - берем новый токен
 async function renewSessionIfDue(): Promise<void> {
   if (isRenewing || Date.now() < renewAfter) return;
   isRenewing = true;
@@ -45,10 +43,10 @@ async function renewSessionIfDue(): Promise<void> {
     const issued = await apiRequest<{ accessToken: string; expiresIn: number }>('POST', '/auth/refresh', {
       isSessionRenewal: true,
     });
-    // Пока шёл запрос, пользователь мог выйти или войти под другим аккаунтом — тогда новый токен не нужен
+    // пока шел запрос, юзер мог выйти или зайти под другим аккаунтом - тогда новый токен не нужен
     if ((await tokenStorage.get()) === current) await saveToken(issued);
   } catch {
-    // Продлить не удалось: текущий токен действует до конца своего срока, попробуем позже
+    // продлить не получилось: текущий токен еще работает до конца срока, попробуем позже
     renewAfter = Date.now() + RENEW_RETRY_MS;
   } finally {
     isRenewing = false;
@@ -104,11 +102,11 @@ export async function apiRequest<T>(
     error?.message ?? (response.status >= 500 ? 'Ошибка сервера. Попробуйте позже' : 'Запрос не выполнен'),
     fieldErrors,
   );
-  // 401 на защищённом запросе — токен истёк или отозван: завершаем сессию.
-  // Отказ в продлении сессию не завершает: текущий токен ещё действует.
+  // 401 на закрытом запросе - токен протух или отозван, завершаем сессию
+  // а вот отказ в продлении сессию не завершает: текущий токен еще живой
   if (response.status === 401 && token && !options.isSessionRenewal) unauthorizedHandler?.(apiError.message);
   throw apiError;
 }
 
-/** Абсолютная ссылка на файл (сервер отдаёт относительный путь с подписью). */
+// абсолютная ссылка на файл (сервер отдает относительный путь с подписью)
 export const fileUrl = (path: string) => (path.startsWith('http') ? path : `${API_URL}${path}`);

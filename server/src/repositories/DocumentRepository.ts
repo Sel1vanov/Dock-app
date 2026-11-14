@@ -2,7 +2,7 @@ import type { EntityManager } from '@mikro-orm/postgresql';
 
 import { type DocumentType, VerificationDocument } from '../models/index.js';
 
-/** Документы водителя для верификации (verification_documents). */
+// документы водителя для верификации (verification_documents)
 export class DocumentRepository {
   constructor(private readonly em: EntityManager) {}
 

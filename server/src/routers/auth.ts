@@ -10,10 +10,8 @@ import {
 } from '../schemas/auth.js';
 import { errorResponses } from '../schemas/common.js';
 
-/**
- * Регистрация, вход и просьба о сбросе пароля — публичные, ограничены по частоте (защита от перебора паролей).
- * Продление сессии (/refresh) требует действующий токен.
- */
+// регистрация, логин и просьба о сбросе пароля - публичные, с лимитом по частоте (от перебора паролей)
+// продление сессии (/refresh) требует живой токен
 export const authRouter: FastifyPluginAsyncZod = async (app) => {
   const rateLimit = { max: 10, timeWindow: '1 minute' };
 

@@ -1,9 +1,9 @@
 import { apiRequest } from '../core/api';
 import type { ApiDriverBid, ApiOrderDetails } from '../models/api';
 
-/** Отклики и торг: /orders/{id}/bids, /bids/… */
+// отклики и торг: /orders/{id}/bids, /bids/...
 export const BidRepository = {
-  /** UC-10 / UC-11: отклик по цене заказчика или со встречной ценой. */
+  // UC-10 / UC-11: отклик по цене заказчика или со своей ценой
   place(orderId: string, price: number, comment: string): Promise<ApiOrderDetails> {
     return apiRequest('POST', `/orders/${orderId}/bids`, { body: comment ? { price, comment } : { price } });
   },
@@ -16,17 +16,17 @@ export const BidRepository = {
     return apiRequest('DELETE', `/bids/${bidId}`);
   },
 
-  /** Заказчик предлагает водителю встречную цену. */
+  // заказчик предлагает водителю встречную цену
   counter(bidId: string, price: number): Promise<ApiOrderDetails> {
     return apiRequest('POST', `/bids/${bidId}/counter`, { body: { price } });
   },
 
-  /** Водитель соглашается на встречную цену заказчика. */
+  // водитель соглашается на встречную цену заказчика
   acceptCounter(bidId: string): Promise<ApiOrderDetails> {
     return apiRequest('POST', `/bids/${bidId}/accept-counter`);
   },
 
-  /** UC-06: выбор исполнителя — на сервере одна транзакция. */
+  // UC-06: выбор исполнителя, на сервере это одна транзакция
   accept(bidId: string): Promise<ApiOrderDetails> {
     return apiRequest('POST', `/bids/${bidId}/accept`);
   },

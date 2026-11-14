@@ -1,7 +1,7 @@
 import { apiRequest } from '../core/api';
 import type { ApiNotificationPage } from '../models/api';
 
-/** Уведомления текущего пользователя: /notifications… */
+// уведомления текущего юзера: /notifications...
 export const NotificationRepository = {
   list(limit: number, offset: number): Promise<ApiNotificationPage> {
     return apiRequest('GET', '/notifications', { query: { limit, offset } });

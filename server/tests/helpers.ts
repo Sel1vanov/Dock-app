@@ -1,7 +1,5 @@
-/**
- * Общая подготовка тестов: отдельная тестовая БД PostgreSQL, развёрнутая с нуля миграциями,
- * и приложение Fastify, к которому запросы отправляются через app.inject() (без сети).
- */
+// общая подготовка тестов: отдельная тестовая база postgres, поднятая с нуля миграциями,
+// и приложение fastify, в которое запросы идут через app.inject() (без сети)
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -20,7 +18,7 @@ loadEnvFile();
 export const TEST_DATABASE_URL =
   process.env.TEST_DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/dock_test';
 
-/** 1×1 JPEG — достаточно, чтобы пройти проверку сигнатуры файла. */
+// jpeg 1x1 - хватает, чтобы пройти проверку сигнатуры файла
 export const TINY_JPEG =
   '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=';
 
@@ -28,12 +26,12 @@ export interface TestContext {
   app: FastifyInstance;
   orm: MikroORM;
   config: Config;
-  /** SQL-запросы ORM, выполненные с момента последнего clearQueries() (для проверки N+1). */
+  // sql-запросы orm с момента последнего clearQueries() (для проверки N+1)
   queries: string[];
   close: () => Promise<void>;
 }
 
-/** Пустая БД → миграции → приложение. Каждый тестовый файл начинает с чистой схемы. */
+// пустая база -> миграции -> приложение. каждый файл с тестами стартует с чистой схемы
 export async function setupTestApp(): Promise<TestContext> {
   const filesDir = await mkdtemp(join(tmpdir(), 'dock-files-'));
   const config = loadConfig({
@@ -61,7 +59,7 @@ export async function setupTestApp(): Promise<TestContext> {
     });
     await orm.schema.ensureDatabase();
   } catch (e) {
-    // Вместо длинного стека — понятная причина: чаще всего PostgreSQL просто не запущен.
+    // вместо длинного стека пишу понятную причину: чаще всего postgres просто не запущен
     const db = new URL(TEST_DATABASE_URL);
     throw new Error(
       `Нет подключения к PostgreSQL (${db.hostname}:${db.port || 5432}): ${e instanceof Error ? e.message : e}. ` +
@@ -69,7 +67,7 @@ export async function setupTestApp(): Promise<TestContext> {
     );
   }
   await orm.em.fork().execute('drop schema if exists public cascade; create schema public;');
-  await orm.migrator.up(); // схема создаётся ТОЛЬКО миграциями
+  await orm.migrator.up(); // схема создается ТОЛЬКО миграциями
   queries.length = 0;
 
   const app = await buildApp({ config, orm });
@@ -88,7 +86,7 @@ export async function setupTestApp(): Promise<TestContext> {
   };
 }
 
-// ------------------------------------------------------------- запросы ---
+// --- запросы ---
 
 export type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -146,7 +144,7 @@ export async function registerUser(
   return { id: response.data.user.id, email, token: response.data.accessToken };
 }
 
-/** Администратора нельзя зарегистрировать через API — создаём его напрямую через ORM. */
+// админа через api зарегистрировать нельзя, поэтому создаю его напрямую через orm
 export async function createAdmin(ctx: TestContext): Promise<TestUser> {
   const em = ctx.orm.em.fork();
   counter += 1;
@@ -156,14 +154,14 @@ export async function createAdmin(ctx: TestContext): Promise<TestUser> {
     passwordHash: await hashPassword('Secret123'),
     role: UserRole.Admin,
     fullName: 'Администратор',
-    phone: `+7998000${String(counter).padStart(4, '0')}`, // один телефон — один аккаунт
+    phone: `+7998000${String(counter).padStart(4, '0')}`, // один телефон - один аккаунт, поэтому номер каждый раз новый
   });
   await em.flush();
   const login = await api(ctx, 'POST', '/auth/login', { body: { email, password: 'Secret123' } });
   return { id: login.data.user.id, email, token: login.data.accessToken };
 }
 
-/** Водитель с подтверждёнными документами и ТС под тип груза Machinery. */
+// водитель с подтвержденными документами и ТС под тип груза Machinery
 export async function createVerifiedDriver(ctx: TestContext, vehicle: Record<string, unknown> = {}) {
   const driver = await registerUser(ctx, 'Driver');
   const em = ctx.orm.em.fork();
