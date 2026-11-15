@@ -1,0 +1,191 @@
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { useOrderFormViewModel } from '../../viewmodels/OrderViewModels';
+import { useCargoTypes } from '../../viewmodels/useCargoTypes';
+import { DimensionTiles, ScreenHeader } from '../components/order';
+import {
+  Banner,
+  Button,
+  Card,
+  EmptyState,
+  FormErrors,
+  Icon,
+  LoadingView,
+  ScreenScroll,
+  SectionTitle,
+  TextField,
+} from '../components/ui';
+import { colors, family, font, radius, spacing } from '../theme';
+
+// OrderCreateScreen (SAD 5.2): UC-03 создать заявку, UC-04 указать габариты и вес, UC-05 маршрут
+// если передан orderId - этот же экран редактирует заявку (пока на нее нет откликов)
+export function OrderFormScreen({ orderId }: { orderId?: string }) {
+  const vm = useOrderFormViewModel(orderId);
+  const { values, errors } = vm;
+  const cargoTypes = useCargoTypes();
+
+  if (vm.isLoading) return <LoadingView />;
+  if (vm.loadError) return <EmptyState icon="alert-circle" title="Заявка недоступна" text={vm.loadError} />;
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      {vm.isEdit ? null : <ScreenHeader title="Что перевозим?" subtitle="Новая заявка" />}
+      {/* после публикации форма создается заново - пустая и прокрученная в начало */}
+      <ScreenScroll key={vm.formKey}>
+        <SectionTitle title="Тип груза" />
+        <View style={styles.types}>
+          {cargoTypes.map((t) => {
+            const selected = values.type === t.value;
+            return (
+              <Pressable
+                key={t.value}
+                onPress={() => vm.setCargoType(t.value)}
+                style={[styles.type, selected && styles.typeSelected]}
+              >
+                <Icon name={t.icon} size={30} color={selected ? colors.accentDark : colors.textSecondary} />
+                <Text style={[styles.typeText, selected && { color: colors.text }]}>{t.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <Card>
+          <TextField
+            label="Описание"
+            placeholder="Например: экскаватор JCB 3CX, без навесного"
+            value={values.description}
+            onChangeText={(t) => vm.setField('description', t)}
+            error={errors.description}
+            multiline
+            maxLength={500}
+          />
+        </Card>
+
+        <SectionTitle title="Габариты и вес" />
+        <Card>
+          <View style={styles.grid}>
+            <TextField
+              style={styles.cell}
+              label="Длина"
+              suffix="м"
+              keyboardType="decimal-pad"
+              placeholder="0,0"
+              value={values.lengthM}
+              onChangeText={(t) => vm.setField('lengthM', t)}
+              error={errors.lengthM}
+            />
+            <TextField
+              style={styles.cell}
+              label="Ширина"
+              suffix="м"
+              keyboardType="decimal-pad"
+              placeholder="0,0"
+              value={values.widthM}
+              onChangeText={(t) => vm.setField('widthM', t)}
+              error={errors.widthM}
+            />
+            <TextField
+              style={styles.cell}
+              label="Высота"
+              suffix="м"
+              keyboardType="decimal-pad"
+              placeholder="0,0"
+              value={values.heightM}
+              onChangeText={(t) => vm.setField('heightM', t)}
+              error={errors.heightM}
+            />
+            <TextField
+              style={styles.cell}
+              label="Масса"
+              suffix="т"
+              keyboardType="decimal-pad"
+              placeholder="0,0"
+              value={values.weightT}
+              onChangeText={(t) => vm.setField('weightT', t)}
+              error={errors.weightT}
+            />
+          </View>
+          {vm.preview.complete ? <DimensionTiles dims={vm.preview.dims} accent /> : null}
+          {vm.preview.oversize.length > 0 ? (
+            <Banner
+              tone="warning"
+              icon="shield-alert"
+              title="Негабаритный груз"
+              text={`${vm.preview.oversize.join(', ')}. Водителю потребуется спецразрешение — заявку увидят только подходящие тралы.`}
+            />
+          ) : null}
+        </Card>
+
+        <SectionTitle title="Маршрут" />
+        <Card>
+          <TextField
+            label="Адрес погрузки (A)"
+            icon="map-marker-outline"
+            placeholder="Город, улица, дом"
+            value={values.origin}
+            onChangeText={(t) => vm.setField('origin', t)}
+            error={errors.origin}
+          />
+          <TextField
+            label="Адрес выгрузки (Б)"
+            icon="map-marker-check"
+            placeholder="Город, улица, дом"
+            value={values.destination}
+            onChangeText={(t) => vm.setField('destination', t)}
+            error={errors.destination}
+          />
+        </Card>
+
+        <SectionTitle title={vm.isEdit ? 'Цена' : 'Начальная цена'} />
+        <Card>
+          <TextField
+            suffix="₽"
+            keyboardType="number-pad"
+            placeholder="45 000"
+            value={values.price}
+            onChangeText={(t) => vm.setField('price', t)}
+            error={errors.price}
+          />
+          <Text style={styles.note}>Водители смогут согласиться с ценой или предложить свою.</Text>
+        </Card>
+
+        {vm.submitError ? (
+          <Banner
+            tone="danger"
+            icon="alert-circle"
+            title={vm.isEdit ? 'Не удалось сохранить' : 'Не удалось опубликовать'}
+            text={vm.submitError}
+          />
+        ) : (
+          <FormErrors errors={errors} />
+        )}
+        <Button
+          title={vm.isEdit ? 'Сохранить изменения' : 'Опубликовать заявку'}
+          icon="check-circle"
+          onPress={vm.submit}
+          loading={vm.isSubmitting}
+        />
+      </ScreenScroll>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  types: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  type: {
+    flexGrow: 1,
+    flexBasis: '30%',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  typeSelected: { borderColor: colors.accent, backgroundColor: colors.accentSoft },
+  typeText: { fontFamily: family.semibold, fontSize: 12, color: colors.textSecondary },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  cell: { flexGrow: 1, flexBasis: '45%' },
+  note: { ...font.small, color: colors.textMuted },
+});

@@ -1,0 +1,22 @@
+// миграции в порядке применения (как цепочка ревизий в alembic)
+// список явный, а не поиск файлов - так одинаково работает и в tsx, и в тестах, и в сборке
+import type { MigrationObject } from '@mikro-orm/core';
+
+import { Migration20261028100000_initial_schema } from './Migration20261028100000_initial_schema.js';
+import { Migration20261028110000_verification_and_search } from './Migration20261028110000_verification_and_search.js';
+import { Migration20261029100000_notifications_and_bargaining } from './Migration20261029100000_notifications_and_bargaining.js';
+import { Migration20261029120000_phone_format } from './Migration20261029120000_phone_format.js';
+import { Migration20261103100000_disputes } from './Migration20261103100000_disputes.js';
+import { Migration20261111100000_unique_phone } from './Migration20261111100000_unique_phone.js';
+
+export const migrationsList: MigrationObject[] = [
+  { name: 'Migration20261028100000_initial_schema', class: Migration20261028100000_initial_schema },
+  { name: 'Migration20261028110000_verification_and_search', class: Migration20261028110000_verification_and_search },
+  {
+    name: 'Migration20261029100000_notifications_and_bargaining',
+    class: Migration20261029100000_notifications_and_bargaining,
+  },
+  { name: 'Migration20261029120000_phone_format', class: Migration20261029120000_phone_format },
+  { name: 'Migration20261103100000_disputes', class: Migration20261103100000_disputes },
+  { name: 'Migration20261111100000_unique_phone', class: Migration20261111100000_unique_phone },
+];

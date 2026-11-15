@@ -1,0 +1,65 @@
+// миграции из консоли (как alembic upgrade/downgrade/current):
+//   npm run db:migrate            - накатить все новые
+//   npm run db:migrate -- down    - откатить последнюю
+//   npm run db:migrate -- status  - что применено и что ждет
+import { loadConfig, loadEnvFile } from '../core/config.js';
+import { initOrm } from './orm.js';
+
+loadEnvFile();
+const config = loadConfig();
+const command = process.argv[2] ?? 'up';
+
+// сразу печатаю, в какую базу идем (без пароля). если не localhost - это не докеровский postgres
+const db = new URL(config.DATABASE_URL);
+const target = `${db.hostname}:${db.port || 5432}${db.pathname}`;
+console.log(`База данных: ${target}`);
+if (!['localhost', '127.0.0.1', '::1', '[::1]'].includes(db.hostname)) {
+  console.warn(
+    `⚠ Это не локальная база из Docker. Если так и задумано — всё в порядке; иначе исправьте DATABASE_URL в server/.env ` +
+      `на postgres://postgres:postgres@localhost:5432/dock`,
+  );
+}
+
+const orm = await initOrm(config);
+
+// в docker-compose стоит postgres 17. если на localhost другая версия - значит порт 5432 занят
+// постгресом, установленным на самом компе, и работаем с ним, а не с докером
+const [{ server_version: version }] = await orm.em.getConnection().execute<{ server_version: string }[]>(
+  'show server_version',
+);
+console.log(`PostgreSQL ${version.split(' ')[0]}`);
+if (/^(localhost|127\.0\.0\.1):5432\//.test(target) && !version.startsWith('17.')) {
+  console.warn(
+    '⚠ Это не PostgreSQL из Docker (там версия 17): похоже, порт 5432 занят PostgreSQL, установленным на компьютере. ' +
+      'Если так и задумано — всё в порядке; иначе остановите его (см. README, «Если что-то не запускается»).',
+  );
+}
+
+try {
+  if (command === 'up') {
+    const applied = await orm.migrator.up();
+    console.log(applied.length ? `Применены: ${applied.map((m) => m.name).join(', ')}` : 'Новых миграций нет');
+  } else if (command === 'down') {
+    const reverted = await orm.migrator.down();
+    console.log(reverted.length ? `Откачены: ${reverted.map((m) => m.name).join(', ')}` : 'Нечего откатывать');
+  } else if (command === 'status') {
+    const executed = await orm.migrator.getExecuted();
+    const pending = await orm.migrator.getPending();
+    for (const m of executed) console.log(`[применена] ${m.name}`);
+    for (const m of pending) console.log(`[ожидает]   ${m.name}`);
+  } else {
+    console.error(`Неизвестная команда: ${command}. Используйте up | down | status`);
+    process.exitCode = 1;
+  }
+} catch (e) {
+  const message = e instanceof Error ? e.message : String(e);
+  console.error('Ошибка миграции:', message);
+  if (/already exists/i.test(message)) {
+    console.error(
+      'База не пустая и не совпадает с миграциями. Пересоздайте её: docker compose down -v && docker compose up -d',
+    );
+  }
+  process.exitCode = 1;
+} finally {
+  await orm.close();
+}

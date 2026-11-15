@@ -1,0 +1,41 @@
+import { apiRequest } from '../core/api';
+import type { ApiDriverBid, ApiOrderDetails } from '../models/api';
+
+// отклики и торг: /orders/{id}/bids, /bids/...
+export const BidRepository = {
+  // UC-10 / UC-11: отклик по цене заказчика или со своей ценой
+  place(orderId: string, price: number, comment: string): Promise<ApiOrderDetails> {
+    return apiRequest('POST', `/orders/${orderId}/bids`, { body: comment ? { price, comment } : { price } });
+  },
+
+  update(bidId: string, price: number, comment: string): Promise<ApiOrderDetails> {
+    return apiRequest('PATCH', `/bids/${bidId}`, { body: { price, comment: comment || null } });
+  },
+
+  withdraw(bidId: string): Promise<void> {
+    return apiRequest('DELETE', `/bids/${bidId}`);
+  },
+
+  // заказчик предлагает водителю встречную цену
+  counter(bidId: string, price: number): Promise<ApiOrderDetails> {
+    return apiRequest('POST', `/bids/${bidId}/counter`, { body: { price } });
+  },
+
+  // водитель соглашается на встречную цену заказчика
+  acceptCounter(bidId: string): Promise<ApiOrderDetails> {
+    return apiRequest('POST', `/bids/${bidId}/accept-counter`);
+  },
+
+  // UC-06: выбор исполнителя, на сервере это одна транзакция
+  accept(bidId: string): Promise<ApiOrderDetails> {
+    return apiRequest('POST', `/bids/${bidId}/accept`);
+  },
+
+  reject(bidId: string): Promise<ApiOrderDetails> {
+    return apiRequest('POST', `/bids/${bidId}/reject`);
+  },
+
+  listMine(): Promise<ApiDriverBid[]> {
+    return apiRequest('GET', '/bids/my');
+  },
+};
